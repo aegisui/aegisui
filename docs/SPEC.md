@@ -114,7 +114,7 @@ Se garantiza con la regla ESLint `no-literal-design-values` (ver §7).
 
 ### ADR-005: Angular moderno, sin concesiones
 
-- Angular **20+**, standalone (**prohibido `NgModule`**), **zoneless**.
+- Angular **22**, standalone (**prohibido `NgModule`**), **zoneless**.
 - API **exclusivamente signals**: `input()`, `output()`, `model()`, `computed()`,
   `linkedSignal()`, `resource()`.
 - **Prohibidos** los decoradores `@Input()` / `@Output()`.
@@ -132,7 +132,7 @@ Nuestra ventaja es no arrastrar deuda.
 |---|---|
 | Monorepo | Nx |
 | Build de librerías | ng-packagr |
-| Framework | Angular 20+ |
+| Framework | Angular 22 |
 | Tests unitarios | Vitest + Angular Testing Library |
 | Tests E2E / visuales | Playwright |
 | Accesibilidad | axe-core (`@axe-core/playwright`) |
@@ -143,6 +143,11 @@ Nuestra ventaja es no arrastrar deuda.
 | Formato | Prettier |
 | Package manager | pnpm |
 | CI | GitHub Actions |
+
+> **Nota sobre versiones:** el toolchain se fija por **coherencia interna**, no por
+> "la última de cada pieza". La versión de TypeScript la **acota Angular** (Angular 22
+> exige TS 6.0.x; por eso no usamos TS 7). Todas las versiones se pinean **exactas**
+> (sin `^` ni `~`) para builds reproducibles.
 
 ---
 
@@ -513,7 +518,7 @@ arregla. El fix queda demostrado, no asumido.
 
 - [ ] Monorepo Nx + pnpm workspace
 - [ ] Paquetes vacíos: `tokens`, `cdk`, `ui`, `icons`, `cli`
-- [ ] App `sandbox` (Angular 20, zoneless, standalone)
+- [ ] App `sandbox` (Angular 22, zoneless, standalone)
 - [ ] ESLint flat config + Prettier
 - [ ] Implementar las **11** reglas ESLint propias de §7, con sus tests (RuleTester)
 - [ ] Vitest configurado y corriendo

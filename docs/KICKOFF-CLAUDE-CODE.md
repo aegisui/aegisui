@@ -95,7 +95,7 @@ el esqueleto no se puede saltar.
 |---|---|
 | ¿Scope npm definitivo? | `@aegisui` |
 | ¿Prefijo de selectores y tokens? | `aegis-` (`<aegis-button>`, `--aegis-btn-bg`) |
-| ¿Versión exacta de Angular? | La última estable de la línea 20+ |
+| ¿Versión exacta de Angular? | `22.0.6` exacto (sin `^`/`~`); "20+" del spec era un suelo, no un objetivo |
 | ¿Storybook en `apps/docs` o paquete aparte? | En `apps/docs` |
 | ¿Registro de publicación? | npm público para el core |
 | ¿Playwright con qué navegadores? | Chromium para snapshots; Firefox solo para el pase manual de a11y |
