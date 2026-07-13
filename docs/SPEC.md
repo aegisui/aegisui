@@ -149,6 +149,39 @@ Nuestra ventaja es no arrastrar deuda.
 > exige TS 6.0.x; por eso no usamos TS 7). Todas las versiones se pinean **exactas**
 > (sin `^` ni `~`) para builds reproducibles.
 
+### 3.1 Compatibilidad de versiones (`peerDependencies`)
+
+**Compilamos con Angular 22; soportamos desde Angular 20.**
+
+`peerDependencies` de los paquetes con runtime Angular (`cdk`, `ui`, `icons`):
+
+```
+"@angular/core":   "^20.0.0 || ^21.0.0 || ^22.0.0"
+"@angular/common": "^20.0.0 || ^21.0.0 || ^22.0.0"
+```
+
+**Por qué el suelo está en 20, y no más abajo ni cerrado en `^22`:**
+
+- Una librería construida con ng-packagr no emite código final, sino *partial
+  declarations*; la app consumidora las finaliza con **su propio** Angular linker.
+  Cada declaración lleva un `minVersion` embebido = la versión mínima de Angular cuyo
+  linker soporta las **features usadas** (no la versión de build). Toda la API del
+  spec (`input()`, `output()`, `model()`, `computed()`, `linkedSignal()`,
+  `resource()`) existe en Angular ≤19, así que el suelo real hoy es muy inferior a 22:
+  una app en Angular 20 consume nuestros componentes sin problema. **Verificado
+  empíricamente** (lib trivial Angular 22 → linkers 20 y 21: OK).
+- Bajar a 17/18 no daría ninguna feature extra y nos obligaría a soportar versiones
+  fuera de mantenimiento — mala señal para una librería que vende "sin deuda heredada".
+- Cerrar en `^22` estrecharía el mercado sin ganar nada.
+
+**El número no se declara y ya:** ng-packagr **copia literal** el `peerDependencies`
+del `package.json` fuente, no lo calcula. Un peer amplio sin verificación es una
+esperanza, no una política. Por eso se blinda con el gate `peer-floor` (§9.2), que
+lee el `minVersion` del **artefacto construido** y falla si supera `20.0.0`.
+
+**Subir el suelo (p. ej. a `^21`) es un cambio MAJOR** y exige justificación explícita
+en el PR. Nunca por comodidad de poder usar una feature nueva.
+
 ---
 
 ## 4. Estructura del repositorio público
@@ -417,6 +450,10 @@ target-size   → todo elemento interactivo ≥ 24×24 px (WCAG 2.5.8)
 visual        → Playwright, 0 diffs no aprobados
 size          → size-limit, presupuesto por paquete
 build         → todos los paquetes compilan con ng-packagr
+peer-floor    → el minVersion embebido en cada FESM CONSTRUIDO ≤ 20.0.0, para
+                garantizar el peerDependencies "^20 || ^21 || ^22" (ver §3.1).
+                Lee el artefacto, no el package.json fuente. Dos direcciones:
+                pasa con APIs ≤20, falla si se fuerza minVersion > 20
 contracts     → todo componente tiene contrato y todo contrato tiene componente
 changeset     → todo PR que toca packages/** debe incluir un changeset
 ```
