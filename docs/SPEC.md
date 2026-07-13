@@ -515,15 +515,38 @@ arregla. El fix queda demostrado, no asumido.
 - [ ] Paquetes vacíos: `tokens`, `cdk`, `ui`, `icons`, `cli`
 - [ ] App `sandbox` (Angular 20, zoneless, standalone)
 - [ ] ESLint flat config + Prettier
-- [ ] Implementar las 8 reglas ESLint propias de §7, con sus tests
+- [ ] Implementar las **11** reglas ESLint propias de §7, con sus tests (RuleTester)
 - [ ] Vitest configurado y corriendo
 - [ ] Playwright configurado
 - [ ] Changesets configurado
 - [ ] `ci.yml` con todos los gates de §9.2
 - [ ] `CONTRIBUTING.md`
 
-**Definition of Done:** un PR vacío pasa CI en verde; un PR que viola cualquier
-regla de §7 se bloquea con un mensaje claro. **Demostrar ambas cosas.**
+**Definition of Done — el entregable real de la Fase 1 son los gates probados:**
+
+Un gate que no tiene nada que testear pasa en verde, y ese verde no significa nada.
+Es la trampa clásica de CI. Por eso la Fase 1 se valida con **fixtures**, no con
+promesas.
+
+Crear `tools/fixtures/` con dos artefactos que NO se publican:
+
+- `fixtures/good/` → un componente mínimo, deliberadamente **correcto**
+- `fixtures/bad/` → el mismo componente, deliberadamente **roto**, violando una a una
+  las 11 reglas de §7 y los checks de §9.2 (color literal, `outline: none`,
+  contraste insuficiente, target < 24px, sin contrato, sin `OnPush`…)
+
+Cada gate de §9.2 debe demostrar **las dos direcciones**:
+
+1. **Pasa** sobre `fixtures/good/`
+2. **Falla, y con un mensaje que explica cómo arreglarlo**, sobre `fixtures/bad/`
+
+Un gate que solo demuestra (1) no está terminado.
+
+**Regla anti-verde-falso:** cualquier gate que no encuentre objetivos que analizar
+debe **fallar ruidosamente** ("no targets found"), nunca pasar en silencio.
+
+Los fixtures se quedan en el repo para siempre: son el test de regresión de los
+raíles. El día que alguien afloje una regla, los fixtures se ponen rojos.
 
 ### FASE 2 — Tokens y theming
 
