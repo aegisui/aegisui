@@ -1,0 +1,15 @@
+{
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "name": "cdk",
+  "projectType": "library",
+  "sourceRoot": "packages/cdk/src",
+  "targets": {
+    "build": {
+      "executor": "nx:run-commands",
+      "outputs": ["{workspaceRoot}/dist/packages/cdk"],
+      "options": {
+        "command": "ng-packagr -p packages/cdk/ng-package.json"
+      }
+    }
+  }
+}

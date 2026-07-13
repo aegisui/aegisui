@@ -1,0 +1,7 @@
+{
+  "name": "@aegisui/icons",
+  "version": "0.0.0",
+  "description": "Set de iconos de Aegis UI. Contenido real en su fase.",
+  "license": "MIT",
+  "type": "module"
+}
