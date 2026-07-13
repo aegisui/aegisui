@@ -1,0 +1,9 @@
+node_modules
+dist
+.nx
+coverage
+pnpm-lock.yaml
+
+# Los documentos de docs/ están escritos a mano (tablas, formato deliberado).
+# Prettier sobre markdown de prosa genera ruido; se excluyen por ahora.
+**/*.md
