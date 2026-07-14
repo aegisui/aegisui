@@ -1,6 +1,6 @@
 {
   "name": "aegisui",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "CLI de Aegis UI (`npx aegisui add <component>`). Contenido real en su fase.",
   "license": "MIT",
   "type": "module",

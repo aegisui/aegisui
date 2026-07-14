@@ -1,6 +1,6 @@
 {
   "name": "@aegisui/cdk",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Primitivas headless de Aegis UI (sin estilo). Lógica, a11y, posicionamiento.",
   "license": "MIT",
   "sideEffects": false,

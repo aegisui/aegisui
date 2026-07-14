@@ -12,7 +12,10 @@
     "nx": "nx",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "changeset": "changeset",
+    "version": "changeset version",
+    "release": "changeset publish --tag next"
   },
   "devDependencies": {
     "@angular/build": "22.0.6",
@@ -22,6 +25,7 @@
     "@angular/compiler-cli": "22.0.6",
     "@angular/core": "22.0.6",
     "@angular/platform-browser": "22.0.6",
+    "@changesets/cli": "2.31.0",
     "@eslint/css": "1.4.0",
     "@eslint/js": "10.0.1",
     "@playwright/test": "1.61.1",

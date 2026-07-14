@@ -6,4 +6,4 @@
  * aprobado. La constante mantiene el entry point con al menos un export para que
  * ng-packagr genere un bundle válido.
  */
-export const AEGIS_UI_VERSION = '0.0.0';
+export const AEGIS_UI_VERSION = '0.1.0';

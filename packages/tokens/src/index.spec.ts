@@ -3,6 +3,6 @@ import { AEGIS_TOKENS_VERSION } from './index';
 
 describe('@aegisui/tokens', () => {
   it('expone la versión del paquete', () => {
-    expect(AEGIS_TOKENS_VERSION).toBe('0.0.0');
+    expect(AEGIS_TOKENS_VERSION).toBe('0.1.0');
   });
 });

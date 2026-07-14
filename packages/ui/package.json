@@ -1,6 +1,6 @@
 {
   "name": "@aegisui/ui",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Componentes estilados de Aegis UI (tier FREE), construidos sobre @aegisui/cdk.",
   "license": "MIT",
   "sideEffects": false,
