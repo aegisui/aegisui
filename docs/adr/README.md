@@ -5,7 +5,7 @@ por no entender para qué existe. Formato corto: Contexto / Decisión / Consecue
 
 - **ADR-001 … ADR-005** viven en [`../SPEC.md`](../SPEC.md) §2 (dos repos, brain/skin,
   distribución dual, CSS+Tailwind, Angular moderno).
-- **ADR-006+** (decisiones de implementación de la Fase 1) viven aquí:
+- **ADR-006+** (decisiones de implementación, de la Fase 1 en adelante) viven aquí:
 
 | ADR | Decisión |
 |---|---|
@@ -17,3 +17,4 @@ por no entender para qué existe. Formato corto: Contexto / Decisión / Consecue
 | [011](ADR-011-reglas-eslint-en-js.md) | Reglas ESLint propias en JS ESM (no TS) |
 | [012](ADR-012-css-de-componente-con-eslint-css.md) | Estilos de componente en `.css` lint-eados por `@eslint/css` |
 | [013](ADR-013-fixtures-como-objetivos-de-ci.md) | Los fixtures son objetivos de CI de primera clase (los 6 gates DOM corren contra ellos, dos direcciones) |
+| [014](ADR-014-paleta-jade-graphite.md) | Paleta "Jade & Graphite"; separación jade/estado por hue (68°) y por rol, garantizada por ausencia de token |

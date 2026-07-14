@@ -1,0 +1,53 @@
+{
+  "color": {
+    "surface": {
+      "canvas": { "light": "{color.neutral.0}", "dark": "{color.neutral.950}" },
+      "raised": { "light": "{color.neutral.50}", "dark": "{color.neutral.900}" },
+      "sunken": { "light": "{color.neutral.100}", "dark": "{color.neutral.800}" }
+    },
+    "text": {
+      "strong": { "light": "{color.neutral.900}", "dark": "{color.neutral.100}" },
+      "muted": { "light": "{color.neutral.600}", "dark": "{color.neutral.400}" },
+      "subtle": { "light": "{color.neutral.500}", "dark": "{color.neutral.500}" }
+    },
+    "border": {
+      "default": { "light": "{color.neutral.200}", "dark": "{color.neutral.800}" },
+      "strong": { "light": "{color.neutral.300}", "dark": "{color.neutral.700}" }
+    },
+    "accent": {
+      "solid": { "light": "{color.jade.600}", "dark": "{color.jade.400}" },
+      "solid-hover": { "light": "{color.jade.700}", "dark": "{color.jade.300}" },
+      "on-solid": { "light": "{color.neutral.0}", "dark": "{color.jade.950}" },
+      "text": { "light": "{color.jade.700}", "dark": "{color.jade.400}" },
+      "bg": { "light": "{color.jade.50}", "dark": "{color.jade.900}" },
+      "border": { "light": "{color.jade.600}", "dark": "{color.jade.400}" },
+      "ring": { "light": "{color.jade.600}", "dark": "{color.jade.400}" }
+    },
+    "state": {
+      "success": {
+        "bg": { "light": "{color.green.50}", "dark": "{color.green.900}" },
+        "text": { "light": "{color.green.700}", "dark": "{color.green.300}" },
+        "border": { "light": "{color.green.200}", "dark": "{color.green.800}" },
+        "point": { "light": "{color.green.600}", "dark": "{color.green.400}" }
+      },
+      "warning": {
+        "bg": { "light": "{color.amber.50}", "dark": "{color.amber.900}" },
+        "text": { "light": "{color.amber.800}", "dark": "{color.amber.300}" },
+        "border": { "light": "{color.amber.200}", "dark": "{color.amber.800}" },
+        "point": { "light": "{color.amber.600}", "dark": "{color.amber.400}" }
+      },
+      "danger": {
+        "bg": { "light": "{color.red.50}", "dark": "{color.red.900}" },
+        "text": { "light": "{color.red.700}", "dark": "{color.red.300}" },
+        "border": { "light": "{color.red.200}", "dark": "{color.red.800}" },
+        "point": { "light": "{color.red.600}", "dark": "{color.red.400}" }
+      },
+      "info": {
+        "bg": { "light": "{color.blue.50}", "dark": "{color.blue.900}" },
+        "text": { "light": "{color.blue.700}", "dark": "{color.blue.300}" },
+        "border": { "light": "{color.blue.200}", "dark": "{color.blue.800}" },
+        "point": { "light": "{color.blue.600}", "dark": "{color.blue.400}" }
+      }
+    }
+  }
+}
