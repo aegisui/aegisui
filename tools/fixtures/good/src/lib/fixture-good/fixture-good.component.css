@@ -1,0 +1,19 @@
+.fixture-good {
+  color: var(--aegis-fixture-fg);
+  background: var(--aegis-fixture-bg);
+  border-radius: var(--aegis-fixture-radius);
+  height: auto;
+  transition: opacity 200ms ease;
+}
+
+.fixture-good:focus-visible {
+  outline-width: var(--aegis-fixture-focus-width);
+  outline-style: solid;
+  outline-color: var(--aegis-fixture-focus);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fixture-good {
+    transition: none;
+  }
+}

@@ -118,6 +118,8 @@ importers:
 
   tools/eslint-rules: {}
 
+  tools/fixtures: {}
+
 packages:
 
   '@algolia/abtesting@1.18.0':

@@ -10,3 +10,8 @@ pnpm-lock.yaml
 # Los documentos de docs/ están escritos a mano (tablas, formato deliberado).
 # Prettier sobre markdown de prosa genera ruido; se excluyen por ahora.
 **/*.md
+
+# Mimetizan literalmente la salida del compilador Angular (comillas dobles en
+# minVersion/version); Prettier normalizaría a comillas simples y rompería el
+# regex del gate peer-floor, que replica el formato real del compilador.
+tools/fixtures/peer-floor/*.fesm.mjs

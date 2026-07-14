@@ -1,0 +1,5 @@
+.fixture-bad-tokens {
+  color: var(--aegis-fixture-fg);
+  /* --aegis-fixture-border NO está en el contrato -> tokens-declared-in-contract */
+  border-color: var(--aegis-fixture-border);
+}

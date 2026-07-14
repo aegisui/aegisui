@@ -1,0 +1,19 @@
+/* no-dark-in-component-css: prohibida la palabra "dark" */
+.dark .fixture-bad {
+  color: #ffffff;
+}
+
+.fixture-bad {
+  /* no-literal-design-values: color y radio literales, no var(--aegis-*) */
+  color: #3b82f6;
+  border-radius: 4px;
+
+  /* no-fixed-text-height: altura fija en px */
+  height: 40px;
+
+  /* require-reduced-motion: transition sin bloque prefers-reduced-motion */
+  transition: opacity 200ms ease;
+
+  /* no-outline-none: quita el foco sin sustituto en la misma regla */
+  outline: none;
+}

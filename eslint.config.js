@@ -23,6 +23,10 @@ export default tseslint.config(
       '**/node_modules/**',
       '**/test-results/**',
       '**/playwright-report/**',
+      // Los fixtures good/bad son deliberadamente correctos/rotos; se verifican
+      // con su propio harness (tools/fixtures/src/*.spec.ts vía RuleTester), no
+      // con `pnpm lint`. bad/ violaría el gate a propósito si se incluyera aquí.
+      'tools/fixtures/**',
     ],
   },
   {

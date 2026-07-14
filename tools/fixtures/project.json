@@ -1,0 +1,15 @@
+{
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "name": "fixtures",
+  "projectType": "library",
+  "sourceRoot": "tools/fixtures/src",
+  "targets": {
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "tools/fixtures",
+        "command": "vitest run"
+      }
+    }
+  }
+}
