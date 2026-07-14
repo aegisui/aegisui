@@ -1,64 +1,44 @@
-# Aegis UI — Especificación del proyecto
+# Aegis UI — Especificación técnica
 
-> **Identidad del proyecto (cerrada):**
-> - Nombre: **Aegis UI**
-> - Scope npm: `@aegisui` (`@aegisui/cdk`, `@aegisui/ui`, `@aegisui/tokens`…)
-> - Repo público: `aegisui` · Repo privado: `aegisui-pro`
-> - Prefijo de selectores: `aegis-` (`<aegis-button>`)
-> - Prefijo de tokens CSS: `--aegis-` (`--aegis-btn-bg`)
->
-> **De dónde viene el nombre:** la *égida* es el escudo de Zeus. Es la propuesta de
-> valor entera en una palabra: componentes que no te pueden quitar. MIT de verdad,
-> sin límites de asientos, fuente incluida siempre, accesibilidad blindada.
-> Úsalo en el copy: *"Aegis UI — the components they can't take away from you."*
+> Documento maestro de arquitectura y calidad de Aegis UI.
+> Es la fuente de verdad para cualquier persona (o agente) que trabaje en el repo.
 
 ---
 
 ## 0. Cómo usar este documento
 
-Este es el documento maestro para el agente de desarrollo (Claude Code).
-
-**Reglas para el agente:**
+**Reglas para quien desarrolle aquí, humano o agente:**
 
 1. Lee este documento entero antes de escribir código.
 2. Ejecuta las fases **en orden**. No adelantes trabajo de fases posteriores.
-3. Al terminar cada fase, para y reporta. No continúes sin validación humana.
+3. Al terminar cada fase, para y reporta.
 4. Si una decisión no está en este documento, **pregunta**. No improvises arquitectura.
 5. Todo lo que se declare aquí como regla debe acabar siendo **verificable en CI**.
    Si una regla no se puede automatizar, se discute antes de implementarla.
 
 ---
 
-## 1. Contexto y objetivo
+## 1. Qué es Aegis UI
 
-### 1.1 Qué construimos
+Una librería de componentes UI para Angular: **nativa de signals, zoneless,
+standalone**, con theming 100% configurable y dark mode de primera clase.
 
-Una librería de componentes UI para Angular, nativa de signals, con theming
-100% configurable y dark mode de primera clase.
+### 1.1 Principios
 
-### 1.2 Por qué ahora (la oportunidad)
+- **Código fuente incluido. Siempre.** Sin ofuscación, sin cajas negras.
+- **MIT de verdad** en el core: sin límites de asientos, sin criterios de elegibilidad.
+- **Accesibilidad verificada en CI**, no prometida en el README (WCAG 2.2 AA).
+- **Pocos componentes, excelentes.** No perseguimos un catálogo de 80.
+- **Sin deuda heredada.** Angular moderno, sin concesiones a APIs obsoletas.
 
-En junio de 2026 PrimeTek archivó el repositorio de PrimeNG y movió las futuras
-versiones mayores a licencia comercial (PrimeUI). PrimeNG era la librería de
-componentes por defecto del ecosistema Angular. Miles de equipos se han quedado
-sin ruta de actualización gratuita, y su licencia Community tiene límites
-estrictos (máx. 4 asientos de desarrollador, exclusión del sector público).
+### 1.2 Alcance
 
-El dolor principal reportado por esos equipos **no es el precio: es perder el
-acceso al código fuente** (no poder depurar, depender de tickets de soporte).
+Componentes de formulario, overlays, navegación y datos, más un CDK headless y un
+sistema de tokens. La **ruta de migración desde PrimeNG** (codemod) es parte del
+proyecto (Fase 5).
 
-### 1.3 Nuestra posición
-
-- **Código fuente incluido en todos los tiers.** Siempre. Es el diferenciador.
-- **Core MIT de verdad**, sin límites de asientos ni criterios de elegibilidad.
-- **Ruta de migración asistida desde PrimeNG** (codemod).
-- Premium solo en componentes genuinamente caros de construir.
-
-### 1.4 Lo que NO somos
-
-- No competimos en gráficas (ECharts / AG Charts ya ganan ahí).
-- No perseguimos "80 componentes". Perseguimos pocos, excelentes.
-- No ofuscamos código ni ponemos license keys que rompan en runtime.
+Explícitamente **fuera de alcance**: gráficas. El ecosistema ya está bien servido
+(ECharts, uPlot). Si acaso, wrappers finos, nunca un motor propio.
 
 ---
 
@@ -68,13 +48,16 @@ acceso al código fuente** (no poder depurar, depender de tickets de soporte).
 
 | Repo | Licencia | Contenido |
 |---|---|---|
-| `aegisui` (público) | MIT | tokens, cdk, ui, icons, cli, codemod, docs |
-| `aegisui-pro` (privado) | Comercial | grid, scheduler, gantt, editor, dashboard |
+| `aegisui` (este) | MIT | tokens, cdk, ui, icons, cli, codemod, docs |
+| `aegisui-pro` | Comercial | componentes avanzados (fuera del alcance de este repo) |
 
-El repo Pro consume el público **vía npm**, como cualquier cliente externo.
+El repo `pro` consume el público **vía npm**, como cualquier consumidor externo.
 Nunca como path local. Esto garantiza que la API pública es realmente usable.
 
-**Razón:** un monorepo único filtraría el código Pro en el historial de git.
+**Razón:** un monorepo único mezclaría ambos en el historial de git.
+
+**Y una regla que no se negocia:** el código fuente se entrega en los dos casos.
+Sin ofuscación, sin cajas negras, sin claves que rompan en runtime.
 
 ### ADR-002: Arquitectura brain / skin (headless + estilado)
 
@@ -114,7 +97,7 @@ Se garantiza con la regla ESLint `no-literal-design-values` (ver §7).
 
 ### ADR-005: Angular moderno, sin concesiones
 
-- Angular **22**, standalone (**prohibido `NgModule`**), **zoneless**.
+- Angular **22** (soportando desde 20, ver §3.1), standalone (**prohibido `NgModule`**), **zoneless**.
 - API **exclusivamente signals**: `input()`, `output()`, `model()`, `computed()`,
   `linkedSignal()`, `resource()`.
 - **Prohibidos** los decoradores `@Input()` / `@Output()`.
@@ -132,7 +115,7 @@ Nuestra ventaja es no arrastrar deuda.
 |---|---|
 | Monorepo | Nx |
 | Build de librerías | ng-packagr |
-| Framework | Angular 22 |
+| Framework | Angular 22 (peer: ^20 \|\| ^21 \|\| ^22) |
 | Tests unitarios | Vitest + Angular Testing Library |
 | Tests E2E / visuales | Playwright |
 | Accesibilidad | axe-core (`@axe-core/playwright`) |
@@ -144,47 +127,44 @@ Nuestra ventaja es no arrastrar deuda.
 | Package manager | pnpm |
 | CI | GitHub Actions |
 
-> **Nota sobre versiones:** el toolchain se fija por **coherencia interna**, no por
-> "la última de cada pieza". La versión de TypeScript la **acota Angular** (Angular 22
-> exige TS 6.0.x; por eso no usamos TS 7). Todas las versiones se pinean **exactas**
-> (sin `^` ni `~`) para builds reproducibles.
+### 3.1 Política de versiones y `peerDependencies`
 
-### 3.1 Compatibilidad de versiones (`peerDependencies`)
+**El toolchain se fija por coherencia interna, no por "la última de cada pieza".**
+TypeScript lo acota Angular: usa la que Angular exija, no la más nueva.
 
-**Compilamos con Angular 22; soportamos desde Angular 20.**
+- Angular de build: **22.x exacto** (sin `^`, sin `~`)
+- Node: **22 LTS** · pnpm vía `corepack` + campo `packageManager`
 
-`peerDependencies` de los paquetes con runtime Angular (`cdk`, `ui`, `icons`):
+**`peerDependencies` de los paquetes publicados:**
 
+```json
+"peerDependencies": {
+  "@angular/core": "^20.0.0 || ^21.0.0 || ^22.0.0",
+  "@angular/common": "^20.0.0 || ^21.0.0 || ^22.0.0"
+}
 ```
-"@angular/core":   "^20.0.0 || ^21.0.0 || ^22.0.0"
-"@angular/common": "^20.0.0 || ^21.0.0 || ^22.0.0"
-```
 
-**Por qué el suelo está en 20, y no más abajo ni cerrado en `^22`:**
+**Compilamos con 22, pero soportamos desde 20.** Es posible porque lo que decide la
+compatibilidad **no es la versión de build, sino el `minVersion` que Angular embebe
+en cada declaración del FESM** según las features que uses. Toda la API que este
+spec declara (`input`, `output`, `model`, `computed`, `linkedSignal`, `resource`)
+existe en Angular ≤ 19, así que el suelo real hoy es muy inferior a 20.
 
-- Una librería construida con ng-packagr no emite código final, sino *partial
-  declarations*; la app consumidora las finaliza con **su propio** Angular linker.
-  Cada declaración lleva un `minVersion` embebido = la versión mínima de Angular cuyo
-  linker soporta las **features usadas** (no la versión de build). Toda la API del
-  spec (`input()`, `output()`, `model()`, `computed()`, `linkedSignal()`,
-  `resource()`) existe en Angular ≤19, así que el suelo real hoy es muy inferior a 22:
-  una app en Angular 20 consume nuestros componentes sin problema. **Verificado
-  empíricamente** (lib trivial Angular 22 → linkers 20 y 21: OK).
-- Bajar a 17/18 no daría ninguna feature extra y nos obligaría a soportar versiones
-  fuera de mantenimiento — mala señal para una librería que vende "sin deuda heredada".
-- Cerrar en `^22` estrecharía el mercado sin ganar nada.
+⚠️ **`ng-packagr` NO calcula el `peerDependencies`: copia literalmente lo que le
+escribas.** Un peer amplio sin verificación es una promesa que se rompe sola el día
+que alguien use una API de Angular 21. Por eso existe el gate `peer-floor` (§9.2),
+que lee el `minVersion` del **artefacto construido** y falla si supera 20.0.0.
 
-**El número no se declara y ya:** ng-packagr **copia literal** el `peerDependencies`
-del `package.json` fuente, no lo calcula. Un peer amplio sin verificación es una
-esperanza, no una política. Por eso se blinda con el gate `peer-floor` (§9.2), que
-lee el `minVersion` del **artefacto construido** y falla si supera `20.0.0`.
+**Subir el suelo (p.ej. a 21) es un cambio `major`** y requiere justificación
+explícita en el PR. No se hace por comodidad.
 
-**Subir el suelo (p. ej. a `^21`) es un cambio MAJOR** y exige justificación explícita
-en el PR. Nunca por comodidad de poder usar una feature nueva.
+**Requisito mínimo, dicho claramente:** Aegis UI requiere **Angular 20 o superior**.
+Esto debe aparecer de forma visible en el README y en la documentación. No generes
+la expectativa contraria.
 
 ---
 
-## 4. Estructura del repositorio público
+## 4. Estructura del repositorio
 
 ```
 aegisui/
@@ -194,7 +174,7 @@ aegisui/
 ├── packages/
 │   ├── tokens/                # design tokens (fuente de verdad del theming)
 │   ├── cdk/                   # primitivas headless
-│   ├── ui/                    # componentes estilados (tier FREE)
+│   ├── ui/                    # componentes estilados
 │   ├── icons/                 # set de iconos
 │   ├── cli/                   # `npx aegisui add <component>`
 │   └── migrate-primeng/       # el codemod (FASE 5)
@@ -369,7 +349,7 @@ Estos son los que más se olvidan y los que más nos van a diferenciar:
 |---|---|---|
 | **2.4.11 Focus Not Obscured (Minimum)** | AA | Un elemento con foco no puede quedar tapado por overlays, sticky headers o toasts. **Crítico para dialog, drawer, toast, dropdown.** |
 | **2.4.13 Focus Appearance** | AAA | Indicador de foco con área y contraste mínimos. Lo adoptamos igualmente: es barato y visible. |
-| **2.5.7 Dragging Movements** | AA | Todo lo que se arrastra debe tener alternativa sin arrastre. **Crítico para slider, file-upload, y todo el Pro (gantt, task-board, dashboard).** |
+| **2.5.7 Dragging Movements** | AA | Todo lo que se arrastra debe tener alternativa sin arrastre. **Crítico para slider, file-upload y cualquier componente con drag & drop.** |
 | **2.5.8 Target Size (Minimum)** | AA | Objetivos táctiles de al menos 24×24 CSS px. Afecta a botones `sm`, chips, celdas de datepicker, iconos de cierre. |
 | **3.2.6 Consistent Help** | A | Aplica al sitio de docs, no a los componentes. |
 | **3.3.7 Redundant Entry** | A | No pedir dos veces el mismo dato. Aplica a stepper y formularios multi-paso. |
@@ -450,10 +430,8 @@ target-size   → todo elemento interactivo ≥ 24×24 px (WCAG 2.5.8)
 visual        → Playwright, 0 diffs no aprobados
 size          → size-limit, presupuesto por paquete
 build         → todos los paquetes compilan con ng-packagr
-peer-floor    → el minVersion embebido en cada FESM CONSTRUIDO ≤ 20.0.0, para
-                garantizar el peerDependencies "^20 || ^21 || ^22" (ver §3.1).
-                Lee el artefacto, no el package.json fuente. Dos direcciones:
-                pasa con APIs ≤20, falla si se fuerza minVersion > 20
+peer-floor    → el minVersion embebido en cada FESM ≤ 20.0.0 (ver §3.1).
+                Verificado leyendo el artefacto construido, NO el package.json
 contracts     → todo componente tiene contrato y todo contrato tiene componente
 changeset     → todo PR que toca packages/** debe incluir un changeset
 ```
@@ -466,66 +444,85 @@ changeset     → todo PR que toca packages/** debe incluir un changeset
 
 ---
 
-## 10. Tiers de producto
+## 10. Fases de ejecución
 
-### FREE (MIT, sin límite de asientos, fuente incluida)
+### FASE 1 — Esqueleto y raíles ✅
 
-**Formularios:** input, textarea, select, autocomplete, combobox, checkbox,
-radio, switch, slider, datepicker, timepicker, file-upload, máscaras
-(número, moneda, teléfono), form-field
+Monorepo, paquetes vacíos, las 11 reglas ESLint propias, Vitest, Playwright,
+Changesets, `ci.yml` con todos los gates, y los **fixtures `good/` y `bad/`** que
+prueban que cada gate bloquea en las dos direcciones.
 
-**Overlays:** dialog, drawer, popover, tooltip, dropdown-menu, context-menu,
-toast, confirm
+**No produce ni un componente.** Produce los raíles.
 
-**Navegación:** tabs, accordion, breadcrumb, menubar, sidebar, pagination, stepper
+**Definition of Done — el entregable real son los gates probados:**
 
-**Datos (básico):** table (sort/filter/paginación en cliente), tree, list,
-virtual-scroll, card, badge, avatar, skeleton, chip
+Un gate que no tiene nada que testear pasa en verde, y ese verde no significa nada.
+Es la trampa clásica de CI. Por eso la Fase 1 se valida con **fixtures**:
 
-**Base:** sistema de tokens, dark mode, CDK completo
+- `tools/fixtures/good/` → componente mínimo, deliberadamente **correcto**
+- `tools/fixtures/bad/` → el mismo, deliberadamente **roto**, violando una a una
+  las 11 reglas de §7 y los checks de §9.2
 
-### PRO (repo privado, fuente incluida, licencia por desarrollador)
+Cada gate demuestra **las dos direcciones**: pasa sobre `good/`, y **falla con
+mensaje accionable** sobre `bad/`. Un gate que solo demuestra que pasa no está
+terminado.
 
-data-grid avanzado · scheduler/calendar · gantt · task-board ·
-query/filter-builder · dashboard componible · rich-text-editor ·
-theme-designer + white-label · soporte con SLA
+**Regla anti-verde-falso:** cualquier gate que no encuentre objetivos que analizar
+debe **fallar ruidosamente** ("no targets found"), nunca pasar en silencio.
 
-**Criterio de corte:** si un componente se puede construir en un fin de semana,
-va en FREE. El Pro son semanas de trabajo o no es Pro.
+Los fixtures se quedan para siempre: son el test de regresión de los raíles.
 
----
+**Y la protección de rama es parte del entregable.** Un CI en rojo que igualmente
+deja mergear no es un raíl. `main` exige PR y todos los checks en verde.
 
-## 11. El codemod (`@aegisui/migrate-primeng`) — FASE 5
+### FASE 2 — Tokens y theming
 
-No es un buscar-y-reemplazar. Usa **schematics de Angular** y AST
-(TypeScript + parser de plantillas de Angular).
+- Tokens JSON en tres capas
+- Build → CSS, preset Tailwind, tipos TS
+- Dark mode por `prefers-color-scheme` + `[data-theme]`
+- Demo viva del theming en `sandbox`
+
+**DoD:** cambiar un token primitivo repinta toda la app, en light y en dark.
+
+### FASE 3 — Contrato + primer componente end-to-end (Button)
+
+- `docs/contracts/button.md`
+- Schematic `nx g @aegisui/generators:component`
+- Implementación (cdk + ui)
+- Tests: unitarios, axe, teclado, contraste, target size, visual (light + dark)
+- Story + entrada en docs
+
+**DoD:** el pipeline completo funciona con un componente real. **Esta fase valida
+todo lo anterior. Si algo chirría, se arregla aquí, no después.**
+
+### FASE 4 — Los ~15 componentes núcleo
+
+`button · input · select · dropdown · dialog · toast · table · datepicker ·
+checkbox · tabs · card · tooltip · menu · form-field · autocomplete`
+
+### FASE 5 — Codemod de migración desde PrimeNG
+
+No es un buscar-y-reemplazar: usa **schematics de Angular** y AST (TypeScript +
+parser de plantillas).
 
 ```bash
 ng add @aegisui/migrate-primeng
 ```
 
-**Qué hace:**
-- Reescribe imports de PrimeNG a los equivalentes de Aegis UI
-- Renombra selectores en plantillas (`<p-table>` → `<aegis-table>`)
+- Reescribe imports y selectores (`<p-table>` → `<aegis-table>`)
 - Mapea inputs/outputs equivalentes
 - Convierte propiedades a `input()` signals
 - Traduce tokens de tema y variables CSS
-- **Inserta `// TODO(aegisui):` con explicación donde NO puede mapear**
+- **Inserta `// TODO(aegis):` con explicación donde NO puede mapear**
 
-**Alcance realista:** los 10–15 componentes más usados (table, dialog, dropdown,
-calendar, toast, button, inputs). **Ser explícito sobre lo que no cubre.**
-Un codemod que promete el 100% y falla a medias destruye la confianza justo en
-el momento de evaluación.
+**Alcance realista:** los 10–15 componentes más usados. **Ser explícito sobre lo que
+no cubre.** Un codemod que promete el 100% y falla a medias destruye la confianza
+justo en el momento de evaluación.
 
-**Telemetría opcional (opt-in, anónima):** qué componentes de PrimeNG encuentra.
-Esto ordena el roadmap mejor que cualquier encuesta.
-
----
-
-## 12. Pipeline de desarrollo automatizado — FASE 6
+### FASE 6 — Pipeline de desarrollo automatizado
 
 ```
-Petición (portal o GitHub Issue Form)
+Petición (GitHub Issue Form)
    ↓
 [AGENTE] Triaje: clasifica, busca duplicados, valida "Definition of Ready"
    ↓
@@ -549,96 +546,7 @@ arregla. El fix queda demostrado, no asumido.
 
 ---
 
-## 13. Fases de ejecución
-
-### FASE 1 — Esqueleto y raíles ← EMPEZAR AQUÍ
-
-- [ ] Monorepo Nx + pnpm workspace
-- [ ] Paquetes vacíos: `tokens`, `cdk`, `ui`, `icons`, `cli`
-- [ ] App `sandbox` (Angular 22, zoneless, standalone)
-- [ ] ESLint flat config + Prettier
-- [ ] Implementar las **11** reglas ESLint propias de §7, con sus tests (RuleTester)
-- [ ] Vitest configurado y corriendo
-- [ ] Playwright configurado
-- [ ] Changesets configurado
-- [ ] `ci.yml` con todos los gates de §9.2
-- [ ] `CONTRIBUTING.md`
-
-**Definition of Done — el entregable real de la Fase 1 son los gates probados:**
-
-Un gate que no tiene nada que testear pasa en verde, y ese verde no significa nada.
-Es la trampa clásica de CI. Por eso la Fase 1 se valida con **fixtures**, no con
-promesas.
-
-Crear `tools/fixtures/` con dos artefactos que NO se publican:
-
-- `fixtures/good/` → un componente mínimo, deliberadamente **correcto**
-- `fixtures/bad/` → el mismo componente, deliberadamente **roto**, violando una a una
-  las 11 reglas de §7 y los checks de §9.2 (color literal, `outline: none`,
-  contraste insuficiente, target < 24px, sin contrato, sin `OnPush`…)
-
-Cada gate de §9.2 debe demostrar **las dos direcciones**:
-
-1. **Pasa** sobre `fixtures/good/`
-2. **Falla, y con un mensaje que explica cómo arreglarlo**, sobre `fixtures/bad/`
-
-Un gate que solo demuestra (1) no está terminado.
-
-**Regla anti-verde-falso:** cualquier gate que no encuentre objetivos que analizar
-debe **fallar ruidosamente** ("no targets found"), nunca pasar en silencio.
-
-Los fixtures se quedan en el repo para siempre: son el test de regresión de los
-raíles. El día que alguien afloje una regla, los fixtures se ponen rojos.
-
-**Los 13 gates corren contra los fixtures (ADR-013).** No solo las 11 reglas
-ESLint (vía RuleTester): también los 6 gates DOM de §9.2 —`a11y`, `contrast`,
-`keyboard`, `target-size`, `visual`, `contracts`— tienen a `good/bad` como
-objetivo de primera clase. Cada uno corre en las dos direcciones vía
-`scripts/gates/run.mjs <gate>` (su job de CI) y en `tools/fixtures/src/gates.spec.ts`
-(job `test`): **pasa** sobre `good/`, **falla con mensaje accionable** sobre
-`bad/`, y los DOS tests van en verde. El objetivo DOM es el render del fixture
-(`fixture-*.rendered.{light,dark}.html`, tokens ya resueltos); el teclado
-declarado, su contrato (`## Teclado`). Cuando lleguen componentes reales (Fase
-2/3), los gates los analizarán **además de** los fixtures, sustituyendo el
-análisis por el "de verdad" (axe, screenshots, contraste sobre tokens reales) sin
-tocar el `name:` del job ni retirar los fixtures.
-
-### FASE 2 — Tokens y theming
-
-- [ ] Tokens JSON en tres capas
-- [ ] Build → CSS, preset Tailwind, tipos TS
-- [ ] Dark mode por `prefers-color-scheme` + `[data-theme]`
-- [ ] Página de demo del theming en `sandbox`
-
-**DoD:** cambiar un token primitivo repinta toda la app en light y dark.
-
-### FASE 3 — Contrato + primer componente end-to-end (Button)
-
-- [ ] `docs/contracts/button.md`
-- [ ] Schematic `nx g @aegisui/generators:component`
-- [ ] Implementación de Button (cdk + ui)
-- [ ] Tests: unitarios, axe, teclado, visual (light + dark)
-- [ ] Story + entrada en docs
-- [ ] Publicado en npm bajo tag `next`
-
-**DoD:** el pipeline completo funciona con un componente real. **Esta fase valida
-todo lo anterior. Si algo chirría, se arregla aquí, no después.**
-
-### FASE 4 — Los ~15 componentes free núcleo
-
-Priorizar por lo que más usa un proyecto PrimeNG típico:
-`button · input · select · dropdown · dialog · toast · table · datepicker ·
-checkbox · tabs · card · tooltip · menu · form-field · autocomplete`
-
-### FASE 5 — Codemod PrimeNG
-
-### FASE 6 — Pipeline agéntico (§12)
-
-### FASE 7 — Primer componente Pro: el Data Grid
-
----
-
-## 14. Definition of Done (aplica a TODO componente)
+## 11. Definition of Done (aplica a TODO componente)
 
 Un componente no está terminado hasta que:
 
@@ -665,12 +573,12 @@ Un componente no está terminado hasta que:
 
 ---
 
-## 15. Principio rector
+## 12. Principio rector
 
 > La automatización no falla por falta de agentes. Falla por falta de restricciones.
 >
 > Los raíles (schematics, reglas ESLint, tokens, contratos, gates de CI) **son el
-> producto**. El agente solo será tan bueno como los raíles que le pongamos.
+> producto**. Un agente solo será tan bueno como los raíles que le pongamos.
 >
-> Y nadie paga por componentes que parecen generados: la automatización acelera el
+> Y nadie confía en componentes que parecen generados: la automatización acelera el
 > trabajo aburrido (tests, docs, theming, releases), no sustituye el criterio de diseño.
