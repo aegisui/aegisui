@@ -18,6 +18,13 @@
         "cwd": "apps/sandbox",
         "command": "ng serve"
       }
+    },
+    "e2e": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "apps/sandbox",
+        "command": "playwright test"
+      }
     }
   }
 }

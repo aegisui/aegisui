@@ -23,6 +23,7 @@
     "@angular/core": "22.0.6",
     "@angular/platform-browser": "22.0.6",
     "@eslint/js": "10.0.1",
+    "@playwright/test": "1.61.1",
     "@vitest/coverage-v8": "4.1.10",
     "eslint": "10.7.0",
     "eslint-config-prettier": "10.1.8",

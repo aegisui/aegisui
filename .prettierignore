@@ -1,7 +1,10 @@
 node_modules
 dist
 .nx
+.angular
 coverage
+test-results
+playwright-report
 pnpm-lock.yaml
 
 # Los documentos de docs/ están escritos a mano (tablas, formato deliberado).
