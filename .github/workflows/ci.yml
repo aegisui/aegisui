@@ -1,0 +1,87 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+# Gates de §9.2. Los que dependen de tokens/componentes (que aún no existen en la
+# Fase 1) se activan en su fase, para no añadir jobs que pasen en verde sin nada
+# que analizar (regla anti-verde-falso, §13):
+#   - contrast     -> Fase 2 (tokens): contraste de los pares fg/bg de la capa 2.
+#   - a11y         -> Fase 3 (Button): axe WCAG 2.2 AA, cada variante x light/dark.
+#   - keyboard     -> Fase 3: un test por interacción declarada en el contrato.
+#   - target-size  -> Fase 3: >=24x24 px en interactivos (WCAG 2.5.8).
+#   - visual (regresión) -> Fase 3: snapshots Playwright por variante x tema.
+# El job `e2e` de abajo ya deja el raíl de Playwright montado (smoke del sandbox).
+# El gate `contracts` (componente<->contrato) lo cubre parcialmente la regla
+# ESLint `contract-exists` dentro de `lint`; el reverso llega con los componentes.
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Enable corepack (pnpm en PATH)
+        run: corepack enable
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - name: Install
+        run: pnpm install --frozen-lockfile
+      - name: lint (ESLint + 11 reglas propias)
+        run: pnpm lint
+      - name: format (Prettier)
+        run: pnpm format:check
+      - name: typecheck (tsc --noEmit, strict)
+        run: pnpm typecheck
+      - name: test (Vitest; cobertura >=90% en ui y cdk)
+        run: pnpm nx run-many -t test
+      - name: build (ng-packagr / tsc)
+        run: pnpm nx run-many -t build
+      - name: peer-floor (minVersion del artefacto <= 20.0.0)
+        run: pnpm peer-floor
+      - name: size (size-limit, presupuesto por paquete)
+        run: pnpm size
+
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Enable corepack
+        run: corepack enable
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - name: Install
+        run: pnpm install --frozen-lockfile
+      - name: Install Playwright (Chromium)
+        run: pnpm exec playwright install --with-deps chromium
+      - name: e2e / visual (Playwright vs sandbox)
+        run: pnpm nx run sandbox:e2e
+
+  changeset:
+    # Todo PR que toca packages/** debe incluir un changeset (§9.2).
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Enable corepack
+        run: corepack enable
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - name: Install
+        run: pnpm install --frozen-lockfile
+      - name: Fetch base branch
+        run: git fetch origin "${{ github.base_ref }}" --depth=1
+      - name: changeset status
+        run: pnpm changeset status --since="origin/${{ github.base_ref }}"

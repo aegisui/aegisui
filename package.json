@@ -15,7 +15,10 @@
     "format:check": "prettier --check .",
     "changeset": "changeset",
     "version": "changeset version",
-    "release": "changeset publish --tag next"
+    "release": "changeset publish --tag next",
+    "typecheck": "tsc --noEmit -p tsconfig.typecheck.json",
+    "peer-floor": "node scripts/check-peer-floor.mjs",
+    "size": "size-limit"
   },
   "devDependencies": {
     "@angular/build": "22.0.6",
@@ -29,6 +32,8 @@
     "@eslint/css": "1.4.0",
     "@eslint/js": "10.0.1",
     "@playwright/test": "1.61.1",
+    "@size-limit/file": "12.1.0",
+    "@types/node": "22.20.1",
     "@vitest/coverage-v8": "4.1.10",
     "eslint": "10.7.0",
     "eslint-config-prettier": "10.1.8",
@@ -36,6 +41,7 @@
     "nx": "23.0.2",
     "prettier": "3.9.5",
     "rxjs": "7.8.2",
+    "size-limit": "12.1.0",
     "tslib": "2.8.1",
     "typescript": "6.0.3",
     "typescript-eslint": "8.63.0",

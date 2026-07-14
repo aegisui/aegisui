@@ -1,0 +1,12 @@
+[
+  {
+    "name": "@aegisui/cdk (fesm2022, gzip)",
+    "path": "dist/packages/cdk/fesm2022/*.mjs",
+    "limit": "15 kB"
+  },
+  {
+    "name": "@aegisui/ui (fesm2022, gzip)",
+    "path": "dist/packages/ui/fesm2022/*.mjs",
+    "limit": "10 kB"
+  }
+]
