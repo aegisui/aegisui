@@ -1,0 +1,27 @@
+<!--
+  DOM renderizado del fixture "good" (tema light).
+
+  Objetivo permanente de los gates DOM/§9.2 que no se pueden verificar sobre el
+  fuente TS/CSS: a11y, contrast, target-size y visual. Representa lo que un
+  navegador pintaría del componente `aegis-fixture-good` con los tokens ya
+  resueltos (por eso lleva colores/medidas concretos en `style`, no `var(...)`:
+  es la SALIDA, no el fuente — el fuente sigue siendo 100% var(--aegis-*) y lo
+  cazan las reglas ESLint de §7).
+
+  Deliberadamente correcto: cada gate PASA sobre él. No se publica; se queda
+  como test de regresión de los raíles (§13, ADR-013).
+
+  - a11y        -> <button> nativo con nombre accesible (aria-label + texto).
+  - contrast    -> #1b1b1b sobre #ffffff ~ 17:1 (>= 4.5:1).
+  - target-size -> 32x32 px (>= 24x24).
+  - keyboard    -> maneja Enter y Space (las teclas que declara el contrato).
+-->
+<button
+  type="button"
+  class="fixture-good"
+  aria-label="Activar fixture"
+  data-handles="Enter Space"
+  style="color: #1b1b1b; background: #ffffff; min-width: 32px; min-height: 32px"
+>
+  Activar
+</button>

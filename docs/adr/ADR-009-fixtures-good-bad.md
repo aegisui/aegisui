@@ -30,5 +30,8 @@ los gates (11 reglas ESLint, `peer-floor`) no tendrían objetivos que analizar.
 - Los fixtures **no se publican y se quedan para siempre**: son el test de regresión
   de los raíles. El día que alguien afloje una regla, se ponen rojos.
 - Verificar un raíl no requiere un componente real: el fixture es el objetivo.
-- No cubren `contrast`/`a11y`/`target-size`/visual: esos gates necesitan tokens y
-  componentes reales, y llegan en Fase 2/3.
+- ~~No cubren `contrast`/`a11y`/`target-size`/visual: esos gates necesitan tokens y
+  componentes reales, y llegan en Fase 2/3.~~ **Actualizado por ADR-013:** sí los
+  cubren, vía fixtures renderizados (`fixture-*.rendered.{light,dark}.html`) que
+  actúan de objetivo. Los 6 gates DOM corren contra `good/bad` en las dos
+  direcciones.

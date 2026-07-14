@@ -29,14 +29,16 @@ Node **≥ 22.22.3** (ver `.nvmrc`) y pnpm vía corepack (versión pineada en
 | e2e / Playwright (vs sandbox) | `pnpm nx run sandbox:e2e` |
 | Changeset | `pnpm changeset` |
 | **Demostrar que los raíles bloquean** | `pnpm exec eslint --config tools/fixtures/eslint.fixtures.config.js 'tools/fixtures/bad/**/*.{ts,css}' 'tools/fixtures/bad-tokens/**/*.css'` |
+| Correr un gate DOM de §9.2 (dos direcciones vs fixtures) | `node scripts/gates/run.mjs <gate>` (a11y, contrast, keyboard, target-size, visual, contracts) |
 
 CI (`.github/workflows/ci.yml`): **un job por gate de §9.2**, con `name:` estable
-(es lo que se fija como required en la protección de rama; no renombrar). Los gates
-`a11y`, `contrast`, `keyboard`, `target-size`, `visual` y `contracts` aún no tienen
-objetivos, así que **existen como jobs que fallan a propósito** (anti-verde-falso)
-hasta que su fase los implemente — entonces se reemplaza el comando del job por el
-gate real, sin tocar su `name:`. Verdes hoy: `lint`, `typecheck`, `test`, `build`,
-`size`, `peer-floor`, `changeset`.
+(es lo que se fija como required en la protección de rama; no renombrar). Los 6
+gates DOM —`a11y`, `contrast`, `keyboard`, `target-size`, `visual`, `contracts`—
+corren contra los **fixtures** `good/bad` en las dos direcciones vía
+`scripts/gates/run.mjs <gate>` (ADR-013): pasan sobre `good/`, fallan sobre `bad/`.
+Cuando lleguen componentes reales, los analizarán **además de** los fixtures, sin
+tocar el `name:` del job. Los 13 checks van en verde. Anti-verde-falso sigue vivo:
+si un gate deja de cazar la violación de `bad/`, su job se pone rojo.
 
 ## Reglas innegociables (todas verificadas en CI)
 
@@ -65,8 +67,14 @@ gate real, sin tocar su `name:`. Verdes hoy: `lint`, `typecheck`, `test`, `build
 - `tools/eslint-rules` → las **11 reglas propias** (JS ESM) + sus tests RuleTester.
   Son el producto (SPEC §7, §15).
 - `tools/fixtures/{good,bad,bad-tokens}` → test de regresión permanente de los
-  raíles: demuestran que cada gate pasa sobre `good/` y falla sobre `bad/` (ADR-009).
+  raíles: demuestran que cada gate pasa sobre `good/` y falla sobre `bad/`
+  (ADR-009, ADR-013). Incluye los `fixture-*.rendered.{light,dark}.html` (objetivo
+  de los gates DOM) y el `## Teclado` del contrato (objetivo de `keyboard`).
+- `scripts/gates/` → los 6 gates DOM de §9.2 (analizadores propios, cero deps) +
+  `run.mjs` (las dos direcciones; es el comando de cada job de CI). ADR-013.
 - `scripts/check-peer-floor.mjs` → gate `peer-floor`.
+- `scripts/check-contracts.mjs` → reconciliación contrato↔componente (la usa el
+  gate `contracts` sobre fixtures y sobre `packages/ui` en Fase 3).
 - `docs/{SPEC,CONTRIBUTING}.md`, `docs/adr/`, `docs/contracts/` (uno por componente).
 - `.github/workflows/ci.yml` → gates de §9.2. `.changeset/` → versionado.
 - `eslint.config.js` (raíz) → flat config; las reglas propias scopean a `packages/**`.

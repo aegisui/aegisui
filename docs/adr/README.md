@@ -16,3 +16,4 @@ por no entender para qué existe. Formato corto: Contexto / Decisión / Consecue
 | [010](ADR-010-node-y-pnpm-pinneados.md) | Node 22 + pnpm pinneado vía corepack |
 | [011](ADR-011-reglas-eslint-en-js.md) | Reglas ESLint propias en JS ESM (no TS) |
 | [012](ADR-012-css-de-componente-con-eslint-css.md) | Estilos de componente en `.css` lint-eados por `@eslint/css` |
+| [013](ADR-013-fixtures-como-objetivos-de-ci.md) | Los fixtures son objetivos de CI de primera clase (los 6 gates DOM corren contra ellos, dos direcciones) |

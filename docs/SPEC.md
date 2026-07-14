@@ -590,6 +590,19 @@ debe **fallar ruidosamente** ("no targets found"), nunca pasar en silencio.
 Los fixtures se quedan en el repo para siempre: son el test de regresión de los
 raíles. El día que alguien afloje una regla, los fixtures se ponen rojos.
 
+**Los 13 gates corren contra los fixtures (ADR-013).** No solo las 11 reglas
+ESLint (vía RuleTester): también los 6 gates DOM de §9.2 —`a11y`, `contrast`,
+`keyboard`, `target-size`, `visual`, `contracts`— tienen a `good/bad` como
+objetivo de primera clase. Cada uno corre en las dos direcciones vía
+`scripts/gates/run.mjs <gate>` (su job de CI) y en `tools/fixtures/src/gates.spec.ts`
+(job `test`): **pasa** sobre `good/`, **falla con mensaje accionable** sobre
+`bad/`, y los DOS tests van en verde. El objetivo DOM es el render del fixture
+(`fixture-*.rendered.{light,dark}.html`, tokens ya resueltos); el teclado
+declarado, su contrato (`## Teclado`). Cuando lleguen componentes reales (Fase
+2/3), los gates los analizarán **además de** los fixtures, sustituyendo el
+análisis por el "de verdad" (axe, screenshots, contraste sobre tokens reales) sin
+tocar el `name:` del job ni retirar los fixtures.
+
 ### FASE 2 — Tokens y theming
 
 - [ ] Tokens JSON en tres capas

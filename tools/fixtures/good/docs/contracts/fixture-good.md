@@ -18,6 +18,16 @@ aceptan un componente correcto y rechazan uno roto (ver `tools/fixtures/bad/`).
 - `--aegis-fixture-focus-width`
 - `--aegis-fixture-focus`
 
+## Teclado
+
+Interacciones de teclado que el componente DEBE implementar. Es la fuente de
+verdad del gate `keyboard`: cada tecla listada aquí tiene que estar manejada en
+el DOM renderizado (`data-handles`). `good/` las maneja todas; `bad/` deja
+`Space` sin implementar y por eso el gate lo caza.
+
+- `Enter` → emite `activated`
+- `Space` → emite `activated`
+
 ## Fuera de alcance
 
 Todo. No es un componente de producto: no tiene estados, casos límite ni

@@ -19,10 +19,11 @@ concurrency:
 # un check que ya no existe.
 #
 # Regla anti-verde-falso (SPEC §13): ningún job pasa en verde sin haber analizado
-# algo. Los gates que aún no tienen objetivos (a11y, contrast, keyboard,
-# target-size, visual, contracts) FALLAN a propósito hasta que su fase los
-# implemente; entonces se reemplaza el comando del job por el gate real, sin
-# tocar su `name:`.
+# algo. Los gates DOM (a11y, contrast, keyboard, target-size, visual, contracts)
+# tienen como objetivo los FIXTURES good/bad (ADR-013): cada uno corre en las dos
+# direcciones (pasa sobre good/, falla sobre bad/) vía scripts/gates/run.mjs. Los
+# fixtures se quedan para siempre; cuando lleguen componentes reales, los gates
+# los analizarán A ELLOS ADEMÁS DE a los fixtures, sin tocar el `name:` del job.
 
 jobs:
   lint:
@@ -76,13 +77,15 @@ jobs:
       - run: pnpm nx run-many -t build
       - run: pnpm peer-floor
 
+  # `contracts` corre la reconciliación contrato<->componente sobre los fixtures
+  # (dos direcciones) y, "además de", sobre packages/ui cuando existan (Fase 3).
   contracts:
     name: contracts
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup
-      - run: pnpm contracts
+      - run: node scripts/gates/run.mjs contracts
 
   a11y:
     name: a11y
@@ -90,7 +93,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup
-      - run: node scripts/pending-gate.mjs a11y 3
+      - run: node scripts/gates/run.mjs a11y
 
   contrast:
     name: contrast
@@ -98,7 +101,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup
-      - run: node scripts/pending-gate.mjs contrast 2
+      - run: node scripts/gates/run.mjs contrast
 
   keyboard:
     name: keyboard
@@ -106,7 +109,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup
-      - run: node scripts/pending-gate.mjs keyboard 3
+      - run: node scripts/gates/run.mjs keyboard
 
   target-size:
     name: target-size
@@ -114,7 +117,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup
-      - run: node scripts/pending-gate.mjs target-size 3
+      - run: node scripts/gates/run.mjs target-size
 
   visual:
     name: visual
@@ -122,7 +125,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup
-      - run: node scripts/pending-gate.mjs visual 3
+      - run: node scripts/gates/run.mjs visual
 
   changeset:
     name: changeset

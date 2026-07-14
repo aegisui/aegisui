@@ -1,0 +1,12 @@
+<!--
+  DOM renderizado del fixture "bad" (tema dark). Sigue roto en oscuro: #4b5158
+  sobre #101114 ~ 2.3:1 (< 4.5:1), de modo que `contrast` también falla aquí y
+  `visual` ve un dark distinto del light. Deliberadamente roto (§13, ADR-013).
+-->
+<button
+  type="button"
+  class="fixture-bad"
+  role="presentation"
+  data-handles="Enter"
+  style="color: #4b5158; background: #101114; min-width: 16px; min-height: 16px"
+></button>
