@@ -40,6 +40,15 @@ export default tseslint.config(
     },
   },
   {
+    // Reglas TS específicas de los componentes de `ui`.
+    files: ['packages/ui/**/*.ts'],
+    plugins: { '@aegisui': aegis },
+    rules: {
+      '@aegisui/contract-exists': 'error',
+      '@aegisui/cdk-before-ui': 'error',
+    },
+  },
+  {
     // Reglas CSS propias (§7), sobre el CSS de componentes.
     files: ['packages/**/*.css'],
     language: 'css/css',
@@ -50,6 +59,15 @@ export default tseslint.config(
       '@aegisui/no-outline-none': 'error',
       '@aegisui/no-fixed-text-height': 'error',
       '@aegisui/require-reduced-motion': 'error',
+    },
+  },
+  {
+    // Regla CSS específica de los componentes de `ui` (necesita su contrato).
+    files: ['packages/ui/**/*.css'],
+    language: 'css/css',
+    plugins: { css, '@aegisui': aegis },
+    rules: {
+      '@aegisui/tokens-declared-in-contract': 'error',
     },
   },
   prettier,
