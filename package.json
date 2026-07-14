@@ -18,6 +18,7 @@
     "release": "changeset publish --tag next",
     "typecheck": "tsc --noEmit -p tsconfig.typecheck.json",
     "peer-floor": "node scripts/check-peer-floor.mjs",
+    "contracts": "node scripts/check-contracts.mjs",
     "size": "size-limit"
   },
   "devDependencies": {

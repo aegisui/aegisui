@@ -30,9 +30,13 @@ Node **≥ 22.22.3** (ver `.nvmrc`) y pnpm vía corepack (versión pineada en
 | Changeset | `pnpm changeset` |
 | **Demostrar que los raíles bloquean** | `pnpm exec eslint --config tools/fixtures/eslint.fixtures.config.js 'tools/fixtures/bad/**/*.{ts,css}' 'tools/fixtures/bad-tokens/**/*.css'` |
 
-`a11y`, `contrast`, `visual` (regresión) y `target-size`: **aún no existen** como
-gate; se implementan en Fase 2 (tokens→contrast) y Fase 3 (Button→a11y/visual/
-keyboard/target-size). No los invoques como si existieran.
+CI (`.github/workflows/ci.yml`): **un job por gate de §9.2**, con `name:` estable
+(es lo que se fija como required en la protección de rama; no renombrar). Los gates
+`a11y`, `contrast`, `keyboard`, `target-size`, `visual` y `contracts` aún no tienen
+objetivos, así que **existen como jobs que fallan a propósito** (anti-verde-falso)
+hasta que su fase los implemente — entonces se reemplaza el comando del job por el
+gate real, sin tocar su `name:`. Verdes hoy: `lint`, `typecheck`, `test`, `build`,
+`size`, `peer-floor`, `changeset`.
 
 ## Reglas innegociables (todas verificadas en CI)
 

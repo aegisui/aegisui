@@ -1,0 +1,16 @@
+name: Setup
+description: Node (desde .nvmrc) + pnpm vía corepack + install con caché
+
+runs:
+  using: composite
+  steps:
+    - name: Enable corepack (pnpm en PATH)
+      shell: bash
+      run: corepack enable
+    - uses: actions/setup-node@v4
+      with:
+        node-version-file: .nvmrc
+        cache: pnpm
+    - name: Install
+      shell: bash
+      run: pnpm install --frozen-lockfile
