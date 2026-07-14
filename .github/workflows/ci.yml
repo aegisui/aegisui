@@ -1,0 +1,152 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+# Un job por cada gate de §9.2. Los `name:` son estables y explícitos: son
+# literalmente lo que se fija como required en el ruleset de protección de rama.
+# NO renombrar un job una vez fijado como required: GitHub esperaría eternamente
+# un check que ya no existe.
+#
+# Regla anti-verde-falso (SPEC §13): ningún job pasa en verde sin haber analizado
+# algo. Los gates DOM (a11y, contrast, keyboard, target-size, visual, contracts)
+# tienen como objetivo los FIXTURES good/bad (ADR-013): cada uno corre en las dos
+# direcciones (pasa sobre good/, falla sobre bad/) vía scripts/gates/run.mjs. Los
+# fixtures se quedan para siempre; cuando lleguen componentes reales, los gates
+# los analizarán A ELLOS ADEMÁS DE a los fixtures, sin tocar el `name:` del job.
+
+jobs:
+  lint:
+    name: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - run: pnpm lint
+      - run: pnpm format:check
+
+  typecheck:
+    name: typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - run: pnpm typecheck
+
+  test:
+    name: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - run: pnpm nx run-many -t test
+
+  build:
+    name: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - run: pnpm nx run-many -t build
+
+  size:
+    name: size
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - run: pnpm nx run-many -t build
+      - run: pnpm size
+
+  peer-floor:
+    name: peer-floor
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - run: pnpm nx run-many -t build
+      - run: pnpm peer-floor
+
+  # `contracts` corre la reconciliación contrato<->componente sobre los fixtures
+  # (dos direcciones) y, "además de", sobre packages/ui cuando existan (Fase 3).
+  contracts:
+    name: contracts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - run: node scripts/gates/run.mjs contracts
+
+  a11y:
+    name: a11y
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - run: node scripts/gates/run.mjs a11y
+
+  contrast:
+    name: contrast
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - run: node scripts/gates/run.mjs contrast
+
+  keyboard:
+    name: keyboard
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - run: node scripts/gates/run.mjs keyboard
+
+  target-size:
+    name: target-size
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - run: node scripts/gates/run.mjs target-size
+
+  visual:
+    name: visual
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - run: node scripts/gates/run.mjs visual
+
+  changeset:
+    name: changeset
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: ./.github/actions/setup
+      - name: changeset (solo si el PR toca packages/**)
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" != "pull_request" ]; then
+            echo "El gate changeset se evalúa en PRs; nada que comprobar en push."
+            exit 0
+          fi
+          BASE="origin/${{ github.base_ref }}"
+          git fetch origin "${{ github.base_ref }}" --depth=1
+          if git diff --name-only "$BASE...HEAD" | grep -q '^packages/'; then
+            echo "El PR toca packages/**: se exige changeset."
+            pnpm changeset status --since="$BASE"
+          else
+            echo "El PR no toca packages/**: changeset no requerido."
+          fi

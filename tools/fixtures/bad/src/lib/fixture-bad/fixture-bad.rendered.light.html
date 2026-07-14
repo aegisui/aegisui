@@ -1,0 +1,21 @@
+<!--
+  DOM renderizado del fixture "bad" (tema light). El mismo botón que fixture-good,
+  roto A PROPÓSITO para que cada gate DOM/§9.2 lo RECHACE. Cada violación va
+  marcada con el gate que la caza. NO se corrige ni se publica: es el rojo
+  permanente de regresión de los raíles (§13, ADR-013). Si un gate deja de
+  cazarlo, su test de dirección "bad" se pone rojo y nos enteramos en el acto.
+
+  - a11y        -> role="presentation" sobre un botón interactivo + SIN nombre
+                   accesible (ni texto, ni aria-label, ni aria-labelledby válido).
+  - contrast    -> #a0a6ad sobre #ffffff ~ 2.5:1 (< 4.5:1).
+  - target-size -> 16x16 px (< 24x24).
+  - keyboard    -> el contrato declara Enter y Space, pero solo maneja Enter
+                   (data-handles="Enter"): Space queda sin implementar.
+-->
+<button
+  type="button"
+  class="fixture-bad"
+  role="presentation"
+  data-handles="Enter"
+  style="color: #a0a6ad; background: #ffffff; min-width: 16px; min-height: 16px"
+></button>

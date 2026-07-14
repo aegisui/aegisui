@@ -1,0 +1,15 @@
+{
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "name": "eslint-rules",
+  "projectType": "library",
+  "sourceRoot": "tools/eslint-rules/src",
+  "targets": {
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "tools/eslint-rules",
+        "command": "vitest run"
+      }
+    }
+  }
+}

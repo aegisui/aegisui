@@ -1,0 +1,7 @@
+{
+  "name": "@aegisui/tokens",
+  "version": "0.1.0",
+  "description": "Design tokens de Aegis UI (fuente de verdad del theming). Contenido real en Fase 2.",
+  "license": "MIT",
+  "type": "module"
+}

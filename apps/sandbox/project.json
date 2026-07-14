@@ -1,0 +1,30 @@
+{
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "name": "sandbox",
+  "projectType": "application",
+  "sourceRoot": "apps/sandbox/src",
+  "targets": {
+    "build": {
+      "executor": "nx:run-commands",
+      "outputs": ["{workspaceRoot}/dist/apps/sandbox"],
+      "options": {
+        "cwd": "apps/sandbox",
+        "command": "ng build"
+      }
+    },
+    "serve": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "apps/sandbox",
+        "command": "ng serve"
+      }
+    },
+    "e2e": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "apps/sandbox",
+        "command": "playwright test"
+      }
+    }
+  }
+}

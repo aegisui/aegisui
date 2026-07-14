@@ -1,0 +1,78 @@
+// @ts-check
+import css from '@eslint/css';
+import js from '@eslint/js';
+import tseslint from 'typescript-eslint';
+import prettier from 'eslint-config-prettier';
+import aegis from './tools/eslint-rules/src/index.js';
+
+/**
+ * Configuración base (flat) del monorepo.
+ *
+ * - TS/JS: recomendado de ESLint + typescript-eslint, acotado a esas extensiones
+ *   para no aplicar el parser de TS a los `.css`.
+ * - `.css`: lenguaje `@eslint/css` + las reglas CSS propias de §7.
+ * - `@aegisui/*`: las 11 reglas propias (ver `tools/eslint-rules/`).
+ */
+export default tseslint.config(
+  {
+    ignores: [
+      '**/dist/**',
+      '**/.nx/**',
+      '**/.angular/**',
+      '**/coverage/**',
+      '**/node_modules/**',
+      '**/test-results/**',
+      '**/playwright-report/**',
+      // Los fixtures good/bad son deliberadamente correctos/rotos; se verifican
+      // con su propio harness (tools/fixtures/src/*.spec.ts vía RuleTester), no
+      // con `pnpm lint`. bad/ violaría el gate a propósito si se incluyera aquí.
+      'tools/fixtures/**',
+    ],
+  },
+  {
+    files: ['**/*.{ts,tsx,mts,cts,js,mjs,cjs}'],
+    extends: [js.configs.recommended, ...tseslint.configs.recommended],
+  },
+  {
+    // Reglas TS propias (§7), sobre el código fuente de paquetes y apps.
+    files: ['packages/**/*.ts', 'apps/**/*.ts'],
+    plugins: { '@aegisui': aegis },
+    rules: {
+      '@aegisui/no-ngmodule': 'error',
+      '@aegisui/no-decorator-io': 'error',
+      '@aegisui/require-onpush': 'error',
+    },
+  },
+  {
+    // Reglas TS específicas de los componentes de `ui`.
+    files: ['packages/ui/**/*.ts'],
+    plugins: { '@aegisui': aegis },
+    rules: {
+      '@aegisui/contract-exists': 'error',
+      '@aegisui/cdk-before-ui': 'error',
+    },
+  },
+  {
+    // Reglas CSS propias (§7), sobre el CSS de componentes.
+    files: ['packages/**/*.css'],
+    language: 'css/css',
+    plugins: { css, '@aegisui': aegis },
+    rules: {
+      '@aegisui/no-literal-design-values': 'error',
+      '@aegisui/no-dark-in-component-css': 'error',
+      '@aegisui/no-outline-none': 'error',
+      '@aegisui/no-fixed-text-height': 'error',
+      '@aegisui/require-reduced-motion': 'error',
+    },
+  },
+  {
+    // Regla CSS específica de los componentes de `ui` (necesita su contrato).
+    files: ['packages/ui/**/*.css'],
+    language: 'css/css',
+    plugins: { css, '@aegisui': aegis },
+    rules: {
+      '@aegisui/tokens-declared-in-contract': 'error',
+    },
+  },
+  prettier,
+);

@@ -23,7 +23,7 @@ pnpm nx serve sandbox      # app de pruebas
 pnpm nx run docs:storybook # catálogo de componentes
 ```
 
-Requisitos: Node LTS, pnpm, Angular 20+.
+Requisitos: Node 22 LTS, pnpm, Angular 22.
 
 ---
 

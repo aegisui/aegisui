@@ -1,0 +1,8 @@
+{
+  "name": "@aegisui/fixtures",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Fixtures good/bad de regresión de los raíles de la Fase 1 (§13). No se publican.",
+  "license": "MIT",
+  "type": "module"
+}
