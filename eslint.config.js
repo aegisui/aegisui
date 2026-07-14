@@ -2,6 +2,7 @@
 import js from '@eslint/js';
 import tseslint from 'typescript-eslint';
 import prettier from 'eslint-config-prettier';
+import aegis from './tools/eslint-rules/src/index.js';
 
 /**
  * Configuración base (flat) del monorepo.
@@ -24,5 +25,13 @@ export default tseslint.config(
   },
   js.configs.recommended,
   ...tseslint.configs.recommended,
+  {
+    // Reglas propias de Aegis UI (§7), aplicadas al código fuente de paquetes y apps.
+    files: ['packages/**/*.ts', 'apps/**/*.ts'],
+    plugins: { '@aegisui': aegis },
+    rules: {
+      '@aegisui/no-ngmodule': 'error',
+    },
+  },
   prettier,
 );

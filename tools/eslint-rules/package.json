@@ -1,0 +1,9 @@
+{
+  "name": "@aegisui/eslint-plugin",
+  "version": "0.0.0",
+  "description": "Las 11 reglas ESLint propias de Aegis UI (§7 del SPEC). Son el producto.",
+  "license": "MIT",
+  "private": true,
+  "type": "module",
+  "main": "src/index.js"
+}
