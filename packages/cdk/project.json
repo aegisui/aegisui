@@ -10,6 +10,13 @@
       "options": {
         "command": "ng-packagr -p packages/cdk/ng-package.json"
       }
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "packages/cdk",
+        "command": "vitest run"
+      }
     }
   }
 }

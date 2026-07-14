@@ -10,6 +10,13 @@
       "options": {
         "command": "tsc -p packages/tokens/tsconfig.lib.json"
       }
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "packages/tokens",
+        "command": "vitest run"
+      }
     }
   }
 }

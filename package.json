@@ -23,6 +23,7 @@
     "@angular/core": "22.0.6",
     "@angular/platform-browser": "22.0.6",
     "@eslint/js": "10.0.1",
+    "@vitest/coverage-v8": "4.1.10",
     "eslint": "10.7.0",
     "eslint-config-prettier": "10.1.8",
     "ng-packagr": "22.0.1",
@@ -31,6 +32,7 @@
     "rxjs": "7.8.2",
     "tslib": "2.8.1",
     "typescript": "6.0.3",
-    "typescript-eslint": "8.63.0"
+    "typescript-eslint": "8.63.0",
+    "vitest": "4.1.10"
   }
 }

@@ -10,6 +10,13 @@
       "options": {
         "command": "ng-packagr -p packages/ui/ng-package.json"
       }
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "packages/ui",
+        "command": "vitest run"
+      }
     }
   }
 }
