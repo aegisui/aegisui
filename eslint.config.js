@@ -31,6 +31,8 @@ export default tseslint.config(
     plugins: { '@aegisui': aegis },
     rules: {
       '@aegisui/no-ngmodule': 'error',
+      '@aegisui/no-decorator-io': 'error',
+      '@aegisui/require-onpush': 'error',
     },
   },
   prettier,

@@ -1,4 +1,6 @@
+import { noDecoratorIo } from './rules/no-decorator-io.js';
 import { noNgmodule } from './rules/no-ngmodule.js';
+import { requireOnpush } from './rules/require-onpush.js';
 
 /**
  * Plugin ESLint con las reglas propias de Aegis UI (§7 del SPEC).
@@ -15,6 +17,8 @@ export const plugin = {
   },
   rules: {
     'no-ngmodule': noNgmodule,
+    'no-decorator-io': noDecoratorIo,
+    'require-onpush': requireOnpush,
   },
 };
 
