@@ -1,3 +1,4 @@
+import css from '@eslint/css';
 import { RuleTester } from 'eslint';
 import tseslint from 'typescript-eslint';
 import { describe, it } from 'vitest';
@@ -21,5 +22,13 @@ export function createTsRuleTester(): RuleTester {
         sourceType: 'module',
       },
     },
+  });
+}
+
+/** RuleTester con el lenguaje CSS de @eslint/css, para las reglas de estilos. */
+export function createCssRuleTester(): RuleTester {
+  return new RuleTester({
+    plugins: { css },
+    language: 'css/css',
   });
 }

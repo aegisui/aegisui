@@ -1,12 +1,17 @@
+import { noDarkInComponentCss } from './rules/no-dark-in-component-css.js';
 import { noDecoratorIo } from './rules/no-decorator-io.js';
+import { noFixedTextHeight } from './rules/no-fixed-text-height.js';
+import { noLiteralDesignValues } from './rules/no-literal-design-values.js';
 import { noNgmodule } from './rules/no-ngmodule.js';
+import { noOutlineNone } from './rules/no-outline-none.js';
 import { requireOnpush } from './rules/require-onpush.js';
+import { requireReducedMotion } from './rules/require-reduced-motion.js';
 
 /**
  * Plugin ESLint con las reglas propias de Aegis UI (§7 del SPEC).
  *
- * Se irán añadiendo las 11 reglas. El flat config raíz lo importa por ruta
- * relativa (no por nombre de paquete) para no depender de un build previo.
+ * El flat config raíz lo importa por ruta relativa (no por nombre de paquete)
+ * para no depender de un build previo.
  *
  * @type {import('eslint').ESLint.Plugin}
  */
@@ -16,9 +21,16 @@ export const plugin = {
     version: '0.0.0',
   },
   rules: {
+    // Reglas sobre TypeScript.
     'no-ngmodule': noNgmodule,
     'no-decorator-io': noDecoratorIo,
     'require-onpush': requireOnpush,
+    // Reglas sobre CSS.
+    'no-literal-design-values': noLiteralDesignValues,
+    'no-dark-in-component-css': noDarkInComponentCss,
+    'no-outline-none': noOutlineNone,
+    'no-fixed-text-height': noFixedTextHeight,
+    'require-reduced-motion': requireReducedMotion,
   },
 };
 
