@@ -92,6 +92,11 @@ function semanticPairs() {
   pairs.push(['accent.text', 'surface.raised', AA_TEXT]);
   pairs.push(['accent.border', 'surface.canvas', AA_UI]);
   pairs.push(['accent.ring', 'surface.canvas', AA_UI]);
+  // Acción destructiva sólida (ADR-015): rol de acción hermano de accent, no de
+  // estado. Mismos umbrales; validado en light Y dark como todo lo demás.
+  pairs.push(['destructive.on-solid', 'destructive.solid', AA_TEXT]);
+  pairs.push(['destructive.on-solid', 'destructive.solid-hover', AA_TEXT]);
+  pairs.push(['destructive.ring', 'surface.canvas', AA_UI]);
   for (const state of ['success', 'warning', 'danger', 'info']) {
     pairs.push([`state.${state}.text`, `state.${state}.bg`, AA_TEXT]);
     pairs.push([`state.${state}.text`, 'surface.canvas', AA_TEXT]);
