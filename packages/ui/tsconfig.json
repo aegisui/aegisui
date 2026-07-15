@@ -2,7 +2,12 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "declaration": true,
-    "experimentalDecorators": false
+    "experimentalDecorators": false,
+    "baseUrl": ".",
+    "ignoreDeprecations": "6.0",
+    "paths": {
+      "@aegisui/cdk": ["../../dist/packages/cdk"]
+    }
   },
   "angularCompilerOptions": {
     "strictTemplates": true,

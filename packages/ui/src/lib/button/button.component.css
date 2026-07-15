@@ -1,3 +1,191 @@
+/*
+ * Capa 3 del Button (LOCAL al componente, ADR-016). Dos rieles:
+ *   - COLOR      -> capa 2 (--aegis-color-*), que ya resuelve el tema por sí sola.
+ *   - ESTRUCTURA -> capa 1 (--aegis-space/radius/font/motion/border-width/focus-ring).
+ * Cero literales: cualquier valor es var(--aegis-*). El tema no se decide aquí.
+ */
+
 :host {
   display: inline-flex;
+}
+
+.aegis-btn {
+  /* --- Estructura (riel capa 1); las medidas por tamaño se sobreescriben abajo -- */
+  --aegis-btn-radius: var(--aegis-radius-md);
+  --aegis-btn-font-size: var(--aegis-font-size-base);
+  --aegis-btn-font-weight: var(--aegis-font-weight-medium);
+  --aegis-btn-line-height: var(--aegis-font-leading-tight);
+  --aegis-btn-padding-inline: var(--aegis-space-4);
+  --aegis-btn-padding-block: var(--aegis-space-2);
+  --aegis-btn-gap: var(--aegis-space-2);
+  --aegis-btn-min-block-size: var(--aegis-space-5);
+  --aegis-btn-min-inline-size: var(--aegis-space-5);
+  --aegis-btn-border-width: var(--aegis-border-width-none);
+  --aegis-btn-focus-ring-width: var(--aegis-focus-ring-width);
+  --aegis-btn-focus-ring-offset: var(--aegis-focus-ring-offset);
+  --aegis-btn-transition-duration: var(--aegis-motion-duration-fast);
+  --aegis-btn-transition-easing: var(--aegis-motion-easing-standard);
+  --aegis-btn-spinner-size: var(--aegis-btn-font-size);
+  --aegis-btn-spinner-stroke: var(--aegis-border-width-thin);
+  --aegis-btn-spinner-indicator-color: var(--aegis-btn-fg);
+
+  /* --- Consumo --- */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--aegis-btn-gap);
+  min-block-size: var(--aegis-btn-min-block-size);
+  min-inline-size: var(--aegis-btn-min-inline-size);
+  padding-block: var(--aegis-btn-padding-block);
+  padding-inline: var(--aegis-btn-padding-inline);
+  border: var(--aegis-btn-border-width) solid var(--aegis-btn-border-color);
+  border-radius: var(--aegis-btn-radius);
+  font-family: inherit;
+  font-size: var(--aegis-btn-font-size);
+  font-weight: var(--aegis-btn-font-weight);
+  line-height: var(--aegis-btn-line-height);
+  color: var(--aegis-btn-fg);
+  background: var(--aegis-btn-bg);
+  cursor: pointer;
+  appearance: none;
+  transition:
+    background-color var(--aegis-btn-transition-duration) var(--aegis-btn-transition-easing),
+    color var(--aegis-btn-transition-duration) var(--aegis-btn-transition-easing),
+    border-color var(--aegis-btn-transition-duration) var(--aegis-btn-transition-easing);
+}
+
+/* --- Variantes: riel de COLOR -> capa 2 --- */
+.aegis-btn--primary {
+  --aegis-btn-bg: var(--aegis-color-accent-solid);
+  --aegis-btn-bg-hover: var(--aegis-color-accent-solid-hover);
+  --aegis-btn-bg-active: var(--aegis-color-accent-solid-hover);
+  --aegis-btn-fg: var(--aegis-color-accent-on-solid);
+  --aegis-btn-border-color: transparent;
+  --aegis-btn-focus-ring-color: var(--aegis-color-accent-ring);
+  --aegis-btn-spinner-track-color: var(--aegis-color-accent-solid-hover);
+}
+
+.aegis-btn--secondary {
+  --aegis-btn-bg: var(--aegis-color-surface-raised);
+  --aegis-btn-bg-hover: var(--aegis-color-surface-sunken);
+  --aegis-btn-bg-active: var(--aegis-color-surface-sunken);
+  --aegis-btn-fg: var(--aegis-color-text-strong);
+  --aegis-btn-border-color: var(--aegis-color-border-strong);
+  --aegis-btn-border-width: var(--aegis-border-width-hairline);
+  --aegis-btn-focus-ring-color: var(--aegis-color-accent-ring);
+  --aegis-btn-spinner-track-color: var(--aegis-color-border-default);
+}
+
+.aegis-btn--ghost {
+  --aegis-btn-bg: transparent;
+  --aegis-btn-bg-hover: var(--aegis-color-surface-sunken);
+  --aegis-btn-bg-active: var(--aegis-color-surface-sunken);
+  --aegis-btn-fg: var(--aegis-color-text-strong);
+  --aegis-btn-border-color: transparent;
+  --aegis-btn-focus-ring-color: var(--aegis-color-accent-ring);
+  --aegis-btn-spinner-track-color: var(--aegis-color-border-default);
+}
+
+.aegis-btn--danger {
+  --aegis-btn-bg: var(--aegis-color-destructive-solid);
+  --aegis-btn-bg-hover: var(--aegis-color-destructive-solid-hover);
+  --aegis-btn-bg-active: var(--aegis-color-destructive-solid-hover);
+  --aegis-btn-fg: var(--aegis-color-destructive-on-solid);
+  --aegis-btn-border-color: transparent;
+  --aegis-btn-focus-ring-color: var(--aegis-color-destructive-ring);
+  --aegis-btn-spinner-track-color: var(--aegis-color-destructive-solid-hover);
+}
+
+/* --- Tamaños: riel de ESTRUCTURA -> capa 1 --- */
+.aegis-btn--sm {
+  --aegis-btn-font-size: var(--aegis-font-size-sm);
+  --aegis-btn-padding-inline: var(--aegis-space-3);
+  --aegis-btn-padding-block: var(--aegis-space-2);
+}
+
+.aegis-btn--md {
+  --aegis-btn-font-size: var(--aegis-font-size-base);
+  --aegis-btn-padding-inline: var(--aegis-space-4);
+  --aegis-btn-padding-block: var(--aegis-space-2);
+}
+
+.aegis-btn--lg {
+  --aegis-btn-font-size: var(--aegis-font-size-lg);
+  --aegis-btn-padding-inline: var(--aegis-space-5);
+  --aegis-btn-padding-block: var(--aegis-space-3);
+}
+
+/* --- Estados --- */
+.aegis-btn:hover:not(:disabled):not([aria-disabled='true']) {
+  background: var(--aegis-btn-bg-hover);
+}
+
+.aegis-btn:active:not(:disabled):not([aria-disabled='true']) {
+  background: var(--aegis-btn-bg-active);
+}
+
+.aegis-btn:focus-visible {
+  outline: var(--aegis-btn-focus-ring-width) solid var(--aegis-btn-focus-ring-color);
+  outline-offset: var(--aegis-btn-focus-ring-offset);
+}
+
+.aegis-btn:disabled {
+  --aegis-btn-bg: var(--aegis-color-surface-sunken);
+  --aegis-btn-fg: var(--aegis-color-text-muted);
+  --aegis-btn-border-color: var(--aegis-color-border-default);
+  cursor: not-allowed;
+}
+
+.aegis-btn[aria-busy='true'] {
+  cursor: progress;
+}
+
+.aegis-btn[aria-busy='true'] .aegis-btn__label {
+  opacity: 0.7;
+}
+
+/* --- Spinner de carga --- */
+.aegis-btn__spinner {
+  inline-size: var(--aegis-btn-spinner-size);
+  block-size: var(--aegis-btn-spinner-size);
+  border: var(--aegis-btn-spinner-stroke) solid var(--aegis-btn-spinner-track-color);
+  border-block-start-color: var(--aegis-btn-spinner-indicator-color);
+  border-radius: 50%;
+  animation: aegis-btn-spin calc(var(--aegis-motion-duration-slow) * 2) linear infinite;
+}
+
+.aegis-btn__label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--aegis-btn-gap);
+}
+
+/* Región de anuncio para lector de pantalla (visualmente oculta, en el árbol a11y). */
+.aegis-btn__sr {
+  position: absolute;
+  inline-size: var(--aegis-border-width-hairline);
+  block-size: var(--aegis-border-width-hairline);
+  padding: 0;
+  margin: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+@keyframes aegis-btn-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* --- Reduced motion (WCAG): sin transiciones ni giro del spinner --- */
+@media (prefers-reduced-motion: reduce) {
+  .aegis-btn {
+    transition: none;
+  }
+
+  .aegis-btn__spinner {
+    animation: none;
+  }
 }

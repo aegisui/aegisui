@@ -199,6 +199,9 @@ valores que antes serían literales (borde, ring, trazo) son primitivos creados 
 | `--aegis-btn-spinner-size` | `var(--aegis-btn-font-size)` (escala con el tamaño) |
 | `--aegis-btn-spinner-stroke` | `--aegis-border-width-thin` |
 
+El giro del spinner usa `--aegis-motion-duration-slow` (capa 1) como base del
+periodo de rotación; se desactiva bajo `prefers-reduced-motion`.
+
 ## Estados
 
 | Estado | Disparador | Tratamiento |

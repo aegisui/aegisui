@@ -8,7 +8,7 @@
       "executor": "nx:run-commands",
       "outputs": ["{workspaceRoot}/dist/packages/ui"],
       "options": {
-        "command": "ng-packagr -p packages/ui/ng-package.json"
+        "command": "ng-packagr -p packages/ui/ng-package.json -c packages/ui/tsconfig.json"
       }
     },
     "test": {

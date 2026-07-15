@@ -12,7 +12,10 @@
     "skipLibCheck": true,
     "esModuleInterop": true,
     "declaration": true,
-    "sourceMap": true
+    "sourceMap": true,
+    "paths": {
+      "@aegisui/cdk": ["./packages/cdk/src/public-api.ts"]
+    }
   },
   "exclude": ["node_modules", "tmp"]
 }

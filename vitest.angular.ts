@@ -1,12 +1,15 @@
 import { defineConfig, mergeConfig } from 'vitest/config';
 import angularPlugin from '@analogjs/vite-plugin-angular';
+import tsconfigPathsPlugin from 'vite-tsconfig-paths';
 import { baseVitestConfig } from './vitest.base';
 
 // Los package.json de ui/cdk no declaran "type": "module", así que Vite bundlea
-// su vitest.config como CJS y el default de Analog llega envuelto en { default }.
-// Normalizamos para funcionar igual en ESM y en CJS.
+// su vitest.config como CJS y el default de estos plugins ESM llega envuelto en
+// { default }. Normalizamos para funcionar igual en ESM y en CJS.
 const angular = ((angularPlugin as { default?: typeof angularPlugin }).default ??
   angularPlugin) as typeof angularPlugin;
+const tsconfigPaths = ((tsconfigPathsPlugin as { default?: typeof tsconfigPathsPlugin }).default ??
+  tsconfigPathsPlugin) as typeof tsconfigPathsPlugin;
 
 /**
  * Base Vitest para paquetes con componentes/directivas Angular (ui, cdk).
@@ -22,7 +25,12 @@ const angular = ((angularPlugin as { default?: typeof angularPlugin }).default ?
 export const angularVitestConfig = mergeConfig(
   baseVitestConfig,
   defineConfig({
-    plugins: [angular()],
+    plugins: [
+      // Resuelve los alias `@aegisui/*` de tsconfig.base a la fuente en el
+      // workspace (p. ej. `@aegisui/cdk` -> packages/cdk/src/public-api.ts).
+      tsconfigPaths(),
+      angular(),
+    ],
     test: {
       environment: 'jsdom',
       // `globals` permite que el auto-cleanup de @testing-library/angular
