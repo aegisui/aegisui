@@ -25,6 +25,10 @@ export const angularVitestConfig = mergeConfig(
     plugins: [angular()],
     test: {
       environment: 'jsdom',
+      // `globals` permite que el auto-cleanup de @testing-library/angular
+      // registre su `afterEach` (resetea TestBed entre tests). Sin esto, el
+      // segundo `render` del fichero falla («TestBed already instantiated»).
+      globals: true,
       setupFiles: ['../../vitest.setup.angular.ts'],
     },
   }),
