@@ -144,5 +144,18 @@
       "standard": "cubic-bezier(0.2, 0, 0, 1)",
       "emphasized": "cubic-bezier(0.3, 0, 0, 1)"
     }
+  },
+  "border": {
+    "width": {
+      "none": "0",
+      "hairline": "1px",
+      "thin": "2px"
+    }
+  },
+  "focus": {
+    "ring": {
+      "width": "2px",
+      "offset": "2px"
+    }
   }
 }
