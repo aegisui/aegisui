@@ -353,5 +353,3 @@ Foco:
 - **Elevación/sombra** por variante: la estética Jade & Graphite es plana en v1
   (ADR-014); sin `--aegis-btn-shadow`.
 - **Auto-`loading`** derivado de una promesa: el estado lo controla el consumidor.
-</content>
-</invoke>
