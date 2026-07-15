@@ -143,20 +143,21 @@ dark mode se resuelve solo, porque estos semánticos de capa 2 ya lo llevan dent
 
 | Token de componente | `primary` | `secondary` | `ghost` | `danger` |
 |---|---|---|---|---|
-| `--aegis-btn-bg` | `--aegis-color-accent-solid` | `--aegis-color-surface-raised` | `transparent` | `--aegis-color-danger-solid` |
-| `--aegis-btn-bg-hover` | `--aegis-color-accent-solid-hover` | `--aegis-color-surface-sunken` | `--aegis-color-surface-sunken` | `--aegis-color-danger-solid-hover` |
-| `--aegis-btn-fg` | `--aegis-color-accent-on-solid` | `--aegis-color-text-strong` | `--aegis-color-text-strong` | `--aegis-color-danger-on-solid` |
+| `--aegis-btn-bg` | `--aegis-color-accent-solid` | `--aegis-color-surface-raised` | `transparent` | `--aegis-color-destructive-solid` † |
+| `--aegis-btn-bg-hover` | `--aegis-color-accent-solid-hover` | `--aegis-color-surface-sunken` | `--aegis-color-surface-sunken` | `--aegis-color-destructive-solid-hover` † |
+| `--aegis-btn-fg` | `--aegis-color-accent-on-solid` | `--aegis-color-text-strong` | `--aegis-color-text-strong` | `--aegis-color-destructive-on-solid` † |
 | `--aegis-btn-border-color` | `transparent` | `--aegis-color-border-strong` | `transparent` | `transparent` |
-| `--aegis-btn-focus-ring-color` | `--aegis-color-accent-ring` | `--aegis-color-accent-ring` | `--aegis-color-accent-ring` | `--aegis-color-danger-ring` |
+| `--aegis-btn-focus-ring-color` | `--aegis-color-accent-ring` | `--aegis-color-accent-ring` | `--aegis-color-accent-ring` | `--aegis-color-destructive-ring` † |
 
-> **Dependencia de capa 2:** la variante `danger` necesita semánticos **sólidos**
-> de peligro (`--aegis-color-danger-solid`, `--aegis-color-danger-solid-hover`,
-> `--aegis-color-danger-on-solid`, `--aegis-color-danger-ring`) que hoy **no
-> existen** en `packages/tokens/src/semantic.json` (solo hay `state.danger.*` de
-> superficie tenue, pensados para alertas, no para un botón relleno). Al
-> implementar se añaden **espejando el patrón `accent.*`** (bg claro + fg oscuro
-> en dark), y quedan validados por el gate `contrast`. Es un añadido pequeño y
-> justificado de capa 2, acoplado a este componente.
+> † **Decisión de capa 2 pendiente y SEPARADA (bloquea la variante `danger`).** La
+> variante `danger` necesita un semántico **sólido de acción destructiva**
+> (`--aegis-color-destructive-*`) que hoy **no existe**. No se resuelve espejando
+> `state.danger.*`: por ADR-014 los estados son **solo tinte + texto oscuro,
+> nunca sólidos con texto blanco**, y eso fue estructural. Un sólido destructivo
+> es **acción, no estado**, y por tanto es una **ampliación de la capa 2 con su
+> propio mini-ADR**, decidida aparte de este contrato. Hasta que se acuerde, la
+> columna `danger` queda **bloqueada**. Contraste ya verificado (≥ 4.5:1 en light
+> y dark) en la propuesta separada.
 
 ## Estados
 
@@ -241,8 +242,8 @@ Verificado por el gate `contrast` sobre el DOM renderizado, en ambos temas:
 | primary · hover | accent-on-solid | accent-solid-hover | ≥ 4.5:1 |
 | secondary · default | text-strong | surface-raised | ≥ 4.5:1 |
 | ghost · default | text-strong | canvas (subyacente) | ≥ 4.5:1 |
-| danger · default | danger-on-solid | danger-solid | ≥ 4.5:1 |
-| danger · hover | danger-on-solid | danger-solid-hover | ≥ 4.5:1 |
+| danger · default | destructive-on-solid † | destructive-solid † | ≥ 4.5:1 |
+| danger · hover | destructive-on-solid † | destructive-solid-hover † | ≥ 4.5:1 |
 | anillo de foco (todas) | ring vs superficie adyacente | — | ≥ 3:1 (1.4.11, UI) |
 | borde secondary | border-strong vs superficies | — | ≥ 3:1 (1.4.11, UI) |
 
