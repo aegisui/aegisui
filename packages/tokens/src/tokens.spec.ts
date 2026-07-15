@@ -153,10 +153,22 @@ describe('rol de estado garantizado por estructura, no por disciplina', () => {
     },
   );
 
-  it('solo el acento (jade) es superficie interactiva: tiene solid + on-solid', () => {
-    const accent = (semantic['color'] as Json)['accent'] as Json;
-    expect(accent).toHaveProperty('solid');
-    expect(accent).toHaveProperty('on-solid');
+  it('solo los roles de ACCIÓN (accent, destructive) son superficie sólida: tienen solid + on-solid', () => {
+    const color = semantic['color'] as Json;
+    for (const role of ['accent', 'destructive']) {
+      const node = color[role] as Json;
+      expect(node, `falta el rol de acción color.${role}`).toBeDefined();
+      expect(node, `color.${role} debe tener "solid"`).toHaveProperty('solid');
+      expect(node, `color.${role} debe tener "on-solid"`).toHaveProperty('on-solid');
+    }
+    // El raíl ADR-014 se refuerza: ningún ESTADO gana la superficie sólida de acción.
+    const states = color['state'] as Record<string, Json>;
+    for (const name of Object.keys(states)) {
+      expect(states[name], `state.${name} no debe ser superficie de acción`).not.toHaveProperty(
+        'solid',
+      );
+      expect(states[name]).not.toHaveProperty('on-solid');
+    }
   });
 });
 
@@ -176,6 +188,20 @@ describe('contraste WCAG de la capa semántica (4.5:1 texto / 3:1 UI)', () => {
     out.push(['accent.text / canvas', 'accent.text', 'surface.canvas', TEXT]);
     out.push(['accent.border / canvas', 'accent.border', 'surface.canvas', UI]);
     out.push(['accent.ring / canvas', 'accent.ring', 'surface.canvas', UI]);
+    // Acción destructiva sólida (ADR-015)
+    out.push([
+      'destructive.on-solid / destructive.solid',
+      'destructive.on-solid',
+      'destructive.solid',
+      TEXT,
+    ]);
+    out.push([
+      'destructive.on-solid / destructive.solid-hover',
+      'destructive.on-solid',
+      'destructive.solid-hover',
+      TEXT,
+    ]);
+    out.push(['destructive.ring / canvas', 'destructive.ring', 'surface.canvas', UI]);
     for (const s of states) {
       out.push([`${s}.text / bg`, `state.${s}.text`, `state.${s}.bg`, TEXT]);
       out.push([`${s}.text / canvas`, `state.${s}.text`, 'surface.canvas', TEXT]);

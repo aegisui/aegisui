@@ -23,6 +23,12 @@
       "border": { "light": "{color.jade.600}", "dark": "{color.jade.400}" },
       "ring": { "light": "{color.jade.600}", "dark": "{color.jade.400}" }
     },
+    "destructive": {
+      "solid": { "light": "{color.red.600}", "dark": "{color.red.400}" },
+      "solid-hover": { "light": "{color.red.700}", "dark": "{color.red.300}" },
+      "on-solid": { "light": "{color.neutral.0}", "dark": "{color.red.900}" },
+      "ring": { "light": "{color.red.600}", "dark": "{color.red.400}" }
+    },
     "state": {
       "success": {
         "bg": { "light": "{color.green.50}", "dark": "{color.green.900}" },
