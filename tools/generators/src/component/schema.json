@@ -1,0 +1,16 @@
+{
+  "$schema": "../../../../node_modules/nx/schemas/schema.json",
+  "$id": "AegisComponent",
+  "title": "Componente Aegis (brain/skin)",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Nombre del componente en kebab-case (p. ej. `button`). El selector será `aegis-<name>`.",
+      "$default": { "$source": "argv", "index": 0 },
+      "x-prompt": "¿Nombre del componente (kebab-case)?",
+      "pattern": "^[a-z][a-z0-9]*(-[a-z0-9]+)*$"
+    }
+  },
+  "required": ["name"]
+}

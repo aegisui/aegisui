@@ -1,0 +1,16 @@
+import { ChangeDetectionStrategy, Component } from '@angular/core';
+
+/**
+ * `<<%= selector %>>` — piel estilada sobre el brain `Aegis<%= className %>` de
+ * `@aegisui/cdk` (ADR-002). API signals-only, OnPush, standalone.
+ *
+ * TODO: compón el brain con `hostDirectives: [Aegis<%= className %>]` y añade los
+ * inputs/estados que declare docs/contracts/<%= fileName %>.md.
+ */
+@Component({
+  selector: '<%= selector %>',
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  template: `<ng-content />`,
+  styleUrl: './<%= fileName %>.component.css',
+})
+export class Aegis<%= className %>Component {}

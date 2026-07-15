@@ -1,0 +1,9 @@
+{
+  "name": "@aegisui/generators",
+  "version": "0.0.0",
+  "description": "Schematics Nx internos de Aegis UI (SPEC §4). Scaffold contrato→cdk→ui. Son raíl, no producto publicable.",
+  "license": "MIT",
+  "private": true,
+  "type": "commonjs",
+  "generators": "./generators.json"
+}

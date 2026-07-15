@@ -1,0 +1,12 @@
+import { describe, expect, it } from 'vitest';
+import { render, screen } from '@testing-library/angular';
+import { Aegis<%= className %>Component } from './<%= fileName %>.component';
+
+describe('Aegis<%= className %>Component', () => {
+  it('proyecta el contenido en un <%= selector %>', async () => {
+    await render(`<<%= selector %>>Hola</<%= selector %>>`, {
+      imports: [Aegis<%= className %>Component],
+    });
+    expect(screen.getByText('Hola')).toBeInTheDocument();
+  });
+});

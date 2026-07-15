@@ -1,0 +1,14 @@
+import type { Meta, StoryObj } from '@storybook/angular';
+import { Aegis<%= className %>Component } from './<%= fileName %>.component';
+
+const meta: Meta<Aegis<%= className %>Component> = {
+  title: 'Componentes/<%= className %>',
+  component: Aegis<%= className %>Component,
+};
+export default meta;
+
+type Story = StoryObj<Aegis<%= className %>Component>;
+
+export const Default: Story = {
+  render: () => ({ template: `<<%= selector %>>Aegis <%= className %></<%= selector %>>` }),
+};

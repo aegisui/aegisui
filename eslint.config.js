@@ -27,6 +27,9 @@ export default tseslint.config(
       // con su propio harness (tools/fixtures/src/*.spec.ts vía RuleTester), no
       // con `pnpm lint`. bad/ violaría el gate a propósito si se incluyera aquí.
       'tools/fixtures/**',
+      // Plantillas EJS del generador: no son TS/CSS reales (llevan `<%= %>` y
+      // sufijo `__tmpl__`). Se materializan al ejecutar `nx g`.
+      'tools/generators/src/component/files/**',
     ],
   },
   {

@@ -22,6 +22,7 @@
     "size": "size-limit"
   },
   "devDependencies": {
+    "@aegisui/generators": "workspace:*",
     "@angular/build": "22.0.6",
     "@angular/cli": "22.0.6",
     "@angular/common": "22.0.6",
@@ -32,8 +33,11 @@
     "@changesets/cli": "2.31.0",
     "@eslint/css": "1.4.0",
     "@eslint/js": "10.0.1",
+    "@nx/devkit": "23.0.2",
     "@playwright/test": "1.61.1",
     "@size-limit/file": "12.1.0",
+    "@swc-node/register": "1.10.10",
+    "@swc/core": "1.13.5",
     "@types/node": "22.20.1",
     "@vitest/coverage-v8": "4.1.10",
     "eslint": "10.7.0",

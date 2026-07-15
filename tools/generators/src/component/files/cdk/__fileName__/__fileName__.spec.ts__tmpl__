@@ -1,0 +1,8 @@
+import { describe, expect, it } from 'vitest';
+import { Aegis<%= className %> } from './<%= fileName %>';
+
+describe('Aegis<%= className %> (cdk brain)', () => {
+  it('se define', () => {
+    expect(Aegis<%= className %>).toBeDefined();
+  });
+});

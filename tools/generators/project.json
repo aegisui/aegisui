@@ -1,0 +1,15 @@
+{
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "name": "generators",
+  "projectType": "library",
+  "sourceRoot": "tools/generators/src",
+  "targets": {
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "tools/generators",
+        "command": "vitest run"
+      }
+    }
+  }
+}
