@@ -1,7 +1,7 @@
 import { mergeConfig } from 'vitest/config';
-import { baseVitestConfig } from '../../vitest.base';
+import { angularVitestConfig } from '../../vitest.angular';
 
-export default mergeConfig(baseVitestConfig, {
+export default mergeConfig(angularVitestConfig, {
   test: {
     name: 'cdk',
     coverage: {

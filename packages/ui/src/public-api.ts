@@ -7,3 +7,4 @@
  * ng-packagr genere un bundle válido.
  */
 export const AEGIS_UI_VERSION = '0.1.0';
+export * from './lib/button/button.component';
