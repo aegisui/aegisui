@@ -8,7 +8,8 @@
       "executor": "nx:run-commands",
       "outputs": ["{workspaceRoot}/dist/packages/tokens"],
       "options": {
-        "command": "tsc -p packages/tokens/tsconfig.lib.json"
+        "cwd": "packages/tokens",
+        "command": "node scripts/build-tokens.mjs"
       }
     },
     "test": {

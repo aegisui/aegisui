@@ -14,7 +14,8 @@
             "index": "src/index.html",
             "browser": "src/main.ts",
             "tsConfig": "tsconfig.app.json",
-            "polyfills": []
+            "polyfills": [],
+            "styles": ["../../dist/packages/tokens/tokens.css", "src/styles.css"]
           },
           "configurations": {
             "production": {

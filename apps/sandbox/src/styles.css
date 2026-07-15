@@ -1,0 +1,37 @@
+/* Estilos globales del sandbox. Todo por tokens de Aegis (capa 2 semántica): el
+   sandbox es una app, no un componente, y la capa 3 aún no existe (Fase 3). */
+
+:root {
+  color-scheme: light dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+}
+
+body {
+  background: var(--aegis-color-surface-canvas);
+  color: var(--aegis-color-text-strong);
+  font-family: var(--aegis-font-family-sans);
+  font-size: var(--aegis-font-size-base);
+  line-height: var(--aegis-font-leading-normal);
+}
+
+/* El repintado al cambiar tema o tono es la gracia de la demo: que se vea fluido,
+   pero nunca a costa de quien pide menos movimiento (WCAG 2.3.3). */
+@media (prefers-reduced-motion: no-preference) {
+  body,
+  body * {
+    transition:
+      background-color 240ms cubic-bezier(0.2, 0, 0, 1),
+      border-color 240ms cubic-bezier(0.2, 0, 0, 1),
+      color 240ms cubic-bezier(0.2, 0, 0, 1),
+      box-shadow 240ms cubic-bezier(0.2, 0, 0, 1);
+  }
+}
