@@ -2,5 +2,8 @@
   "name": "@aegisui/sandbox",
   "version": "0.0.0",
   "private": true,
-  "description": "App Angular real para probar componentes de Aegis UI."
+  "description": "App Angular real para probar componentes de Aegis UI.",
+  "dependencies": {
+    "@aegisui/tokens": "workspace:*"
+  }
 }
