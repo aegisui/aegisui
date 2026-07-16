@@ -224,4 +224,18 @@ describe('AegisButtonComponent', () => {
     flush();
     expect(live?.textContent?.trim()).toBe('Cargando…');
   });
+
+  // Regresión (hallazgo de pase manual, VoiceOver+Safari): una región aria-live
+  // ANIDADA dentro de un control con nombre-por-contenido (button/link) no se
+  // anuncia de forma fiable — el motor de accesibilidad la trata como parte del
+  // cálculo del nombre accesible, no como una región live independiente. Este
+  // patrón volverá en cualquier componente futuro que anuncie estado (toast,
+  // validación de formularios): el test protege el patrón, no solo el Button.
+  it('la región aria-live es HERMANA del <button>, no anidada dentro (y va enlazada por aria-describedby)', async () => {
+    const { button, container } = await setup();
+    const live = container.querySelector('[aria-live="polite"]');
+    expect(live).not.toBeNull();
+    expect(button().contains(live)).toBe(false);
+    expect(button().getAttribute('aria-describedby')).toBe(live?.id);
+  });
 });
