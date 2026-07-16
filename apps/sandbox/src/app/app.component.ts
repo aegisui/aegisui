@@ -10,6 +10,7 @@ import {
 } from '@angular/core';
 import { contrastRatio, hexToHsl, hslToHex, type Hsl } from './color';
 import { ButtonGalleryComponent } from './button-gallery.component';
+import { ButtonA11yManualComponent } from './button-a11y-manual.component';
 
 type Theme = 'light' | 'dark';
 
@@ -38,7 +39,7 @@ interface Preset {
 @Component({
   selector: 'aegis-sandbox-root',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ButtonGalleryComponent],
+  imports: [ButtonGalleryComponent, ButtonA11yManualComponent],
   styleUrl: './app.component.css',
   template: `
     <header class="topbar">
@@ -147,6 +148,16 @@ interface Preset {
           gates de a11y, contraste, target-size y visual.
         </p>
         <aegis-button-gallery />
+      </section>
+
+      <section class="panel" aria-labelledby="btn-a11y-title">
+        <h2 id="btn-a11y-title">Button — pase manual con lector de pantalla</h2>
+        <p class="muted">
+          Solo para el pase manual (VoiceOver+Safari, NVDA+Firefox): SPEC §8.5, axe detecta ~1/3 de
+          los problemas reales. El caso 2 dispara <code>loading</code> de verdad para escuchar el
+          anuncio en el momento en que ocurre.
+        </p>
+        <aegis-button-a11y-manual />
       </section>
     </main>
   `,
