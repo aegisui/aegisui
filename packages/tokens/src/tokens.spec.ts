@@ -198,6 +198,13 @@ describe('contraste WCAG de la capa semántica (4.5:1 texto / 3:1 UI)', () => {
     out.push(['accent.text / canvas', 'accent.text', 'surface.canvas', TEXT]);
     out.push(['accent.border / canvas', 'accent.border', 'surface.canvas', UI]);
     out.push(['accent.ring / canvas', 'accent.ring', 'surface.canvas', UI]);
+    // Borde funcional (1.4.11): el borde por defecto de un control interactivo
+    // (input, botón secondary) es su única señal de límite — a diferencia de
+    // border.separator (decorativo, sin este requisito). Contra las tres
+    // superficies donde puede aparecer.
+    for (const surf of ['surface.canvas', 'surface.raised', 'surface.sunken']) {
+      out.push([`border.strong / ${surf}`, 'border.strong', surf, UI]);
+    }
     // Acción destructiva sólida (ADR-015)
     out.push([
       'destructive.on-solid / destructive.solid',

@@ -12,7 +12,8 @@
   como test de regresión de los raíles (§13, ADR-013).
 
   - a11y        -> <button> nativo con nombre accesible (aria-label + texto).
-  - contrast    -> #1b1b1b sobre #ffffff ~ 17:1 (>= 4.5:1).
+  - contrast    -> #1b1b1b sobre #ffffff ~ 17:1 (>= 4.5:1); borde #767676 sobre
+                   #ffffff ~ 4.54:1 (>= 3:1, 1.4.11).
   - target-size -> 32x32 px (>= 24x24).
   - keyboard    -> maneja Enter y Space (las teclas que declara el contrato).
 -->
@@ -21,7 +22,13 @@
   class="fixture-good"
   aria-label="Activar fixture"
   data-handles="Enter Space"
-  style="color: #1b1b1b; background: #ffffff; min-width: 32px; min-height: 32px"
+  style="
+    color: #1b1b1b;
+    background: #ffffff;
+    border-color: #767676;
+    min-width: 32px;
+    min-height: 32px;
+  "
 >
   Activar
 </button>

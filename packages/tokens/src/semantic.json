@@ -11,8 +11,8 @@
       "subtle": { "light": "{color.neutral.500}", "dark": "{color.neutral.500}" }
     },
     "border": {
-      "default": { "light": "{color.neutral.200}", "dark": "{color.neutral.800}" },
-      "strong": { "light": "{color.neutral.300}", "dark": "{color.neutral.700}" }
+      "separator": { "light": "{color.neutral.200}", "dark": "{color.neutral.800}" },
+      "strong": { "light": "{color.neutral.500}", "dark": "{color.neutral.400}" }
     },
     "accent": {
       "solid": { "light": "{color.jade.600}", "dark": "{color.jade.400}" },

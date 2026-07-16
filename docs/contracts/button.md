@@ -159,7 +159,7 @@ resuelve solo, porque estos semánticos de capa 2 ya lo llevan dentro (ADR-016).
 | `--aegis-btn-fg` | `--aegis-color-accent-on-solid` | `--aegis-color-text-strong` | `--aegis-color-text-strong` | `--aegis-color-destructive-on-solid` |
 | `--aegis-btn-border-color` | `transparent` | `--aegis-color-border-strong` | `transparent` | `transparent` |
 | `--aegis-btn-focus-ring-color` | `--aegis-color-accent-ring` | `--aegis-color-accent-ring` | `--aegis-color-accent-ring` | `--aegis-color-destructive-ring` |
-| `--aegis-btn-spinner-track-color` | `--aegis-color-accent-solid-hover` | `--aegis-color-border-default` | `--aegis-color-border-default` | `--aegis-color-destructive-solid-hover` |
+| `--aegis-btn-spinner-track-color` | `--aegis-color-accent-solid-hover` | `--aegis-color-border-separator` | `--aegis-color-border-separator` | `--aegis-color-destructive-solid-hover` |
 
 - `--aegis-btn-spinner-indicator-color` = `var(--aegis-btn-fg)` (el propio fg de la
   variante; layer-3 sobre layer-3).
@@ -292,6 +292,15 @@ Verificado por el gate `contrast` sobre el DOM renderizado, en ambos temas:
 
 Texto deshabilitado: exento de 1.4.3, pero se mantiene legible (remapeo a tono
 apagado, no solo `opacity`).
+
+> **Corrección (ADR-018):** `--aegis-color-border-strong` no pasaba 3:1 hasta la
+> corrección de ADR-018 (era 1.82:1 light / 1.76:1 dark); el gate `contrast` no lo
+> cazaba porque no comprobaba ningún par de borde neutro. Ambos se corrigieron
+> juntos: el token (ahora ≥ 4.24:1 en las tres superficies, ambos temas) y el gate
+> (que desde ADR-018 sí verifica `border.strong`, en la capa semántica y sobre el
+> DOM renderizado de los fixtures). El spinner-track de `secondary`/`ghost` y el
+> borde de `disabled` usan `--aegis-color-border-separator` (decorativo, sin este
+> requisito): no es el mismo rol.
 
 ### Reduced motion (`prefers-reduced-motion`)
 

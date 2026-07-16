@@ -1,1 +1,1 @@
-<button type="button" class="fixture-good" aria-label="Activar fixture" data-handles="Enter Space" style="color: #1b1b1b; background: #ffffff; min-width: 32px; min-height: 32px" > Activar </button>
+<button type="button" class="fixture-good" aria-label="Activar fixture" data-handles="Enter Space" style=" color: #1b1b1b; background: #ffffff; border-color: #767676; min-width: 32px; min-height: 32px; " > Activar </button>
