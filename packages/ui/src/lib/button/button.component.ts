@@ -11,6 +11,8 @@ export type AegisButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger';
 export type AegisButtonSize = 'sm' | 'md' | 'lg';
 export type AegisButtonType = 'button' | 'submit' | 'reset';
 
+let nextSrId = 0;
+
 /**
  * `<aegis-button>` — piel estilada sobre el brain `AegisButton` de `@aegisui/cdk`
  * (ADR-002, brain/skin). API signals-only, OnPush, standalone.
@@ -20,6 +22,13 @@ export type AegisButtonType = 'button' | 'submit' | 'reset';
  * solo se pinta con tokens de capa 3 `--aegis-btn-*` (definidos en el CSS, dos
  * rieles: color→capa 2, estructura→capa 1; ADR-016) y se compone el spinner, la
  * etiqueta proyectada y la región `aria-live` de carga.
+ *
+ * La región `aria-live` es HERMANA del `<button>`, no anidada dentro (vinculada
+ * por `aria-describedby`). Confirmado por prueba manual (VoiceOver+Safari): una
+ * región `aria-live` anidada en un control con nombre-por-contenido no se anuncia
+ * de forma fiable — el motor de accesibilidad la trata como parte del cálculo del
+ * nombre accesible del botón, no como una región live independiente, y el cambio
+ * pasa en silencio. Sacarla como hermano es lo que la hace audible.
  */
 @Component({
   selector: 'aegis-button',
@@ -38,6 +47,7 @@ export type AegisButtonType = 'button' | 'submit' | 'reset';
       [attr.type]="type()"
       [attr.aria-label]="ariaLabel()"
       [attr.aria-labelledby]="ariaLabelledby()"
+      [attr.aria-describedby]="srId"
       aegisButton
       #brain="aegisButton"
       [disabled]="disabled()"
@@ -47,12 +57,12 @@ export type AegisButtonType = 'button' | 'submit' | 'reset';
         <span class="aegis-btn__spinner" aria-hidden="true"></span>
       }
       <span class="aegis-btn__label"><ng-content /></span>
-      <span class="aegis-btn__sr" aria-live="polite">
-        @if (brain.busy()) {
-          {{ loadingLabel() }}
-        }
-      </span>
     </button>
+    <span class="aegis-btn__sr" [id]="srId" aria-live="polite">
+      @if (brain.busy()) {
+        {{ loadingLabel() }}
+      }
+    </span>
   `,
   styleUrl: './button.component.css',
 })
@@ -87,4 +97,7 @@ export class AegisButtonComponent {
   protected readonly classes = computed(
     () => `aegis-btn aegis-btn--${this.variant()} aegis-btn--${this.size()}`,
   );
+
+  /** Id único de la región `aria-live`, para vincularla al botón por `aria-describedby`. */
+  protected readonly srId = `aegis-btn-sr-${nextSrId++}`;
 }
