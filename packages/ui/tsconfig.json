@@ -3,10 +3,8 @@
   "compilerOptions": {
     "declaration": true,
     "experimentalDecorators": false,
-    "baseUrl": ".",
-    "ignoreDeprecations": "6.0",
     "paths": {
-      "@aegisui/cdk": ["../../dist/packages/cdk"]
+      "@aegisui/cdk": ["../cdk/src/public-api.ts"]
     }
   },
   "angularCompilerOptions": {
