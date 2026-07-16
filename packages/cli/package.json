@@ -5,6 +5,6 @@
   "license": "MIT",
   "type": "module",
   "bin": {
-    "aegisui": "./bin/aegisui.js"
+    "aegisui": "./cli.js"
   }
 }

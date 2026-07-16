@@ -3,7 +3,10 @@
   "compilerOptions": {
     "outDir": "../../dist/packages/cli",
     "rootDir": "src",
-    "declaration": true
+    "declaration": true,
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "types": ["node"]
   },
   "include": ["src/**/*.ts"],
   "exclude": ["src/**/*.spec.ts"]
