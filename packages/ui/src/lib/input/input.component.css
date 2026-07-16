@@ -1,0 +1,159 @@
+/*
+ * Capa 3 del Input (LOCAL al componente, ADR-016). Dos rieles:
+ *   - COLOR      -> capa 2 (--aegis-color-*), que ya resuelve el tema por sí sola.
+ *   - ESTRUCTURA -> capa 1 (--aegis-space/radius/font/motion/border-width/focus-ring).
+ * Cero literales: cualquier valor es var(--aegis-*). El tema no se decide aquí.
+ *
+ * Estado inválido -> state.danger.* (ADR-014/015): es un ESTADO, no una ACCIÓN
+ * (a diferencia del danger del Button, que sí lo es). Ver docs/contracts/input.md.
+ */
+
+:host {
+  display: flex;
+  flex-direction: column;
+}
+
+.aegis-input {
+  /* --- Estructura (riel capa 1); las medidas por tamaño se sobreescriben abajo -- */
+  --aegis-input-radius: var(--aegis-radius-md);
+  --aegis-input-border-width: var(--aegis-border-width-hairline);
+  --aegis-input-font-size: var(--aegis-font-size-base);
+  --aegis-input-line-height: var(--aegis-font-leading-normal);
+  --aegis-input-padding-inline: var(--aegis-space-4);
+  --aegis-input-padding-block: var(--aegis-space-2);
+  --aegis-input-min-block-size: var(--aegis-space-5);
+  --aegis-input-focus-ring-width: var(--aegis-focus-ring-width);
+  --aegis-input-focus-ring-offset: var(--aegis-focus-ring-offset);
+  --aegis-input-transition-duration: var(--aegis-motion-duration-fast);
+  --aegis-input-transition-easing: var(--aegis-motion-easing-standard);
+
+  /* --- Color (riel capa 2) --- */
+  --aegis-input-bg: var(--aegis-color-surface-raised);
+  --aegis-input-fg: var(--aegis-color-text-strong);
+  --aegis-input-placeholder-color: var(--aegis-color-text-muted);
+  --aegis-input-border-color: var(--aegis-color-border-strong);
+  --aegis-input-border-color-hover: var(--aegis-color-accent-border);
+  --aegis-input-border-color-invalid: var(--aegis-color-state-danger-point);
+  --aegis-input-focus-ring-color: var(--aegis-color-accent-ring);
+  --aegis-input-focus-ring-color-invalid: var(--aegis-color-state-danger-point);
+
+  /* --- Consumo --- */
+  min-block-size: var(--aegis-input-min-block-size);
+  padding-block: var(--aegis-input-padding-block);
+  padding-inline: var(--aegis-input-padding-inline);
+  border: var(--aegis-input-border-width) solid var(--aegis-input-border-color);
+  border-radius: var(--aegis-input-radius);
+  font-family: inherit;
+  font-size: var(--aegis-input-font-size);
+  line-height: var(--aegis-input-line-height);
+  color: var(--aegis-input-fg);
+  background: var(--aegis-input-bg);
+  appearance: none;
+  transition:
+    background-color var(--aegis-input-transition-duration) var(--aegis-input-transition-easing),
+    border-color var(--aegis-input-transition-duration) var(--aegis-input-transition-easing);
+}
+
+.aegis-input::placeholder {
+  color: var(--aegis-input-placeholder-color);
+}
+
+/* --- Tamaños: riel de ESTRUCTURA -> capa 1 --- */
+.aegis-input--sm {
+  --aegis-input-font-size: var(--aegis-font-size-sm);
+  --aegis-input-padding-inline: var(--aegis-space-3);
+  --aegis-input-padding-block: var(--aegis-space-2);
+}
+
+.aegis-input--md {
+  --aegis-input-font-size: var(--aegis-font-size-base);
+  --aegis-input-padding-inline: var(--aegis-space-4);
+  --aegis-input-padding-block: var(--aegis-space-2);
+}
+
+.aegis-input--lg {
+  --aegis-input-font-size: var(--aegis-font-size-lg);
+  --aegis-input-padding-inline: var(--aegis-space-5);
+  --aegis-input-padding-block: var(--aegis-space-3);
+}
+
+/* --- Estados --- */
+.aegis-input:hover:not(:disabled):not(:read-only):not([aria-invalid='true']) {
+  border-color: var(--aegis-input-border-color-hover);
+}
+
+.aegis-input:focus-visible {
+  outline: var(--aegis-input-focus-ring-width) solid var(--aegis-input-focus-ring-color);
+  outline-offset: var(--aegis-input-focus-ring-offset);
+}
+
+.aegis-input[aria-invalid='true'] {
+  border-color: var(--aegis-input-border-color-invalid);
+}
+
+.aegis-input[aria-invalid='true']:focus-visible {
+  outline-color: var(--aegis-input-focus-ring-color-invalid);
+}
+
+.aegis-input:disabled {
+  --aegis-input-bg: var(--aegis-color-surface-sunken);
+  --aegis-input-fg: var(--aegis-color-text-muted);
+  --aegis-input-border-color: var(--aegis-color-border-separator);
+  cursor: not-allowed;
+}
+
+.aegis-input:read-only:not(:disabled) {
+  --aegis-input-bg: var(--aegis-color-surface-sunken);
+}
+
+/* --- Etiqueta --- */
+.aegis-input__label {
+  --aegis-input-label-color: var(--aegis-color-text-strong);
+  --aegis-input-label-font-size: var(--aegis-font-size-sm);
+  --aegis-input-label-font-weight: var(--aegis-font-weight-medium);
+  --aegis-input-label-gap: var(--aegis-space-1);
+
+  display: block;
+  margin-block-end: var(--aegis-input-label-gap);
+  color: var(--aegis-input-label-color);
+  font-size: var(--aegis-input-label-font-size);
+  font-weight: var(--aegis-input-label-font-weight);
+}
+
+.aegis-input__required {
+  --aegis-input-required-indicator-color: var(--aegis-color-text-muted);
+
+  color: var(--aegis-input-required-indicator-color);
+}
+
+/* --- Ayuda y error --- */
+.aegis-input__help,
+.aegis-input__error {
+  --aegis-input-meta-gap: var(--aegis-space-1);
+
+  display: block;
+  margin-block-start: var(--aegis-input-meta-gap);
+}
+
+.aegis-input__help {
+  --aegis-input-help-color: var(--aegis-color-text-muted);
+  --aegis-input-help-font-size: var(--aegis-font-size-sm);
+
+  color: var(--aegis-input-help-color);
+  font-size: var(--aegis-input-help-font-size);
+}
+
+.aegis-input__error {
+  --aegis-input-error-color: var(--aegis-color-state-danger-text);
+  --aegis-input-error-font-size: var(--aegis-font-size-sm);
+
+  color: var(--aegis-input-error-color);
+  font-size: var(--aegis-input-error-font-size);
+}
+
+/* --- Reduced motion (WCAG): sin transiciones de borde/fondo --- */
+@media (prefers-reduced-motion: reduce) {
+  .aegis-input {
+    transition: none;
+  }
+}

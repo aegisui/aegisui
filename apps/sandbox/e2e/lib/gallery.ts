@@ -44,7 +44,8 @@ export async function readCells(page: Page): Promise<Cell[]> {
       }
       return 'rgb(255, 255, 255)';
     };
-    return [...document.querySelectorAll('[data-cell]')].map((el) => {
+    const scope = document.querySelector('[aria-label="Galería del Button"]') ?? document;
+    return [...scope.querySelectorAll('[data-cell]')].map((el) => {
       const btn = (el.tagName === 'BUTTON' ? el : el.querySelector('button')) as HTMLButtonElement;
       const cs = getComputedStyle(btn);
       const box = btn.getBoundingClientRect();
