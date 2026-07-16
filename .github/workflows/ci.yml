@@ -24,6 +24,15 @@ concurrency:
 # direcciones (pasa sobre good/, falla sobre bad/) vía scripts/gates/run.mjs. Los
 # fixtures se quedan para siempre; cuando lleguen componentes reales, los gates
 # los analizarán A ELLOS ADEMÁS DE a los fixtures, sin tocar el `name:` del job.
+#
+# `storybook-build` es la ÚNICA excepción deliberada a "todo job de este archivo
+# es required": es tooling de documentación con fricción de versiones propia
+# (ADR-017), no un verificador de corrección — no cazar ninguna violación que los
+# gates de arriba no cacen ya. Metida en el ruleset como required, un rojo suyo
+# significaría a veces "Storybook desactualizado" y a veces "producto roto": exactamente
+# lo que la regla anti-verde-falso existe para evitar. `continue-on-error: true` y
+# el sufijo "(non-blocking)" en el nombre son a propósito, para que nadie la
+# confunda con un gate ni la "promueva" a required sin releer esto.
 
 jobs:
   lint:
@@ -151,6 +160,20 @@ jobs:
       - name: visual del Button real (estilos computados, Chromium)
         working-directory: apps/sandbox
         run: pnpm exec playwright test gate-visual
+
+  # Informativo, NO required (ver comentario de cabecera y ADR-017). Solo
+  # construye: cero deps runtime, cero superficie de corrección que no cubran
+  # ya los gates de arriba. `continue-on-error` para que un rojo se vea como
+  # advertencia (⚠), nunca como el X rojo de un gate real.
+  storybook-build:
+    name: 'storybook-build (non-blocking)'
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - run: pnpm nx run tokens:build
+      - run: pnpm storybook:build
 
   changeset:
     name: changeset

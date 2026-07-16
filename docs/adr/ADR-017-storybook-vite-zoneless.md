@@ -1,4 +1,4 @@
-# ADR-017: Storybook corre sobre `@storybook/angular-vite` (no `@storybook/angular` webpack)
+# ADR-017: Storybook corre sobre `@storybook/angular-vite` (no `@storybook/angular` webpack); `storybook-build` es informativo, no required
 
 ## Contexto
 
@@ -60,6 +60,35 @@ se pueda migrar) resuelve las dos tensiones de una vez:
   `Matriz` renderiza las 4 variantes × 3 tamaños, y el toggle de tema (toolbar
   y `?globals=theme:dark` en la URL) cambia correctamente los tokens
   aplicados sobre el Button y el lienzo.
+
+### ¿Gate de CI o fuera de los 13 checks?
+
+**Fuera de los 13 required.** El job `storybook-build (non-blocking)` en
+`.github/workflows/ci.yml` solo hace `pnpm storybook:build` (nada de gates,
+nada de fixtures) y lleva `continue-on-error: true`. Es la única excepción
+deliberada a "todo job de `ci.yml` es required" (ver el comentario de cabecera
+de ese archivo). Razón:
+
+- Los 13 checks existentes son raíles (SPEC §13, anti-verde-falso): un rojo
+  suyo significa **siempre** una violación real, porque solo cazan lo que los
+  fixtures `good`/`bad` demuestran que cazan. Storybook no verifica ningún eje
+  de corrección que esos gates no verifiquen ya contra los fixtures reales —
+  es documentación de desarrollo, no un verificador.
+- Es, por diseño, la pieza con más fricción de versiones del stack (de ahí
+  las dos tensiones resueltas arriba). Ponerla en el conjunto required
+  significaría que un futuro breaking change de Storybook/Vite bloquea todos
+  los PRs aunque el componente esté perfecto — y enseñaría a la gente a leer
+  un rojo como "puede que no sea nada", que es exactamente lo que el
+  anti-verde-falso existe para evitar.
+- **El nombre del job (`storybook-build (non-blocking)`) y `continue-on-error`
+  son a propósito**, no un descuido: si dentro de 6 meses alguien lo mete al
+  ruleset de protección de rama como required, que sea una decisión consciente
+  que reabra este ADR, no un "total, ya está verde casi siempre".
+- El ruleset de required checks vive en la configuración de GitHub (branch
+  protection), no en este repo; este ADR es la única fuente de verdad de que
+  `storybook-build` no debe entrar ahí.
+- El preview desplegado (SPEC menciona "CI + preview de Storybook desplegado")
+  queda para una fase posterior; este job no publica nada, solo construye.
 
 ## Consecuencias
 
