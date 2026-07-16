@@ -74,7 +74,7 @@
   --aegis-btn-border-color: var(--aegis-color-border-strong);
   --aegis-btn-border-width: var(--aegis-border-width-hairline);
   --aegis-btn-focus-ring-color: var(--aegis-color-accent-ring);
-  --aegis-btn-spinner-track-color: var(--aegis-color-border-default);
+  --aegis-btn-spinner-track-color: var(--aegis-color-border-separator);
 }
 
 .aegis-btn--ghost {
@@ -84,7 +84,7 @@
   --aegis-btn-fg: var(--aegis-color-text-strong);
   --aegis-btn-border-color: transparent;
   --aegis-btn-focus-ring-color: var(--aegis-color-accent-ring);
-  --aegis-btn-spinner-track-color: var(--aegis-color-border-default);
+  --aegis-btn-spinner-track-color: var(--aegis-color-border-separator);
 }
 
 .aegis-btn--danger {
@@ -133,7 +133,7 @@
 .aegis-btn:disabled {
   --aegis-btn-bg: var(--aegis-color-surface-sunken);
   --aegis-btn-fg: var(--aegis-color-text-muted);
-  --aegis-btn-border-color: var(--aegis-color-border-default);
+  --aegis-btn-border-color: var(--aegis-color-border-separator);
   cursor: not-allowed;
 }
 

@@ -28,14 +28,25 @@ function inspectTheme(htmlPath, theme) {
   for (const el of elements) {
     const fg = el.style.color;
     const bg = el.style.background || el.style['background-color'];
-    if (!fg || !bg) {
-      continue;
+    if (fg && bg) {
+      const ratio = contrastRatio(fg, bg);
+      if (ratio < AA_TEXT) {
+        violations.push(
+          `[${theme}] <${el.tag}> ${fg} sobre ${bg} = ${ratio.toFixed(2)}:1 (< ${AA_TEXT}:1). Ajusta los tokens de color.`,
+        );
+      }
     }
-    const ratio = contrastRatio(fg, bg);
-    if (ratio < AA_TEXT) {
-      violations.push(
-        `[${theme}] <${el.tag}> ${fg} sobre ${bg} = ${ratio.toFixed(2)}:1 (< ${AA_TEXT}:1). Ajusta los tokens de color.`,
-      );
+    // Borde funcional (1.4.11): la única señal de límite de un control
+    // interactivo. Se compara contra el fondo del propio elemento (superficie
+    // adyacente en estos fixtures de un solo elemento).
+    const border = el.style['border-color'];
+    if (border && bg) {
+      const ratio = contrastRatio(border, bg);
+      if (ratio < AA_UI) {
+        violations.push(
+          `[${theme}] <${el.tag}> borde ${border} sobre ${bg} = ${ratio.toFixed(2)}:1 (< ${AA_UI}:1, 1.4.11). Ajusta los tokens de borde.`,
+        );
+      }
     }
   }
   return violations;
@@ -90,6 +101,12 @@ function semanticPairs() {
   pairs.push(['accent.on-solid', 'accent.solid', AA_TEXT]);
   pairs.push(['accent.text', 'surface.canvas', AA_TEXT]);
   pairs.push(['accent.text', 'surface.raised', AA_TEXT]);
+  // Borde funcional (1.4.11): border.strong es la única señal de límite de un
+  // control interactivo (input, botón secondary) — a diferencia de
+  // border.separator, decorativo y sin este requisito.
+  for (const surface of ['surface.canvas', 'surface.raised', 'surface.sunken']) {
+    pairs.push(['border.strong', surface, AA_UI]);
+  }
   pairs.push(['accent.border', 'surface.canvas', AA_UI]);
   pairs.push(['accent.ring', 'surface.canvas', AA_UI]);
   // Acción destructiva sólida (ADR-015): rol de acción hermano de accent, no de

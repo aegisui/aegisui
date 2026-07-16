@@ -2,14 +2,21 @@
   DOM renderizado del fixture "good" (tema dark). El mismo componente que en
   light, con los tokens resueltos al tema oscuro. Sirve al gate `visual` (que
   compara light vs dark) y confirma que `contrast` se cumple también en dark:
-  #f5f5f5 sobre #101114 ~ 17:1. Deliberadamente correcto (§13, ADR-013).
+  #f5f5f5 sobre #101114 ~ 17:1; borde #8a9099 sobre #101114 ~ 5.87:1 (>= 3:1,
+  1.4.11). Deliberadamente correcto (§13, ADR-013).
 -->
 <button
   type="button"
   class="fixture-good"
   aria-label="Activar fixture"
   data-handles="Enter Space"
-  style="color: #f5f5f5; background: #101114; min-width: 32px; min-height: 32px"
+  style="
+    color: #f5f5f5;
+    background: #101114;
+    border-color: #8a9099;
+    min-width: 32px;
+    min-height: 32px;
+  "
 >
   Activar
 </button>
