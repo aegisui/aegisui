@@ -25,10 +25,19 @@ export type AegisButtonType = 'button' | 'submit' | 'reset';
   selector: 'aegis-button',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [AegisButton],
+  // El nombre accesible vive en el `<button>` interno, no en el host `<aegis-button>`
+  // (que no tiene rol). Reenviamos aria-label/labelledby al botón y los quitamos del
+  // host para que no queden huérfanos ni se anuncien dos veces.
+  host: {
+    '[attr.aria-label]': 'null',
+    '[attr.aria-labelledby]': 'null',
+  },
   template: `
     <button
       [class]="classes()"
       [attr.type]="type()"
+      [attr.aria-label]="ariaLabel()"
+      [attr.aria-labelledby]="ariaLabelledby()"
       aegisButton
       #brain="aegisButton"
       [disabled]="disabled()"
@@ -65,6 +74,15 @@ export class AegisButtonComponent {
 
   /** Texto anunciado por lector de pantalla mientras `loading` (`aria-live`). */
   readonly loadingLabel = input('Cargando…');
+
+  /**
+   * Nombre accesible cuando no hay texto proyectado (botón solo-icono). Se
+   * reenvía al `<button>` interno; obligatorio si el contenido es solo un icono.
+   */
+  readonly ariaLabel = input<string | undefined>(undefined, { alias: 'aria-label' });
+
+  /** `aria-labelledby` reenviado al `<button>` interno. */
+  readonly ariaLabelledby = input<string | undefined>(undefined, { alias: 'aria-labelledby' });
 
   protected readonly classes = computed(
     () => `aegis-btn aegis-btn--${this.variant()} aegis-btn--${this.size()}`,
