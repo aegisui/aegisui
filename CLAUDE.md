@@ -21,6 +21,8 @@ Node ≥ 22.22.3 (ver `.nvmrc`) y pnpm vía corepack (versión pineada en `packa
 | peer-floor (minVersion del artefacto ≤ 20) | `pnpm peer-floor` (requiere build antes) |
 | Tamaño (size-limit) | `pnpm size` (requiere build antes) |
 | e2e / Playwright (vs sandbox) | `pnpm nx run sandbox:e2e` |
+| Storybook (dev) | `pnpm nx run tokens:build && pnpm storybook` |
+| Storybook (build estático) | `pnpm nx run tokens:build && pnpm storybook:build` |
 | Changeset | `pnpm changeset` |
 | Demostrar que los raíles bloquean | `pnpm exec eslint --config tools/fixtures/eslint.fixtures.config.js 'tools/fixtures/bad/**/*.{ts,css}' 'tools/fixtures/bad-tokens/**/*.css'` |
 | Correr un gate DOM de §9.2 (dos direcciones vs fixtures) | `node scripts/gates/run.mjs <gate>` (`a11y`, `contrast`, `keyboard`, `target-size`, `visual`, `contracts`) |
@@ -42,6 +44,7 @@ Node ≥ 22.22.3 (ver `.nvmrc`) y pnpm vía corepack (versión pineada en `packa
 
 - `packages/{tokens,cdk,ui,icons}` → publicables, versionados en **lockstep**; `packages/cli` (`aegisui`) → publicable, versionado **independiente**.
 - `apps/sandbox` → app Angular real de pruebas (zoneless).
+- `.storybook/` → runtime de Storybook (`@storybook/angular-vite`, ADR-017): documentación viva de los componentes de `packages/ui` (stories junto al componente, `*.stories.ts`).
 - `tools/eslint-rules` → las **11 reglas propias** (JS ESM) + sus tests RuleTester. **Son el producto** (SPEC §7, §15).
 - `tools/fixtures/{good,bad,bad-tokens}` → **test de regresión permanente de los raíles**: demuestran que cada gate pasa sobre `good/` y falla sobre `bad/` (ADR-009, ADR-013). Incluye los `fixture-*.rendered.{light,dark}.html` (objetivo de los gates DOM) y el `## Teclado` del contrato (objetivo de `keyboard`).
 - `scripts/gates/` → los 6 gates DOM de §9.2 (analizadores propios, cero deps) + `run.mjs` (las dos direcciones; es el comando de cada job de CI). ADR-013.
