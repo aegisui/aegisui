@@ -18,3 +18,6 @@ por no entender para qué existe. Formato corto: Contexto / Decisión / Consecue
 | [012](ADR-012-css-de-componente-con-eslint-css.md) | Estilos de componente en `.css` lint-eados por `@eslint/css` |
 | [013](ADR-013-fixtures-como-objetivos-de-ci.md) | Los fixtures son objetivos de CI de primera clase (los 6 gates DOM corren contra ellos, dos direcciones) |
 | [014](ADR-014-paleta-jade-graphite.md) | Paleta "Jade & Graphite"; separación jade/estado por hue (68°) y por rol, garantizada por ausencia de token |
+| [015](ADR-015-accion-destructiva-solida.md) | Rol de acción destructiva sólida `color.destructive.*` |
+| [016](ADR-016-capa-3-local-y-modelo-de-dos-rieles.md) | La capa 3 es local al componente; theming a dos rieles (color→capa 2, estructura→capa 1) |
+| [017](ADR-017-storybook-vite-zoneless.md) | Storybook corre sobre `@storybook/angular-vite` (no la vía webpack, deprecada) |

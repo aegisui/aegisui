@@ -1,0 +1,10 @@
+/* Fondo/color del lienzo de Storybook, alineado con el mismo mecanismo de
+   apps/sandbox/src/styles.css: solo tokens de capa 2, sin lógica de tema. */
+html,
+body {
+  min-height: 100%;
+  margin: 0;
+  background: var(--aegis-color-surface-canvas);
+  color: var(--aegis-color-text-strong);
+  font-family: var(--aegis-font-family-sans);
+}

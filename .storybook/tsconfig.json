@@ -1,0 +1,9 @@
+{
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "types": ["node", "vite/client"],
+    "experimentalDecorators": false
+  },
+  "include": ["../packages/ui/src/**/*.ts", "./*.ts"],
+  "exclude": ["../packages/ui/src/**/*.spec.ts"]
+}
