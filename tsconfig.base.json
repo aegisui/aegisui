@@ -14,7 +14,8 @@
     "declaration": true,
     "sourceMap": true,
     "paths": {
-      "@aegisui/cdk": ["./packages/cdk/src/public-api.ts"]
+      "@aegisui/cdk": ["./packages/cdk/src/public-api.ts"],
+      "@aegisui/ui": ["./packages/ui/src/public-api.ts"]
     }
   },
   "exclude": ["node_modules", "tmp"]

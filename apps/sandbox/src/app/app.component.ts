@@ -9,6 +9,7 @@ import {
   signal,
 } from '@angular/core';
 import { contrastRatio, hexToHsl, hslToHex, type Hsl } from './color';
+import { ButtonGalleryComponent } from './button-gallery.component';
 
 type Theme = 'light' | 'dark';
 
@@ -37,6 +38,7 @@ interface Preset {
 @Component({
   selector: 'aegis-sandbox-root',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [ButtonGalleryComponent],
   styleUrl: './app.component.css',
   template: `
     <header class="topbar">
@@ -136,6 +138,15 @@ interface Preset {
           </p>
           <a class="link" href="#" (click)="$event.preventDefault()">Seguir leyendo</a>
         </article>
+      </section>
+
+      <section class="panel" aria-labelledby="btn-title">
+        <h2 id="btn-title">Button (Fase 3)</h2>
+        <p class="muted">
+          El primer componente end-to-end. Galería real que Playwright analiza en Chromium para los
+          gates de a11y, contraste, target-size y visual.
+        </p>
+        <aegis-button-gallery />
       </section>
     </main>
   `,
