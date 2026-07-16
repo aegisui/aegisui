@@ -140,10 +140,6 @@
   cursor: progress;
 }
 
-.aegis-btn[aria-busy='true'] .aegis-btn__label {
-  opacity: 0.7;
-}
-
 /* --- Spinner de carga --- */
 .aegis-btn__spinner {
   inline-size: var(--aegis-btn-spinner-size);
