@@ -84,6 +84,16 @@ describe('capa 1 — primitivos', () => {
     }
   });
 
+  it('incluye las escalas estructurales de riel-2 (border-width, focus-ring) — ADR-016', () => {
+    expect(primitives['border']).toHaveProperty('width');
+    const bw = at(primitives, 'border.width') as Record<string, string>;
+    for (const step of ['none', 'hairline', 'thin']) {
+      expect(bw).toHaveProperty(step);
+    }
+    expect(at(primitives, 'focus.ring.width')).toBeDefined();
+    expect(at(primitives, 'focus.ring.offset')).toBeDefined();
+  });
+
   it('la familia de fuente por defecto es pila de sistema (cero webfonts)', () => {
     const sans = at(primitives, 'font.family.sans') as string;
     expect(sans).toMatch(/^system-ui/);

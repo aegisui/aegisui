@@ -1,0 +1,12 @@
+{
+  "$schema": "../../node_modules/nx/schemas/collection.schema.json",
+  "name": "@aegisui/generators",
+  "version": "0.0.0",
+  "generators": {
+    "component": {
+      "factory": "./src/component/generator",
+      "schema": "./src/component/schema.json",
+      "description": "Scaffolda un componente Aegis: brain en @aegisui/cdk + piel en @aegisui/ui, con su spec y story. Exige que el contrato docs/contracts/<name>.md exista (contrato-primero, SPEC §6)."
+    }
+  }
+}

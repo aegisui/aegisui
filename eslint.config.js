@@ -27,6 +27,9 @@ export default tseslint.config(
       // con su propio harness (tools/fixtures/src/*.spec.ts vía RuleTester), no
       // con `pnpm lint`. bad/ violaría el gate a propósito si se incluyera aquí.
       'tools/fixtures/**',
+      // Plantillas EJS del generador: no son TS/CSS reales (llevan `<%= %>` y
+      // sufijo `__tmpl__`). Se materializan al ejecutar `nx g`.
+      'tools/generators/src/component/files/**',
     ],
   },
   {
@@ -44,8 +47,11 @@ export default tseslint.config(
     },
   },
   {
-    // Reglas TS específicas de los componentes de `ui`.
+    // Reglas TS específicas de los componentes de `ui` (su código fuente, no los
+    // tests ni las stories: un host de prueba no necesita contrato, y un `.focus()`
+    // en un test no es lógica de componente).
     files: ['packages/ui/**/*.ts'],
+    ignores: ['packages/ui/**/*.spec.ts', 'packages/ui/**/*.stories.ts'],
     plugins: { '@aegisui': aegis },
     rules: {
       '@aegisui/contract-exists': 'error',

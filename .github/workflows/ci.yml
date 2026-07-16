@@ -87,6 +87,11 @@ jobs:
       - uses: ./.github/actions/setup
       - run: node scripts/gates/run.mjs contracts
 
+  # Los gates DOM que necesitan render REAL corren en dos partes, sin renombrar el
+  # job: (1) el canario estático de fixtures good/bad (ADR-013, anti-verde-falso de
+  # los raíles) y (2) el Button real en Chromium vía Playwright contra el sandbox
+  # (fuente de verdad = getComputedStyle/bounding box del navegador). `keyboard`
+  # se queda estático: su comportamiento lo validan los tests user-event de ui.
   a11y:
     name: a11y
     runs-on: ubuntu-latest
@@ -94,6 +99,11 @@ jobs:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup
       - run: node scripts/gates/run.mjs a11y
+      - run: pnpm nx run tokens:build
+      - run: pnpm exec playwright install --with-deps chromium
+      - name: a11y del Button real (Chromium)
+        working-directory: apps/sandbox
+        run: pnpm exec playwright test gate-a11y
 
   contrast:
     name: contrast
@@ -102,6 +112,11 @@ jobs:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup
       - run: node scripts/gates/run.mjs contrast
+      - run: pnpm nx run tokens:build
+      - run: pnpm exec playwright install --with-deps chromium
+      - name: contraste del Button real (Chromium)
+        working-directory: apps/sandbox
+        run: pnpm exec playwright test gate-contrast
 
   keyboard:
     name: keyboard
@@ -118,6 +133,11 @@ jobs:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup
       - run: node scripts/gates/run.mjs target-size
+      - run: pnpm nx run tokens:build
+      - run: pnpm exec playwright install --with-deps chromium
+      - name: target-size del Button real (Chromium)
+        working-directory: apps/sandbox
+        run: pnpm exec playwright test gate-target-size
 
   visual:
     name: visual
@@ -126,6 +146,11 @@ jobs:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup
       - run: node scripts/gates/run.mjs visual
+      - run: pnpm nx run tokens:build
+      - run: pnpm exec playwright install --with-deps chromium
+      - name: visual del Button real (estilos computados, Chromium)
+        working-directory: apps/sandbox
+        run: pnpm exec playwright test gate-visual
 
   changeset:
     name: changeset

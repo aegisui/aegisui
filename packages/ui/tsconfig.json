@@ -2,12 +2,15 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "declaration": true,
-    "experimentalDecorators": false
+    "experimentalDecorators": false,
+    "paths": {
+      "@aegisui/cdk": ["../cdk/src/public-api.ts"]
+    }
   },
   "angularCompilerOptions": {
     "strictTemplates": true,
     "compilationMode": "partial"
   },
   "include": ["src/**/*.ts"],
-  "exclude": ["src/**/*.spec.ts"]
+  "exclude": ["src/**/*.spec.ts", "src/**/*.stories.ts"]
 }

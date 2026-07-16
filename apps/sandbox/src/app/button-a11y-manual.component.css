@@ -1,0 +1,27 @@
+.bench {
+  display: grid;
+  gap: 1.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.case {
+  display: grid;
+  gap: 0.5rem;
+  align-content: start;
+  padding: var(--aegis-space-4);
+  border: 1px solid var(--aegis-color-border-default);
+  border-radius: var(--aegis-radius-md);
+  background: var(--aegis-color-surface-raised);
+}
+
+.case h3 {
+  margin: 0;
+  font-size: var(--aegis-font-size-sm);
+  font-weight: var(--aegis-font-weight-semibold);
+}
+
+.hint {
+  margin: 0;
+  font-size: var(--aegis-font-size-xs);
+  color: var(--aegis-color-text-muted);
+}

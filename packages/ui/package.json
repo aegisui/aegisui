@@ -5,6 +5,7 @@
   "license": "MIT",
   "sideEffects": false,
   "peerDependencies": {
+    "@aegisui/cdk": "workspace:^",
     "@angular/common": "^20.0.0 || ^21.0.0 || ^22.0.0",
     "@angular/core": "^20.0.0 || ^21.0.0 || ^22.0.0"
   },

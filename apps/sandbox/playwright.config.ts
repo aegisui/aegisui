@@ -10,6 +10,10 @@ import { defineConfig, devices } from '@playwright/test';
  */
 export default defineConfig({
   testDir: './e2e',
+  // Los baselines del gate `visual` son ESTILOS COMPUTADOS (colores/medidas desde
+  // tokens en rem/px), deterministas entre plataformas: sin sufijo de SO/navegador,
+  // un único baseline sirve en darwin (local) y en ubuntu (CI).
+  snapshotPathTemplate: '{testDir}/__snapshots__/{testFileName}/{arg}{ext}',
   fullyParallel: true,
   forbidOnly: !!process.env['CI'],
   retries: process.env['CI'] ? 2 : 0,

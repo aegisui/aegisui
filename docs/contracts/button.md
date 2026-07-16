@@ -89,11 +89,20 @@ Es la fuente de verdad del gate `tokens-declared-in-contract`: si el CSS usa un
 `var(--aegis-*)` que no esté aquí, el gate lo caza; si aquí sobra uno que el CSS
 no usa, es ruido a limpiar.
 
-**El CSS del componente consume SOLO estos `--aegis-btn-*` (capa 3).** Nunca
-capa 1/2 ni literales (CLAUDE.md, SPEC §5.1). El mapeo a capa 2 y los remapeos por
-variante/tamaño/estado viven **fuera** del CSS del componente, en la capa 3 del
-paquete de tokens (`packages/tokens`), para que el componente permanezca 100%
-capa 3 y el dark mode siga viviendo en capa 2.
+**La capa 3 es LOCAL al componente (ADR-016).** El propio Button **define** sus
+`--aegis-btn-*` mapeándolos a **capa 2** (donde vive el dark mode), y los remapea
+por variante/tamaño/estado. `packages/tokens` expone solo capas 1 y 2 (el sistema
+compartido); la capa 3 es la definición visual del Button, tan suya como su HTML,
+y viaja con él (resuelve la distribución dual de ADR-003: `npx aegisui add button`
+copia la carpeta y se lleva sus remapeos, sin arrastrar un global).
+
+La regla de oro no cambia: **cero literales** (`no-literal-design-values` sigue
+vigente palabra por palabra) y ninguna referencia a valores crudos. Los tokens de
+**color** se definen en términos de **capa 2** (`--aegis-color-*`); los tokens
+**estructurales** (espaciado, radio, tipografía, motion), que no tienen capa 2
+porque no varían con el tema, se definen sobre **capa 1** (primitivos
+`--aegis-space-*`, `--aegis-radius-*`, …). Ambos son `var(--aegis-*)`: nunca un
+literal.
 
 Superficie y texto:
 
@@ -133,34 +142,65 @@ Movimiento:
 Carga (spinner):
 
 - `--aegis-btn-spinner-size`
+- `--aegis-btn-spinner-stroke`
 - `--aegis-btn-spinner-track-color`
 - `--aegis-btn-spinner-indicator-color`
 
-### Mapeo previsto a capa 2 (informativo, no lo consume el componente)
+### Riel de COLOR → capa 2 (`--aegis-color-*`)
 
-Este mapeo se define en `packages/tokens` (capa 3) y se remapea por variante. El
-dark mode se resuelve solo, porque estos semánticos de capa 2 ya lo llevan dentro.
+Se define en el CSS del componente y se remapea por variante. El dark mode se
+resuelve solo, porque estos semánticos de capa 2 ya lo llevan dentro (ADR-016).
 
 | Token de componente | `primary` | `secondary` | `ghost` | `danger` |
 |---|---|---|---|---|
 | `--aegis-btn-bg` | `--aegis-color-accent-solid` | `--aegis-color-surface-raised` | `transparent` | `--aegis-color-destructive-solid` |
 | `--aegis-btn-bg-hover` | `--aegis-color-accent-solid-hover` | `--aegis-color-surface-sunken` | `--aegis-color-surface-sunken` | `--aegis-color-destructive-solid-hover` |
+| `--aegis-btn-bg-active` | `--aegis-color-accent-solid-hover` | `--aegis-color-surface-sunken` | `--aegis-color-surface-sunken` | `--aegis-color-destructive-solid-hover` |
 | `--aegis-btn-fg` | `--aegis-color-accent-on-solid` | `--aegis-color-text-strong` | `--aegis-color-text-strong` | `--aegis-color-destructive-on-solid` |
 | `--aegis-btn-border-color` | `transparent` | `--aegis-color-border-strong` | `transparent` | `transparent` |
 | `--aegis-btn-focus-ring-color` | `--aegis-color-accent-ring` | `--aegis-color-accent-ring` | `--aegis-color-accent-ring` | `--aegis-color-destructive-ring` |
+| `--aegis-btn-spinner-track-color` | `--aegis-color-accent-solid-hover` | `--aegis-color-border-default` | `--aegis-color-border-default` | `--aegis-color-destructive-solid-hover` |
+
+- `--aegis-btn-spinner-indicator-color` = `var(--aegis-btn-fg)` (el propio fg de la
+  variante; layer-3 sobre layer-3).
+- **`disabled`** (cross-variante, no por variante): remapea `--aegis-btn-bg` →
+  `--aegis-color-surface-sunken` y `--aegis-btn-fg` →
+  `--aegis-color-text-muted` (neutros apagados, 6.24:1 / 5.65:1). Texto
+  deshabilitado exento de 1.4.3 pero legible.
 
 > La variante `danger` mapea a `--aegis-color-destructive-*` (**acción**
-> destructiva sólida), **no** a `state.danger.*` (tinte de **estado**). Ese rol es
-> un semántico de capa 2 propio, decidido en **ADR-015** aparte de este contrato:
-> acción ≠ estado, y por eso no rompe el raíl de ADR-014 (los estados siguen sin
-> `solid`/`on-solid`). Contraste verificado en light y dark (`on-solid`/`solid`
-> 5.63:1 / 7.62:1; hover 7.38:1 / 8.63:1; `ring`/canvas 5.63:1 / 8.12:1).
->
-> **`disabled` y `loading` no son por variante:** `disabled` es un tratamiento
-> compartido por todas las variantes (neutros apagados, `--aegis-color-text-muted`
-> sobre `--aegis-color-surface-sunken`, 6.24:1 / 5.65:1); en `loading` el botón
-> conserva su `bg` sólido y el spinner usa el `fg` de la variante. Ninguno añade
-> tokens de capa 2 propios (ADR-015).
+> destructiva sólida), **no** a `state.danger.*` (tinte de **estado**), por
+> **ADR-015**: acción ≠ estado, sin romper el raíl de ADR-014. Contraste verificado
+> en light y dark (`on-solid`/`solid` 5.63:1 / 7.62:1; hover 7.38:1 / 8.63:1;
+> `ring`/canvas 5.63:1 / 8.12:1).
+
+### Riel de ESTRUCTURA → capa 1 (primitivos)
+
+No varía con el tema, así que se define sobre **capa 1**, no capa 2 (ADR-016). Los
+valores que antes serían literales (borde, ring, trazo) son primitivos creados en
+`packages/tokens`, no excepciones a `no-literal`.
+
+| Token de componente | Primitivo(s) de capa 1 |
+|---|---|
+| `--aegis-btn-radius` | `--aegis-radius-md` |
+| `--aegis-btn-font-size` | `--aegis-font-size-sm` (sm) · `--aegis-font-size-base` (md) · `--aegis-font-size-lg` (lg) |
+| `--aegis-btn-font-weight` | `--aegis-font-weight-medium` |
+| `--aegis-btn-line-height` | `--aegis-font-leading-tight` |
+| `--aegis-btn-padding-inline` | `--aegis-space-3` (sm) · `--aegis-space-4` (md) · `--aegis-space-5` (lg) |
+| `--aegis-btn-padding-block` | `--aegis-space-2` (sm/md) · `--aegis-space-3` (lg) |
+| `--aegis-btn-gap` | `--aegis-space-2` |
+| `--aegis-btn-min-block-size` | `--aegis-space-5` (24 px; suelo de 2.5.8 en todos los tamaños) |
+| `--aegis-btn-min-inline-size` | `--aegis-space-5` (24 px; suelo de 2.5.8 en todos los tamaños) |
+| `--aegis-btn-border-width` | `--aegis-border-width-none` (primary/ghost/danger) · `--aegis-border-width-hairline` (secondary) |
+| `--aegis-btn-focus-ring-width` | `--aegis-focus-ring-width` |
+| `--aegis-btn-focus-ring-offset` | `--aegis-focus-ring-offset` |
+| `--aegis-btn-transition-duration` | `--aegis-motion-duration-fast` |
+| `--aegis-btn-transition-easing` | `--aegis-motion-easing-standard` |
+| `--aegis-btn-spinner-size` | `var(--aegis-btn-font-size)` (escala con el tamaño) |
+| `--aegis-btn-spinner-stroke` | `--aegis-border-width-thin` |
+
+El giro del spinner usa `--aegis-motion-duration-slow` (capa 1) como base del
+periodo de rotación; se desactiva bajo `prefers-reduced-motion`.
 
 ## Estados
 

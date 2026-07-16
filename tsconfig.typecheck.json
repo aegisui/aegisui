@@ -6,5 +6,11 @@
     "skipLibCheck": true
   },
   "include": ["packages/**/*.ts", "apps/**/*.ts"],
-  "exclude": ["**/dist/**", "**/node_modules/**", "**/.angular/**"]
+  "exclude": [
+    "**/dist/**",
+    "**/node_modules/**",
+    "**/.angular/**",
+    "**/*.spec.ts",
+    "**/*.stories.ts"
+  ]
 }

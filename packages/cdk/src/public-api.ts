@@ -6,3 +6,4 @@
  * que ng-packagr genere un bundle válido.
  */
 export const AEGIS_CDK_VERSION = '0.1.0';
+export * from './lib/button/button';
