@@ -8,7 +8,6 @@ import {
   type AegisButtonSize,
   type AegisButtonVariant,
 } from './button.component';
-import { expectLiveRegionMutatesInPlace } from '../../testing/live-region';
 
 /** Host de pruebas: el consumidor escucha `(click)` en el `<aegis-button>`. */
 @Component({
@@ -214,45 +213,33 @@ describe('AegisButtonComponent', () => {
     expect(screen.getByRole('button').getAttribute('aria-label')).toBe('Cerrar');
   });
 
-  // --- aria-live de carga (estructura; el ANUNCIO real se valida a mano con lector) ---
+  // --- Estado de carga: SOLO aria-busy + aria-describedby (ADR-019, Solución 5).
+  //     El ANUNCIO real se valida a mano con lector; aquí solo la estructura. ---
 
-  it('expone una región aria-live=polite que anuncia la carga', async () => {
-    const { host, flush, container } = await setup();
-    const live = container.querySelector('[aria-live="polite"]');
-    expect(live).not.toBeNull();
-    expect(live?.textContent?.trim()).toBe('');
+  it('describe la carga con un <span> enlazado por aria-describedby, SIN aria-live ni role', async () => {
+    const { host, flush, button, container } = await setup();
+    const sr = container.querySelector('.aegis-btn__sr');
+    expect(sr).not.toBeNull();
+    expect(sr?.getAttribute('aria-live')).toBeNull();
+    expect(sr?.getAttribute('role')).toBeNull();
+    // El botón siempre describe ese span (id estable), vacío hasta que carga.
+    expect(button().getAttribute('aria-describedby')).toBe(sr?.id);
+    expect(sr?.textContent?.trim()).toBe('');
+
     host.loading.set(true);
     flush();
-    expect(live?.textContent?.trim()).toBe('Cargando…');
+    expect(sr?.textContent?.trim()).toBe('Cargando…');
   });
 
-  // Regresión (hallazgo de pase manual, VoiceOver+Safari): una región aria-live
-  // ANIDADA dentro de un control con nombre-por-contenido (button/link) no se
-  // anuncia de forma fiable — el motor de accesibilidad la trata como parte del
-  // cálculo del nombre accesible, no como una región live independiente. Este
-  // patrón volverá en cualquier componente futuro que anuncie estado (toast,
-  // validación de formularios): el test protege el patrón, no solo el Button.
-  it('la región aria-live es HERMANA del <button>, no anidada dentro (y va enlazada por aria-describedby)', async () => {
+  // Regresión (hallazgo de pase manual, VoiceOver+Safari): un <span> de
+  // descripción ANIDADO dentro de un control con nombre-por-contenido
+  // (button/link) se computa como parte del nombre accesible, no como
+  // descripción independiente. Sacarlo como HERMANO es lo que lo hace audible.
+  it('el <span> de estado es HERMANO del <button>, no anidado dentro', async () => {
     const { button, container } = await setup();
-    const live = container.querySelector('[aria-live="polite"]');
-    expect(live).not.toBeNull();
-    expect(button().contains(live)).toBe(false);
-    expect(button().getAttribute('aria-describedby')).toBe(live?.id);
-  });
-
-  // Raíl automático (ADR-019 regla 3): el mismo defecto que se encontró primero
-  // en el Input (un @if alrededor del texto RECREA el nodo — childList — en vez
-  // de solo mutar su valor — characterData —, lo que dispara un anuncio doble en
-  // NVDA). El pase manual original de este aria-live solo cubrió VoiceOver, que
-  // no lo manifestaba.
-  it('la región aria-live muta su texto in situ (characterData), nunca lo recrea (childList)', async () => {
-    const { host, flush, container } = await setup();
-    const live = container.querySelector('[aria-live="polite"]');
-    expect(live).not.toBeNull();
-
-    await expectLiveRegionMutatesInPlace(live!, () => {
-      host.loading.set(true);
-      flush();
-    });
+    const sr = container.querySelector('.aegis-btn__sr');
+    expect(sr).not.toBeNull();
+    expect(button().contains(sr)).toBe(false);
+    expect(button().getAttribute('aria-describedby')).toBe(sr?.id);
   });
 });

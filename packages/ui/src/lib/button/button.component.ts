@@ -21,22 +21,19 @@ let nextSrId = 0;
  * teclado, foco y supresión de activación vive en el brain (`aegisButton`); aquí
  * solo se pinta con tokens de capa 3 `--aegis-btn-*` (definidos en el CSS, dos
  * rieles: color→capa 2, estructura→capa 1; ADR-016) y se compone el spinner, la
- * etiqueta proyectada y la región `aria-live` de carga.
+ * etiqueta proyectada y el texto de estado de carga.
  *
- * La región `aria-live` es HERMANA del `<button>`, no anidada dentro (vinculada
- * por `aria-describedby`). Confirmado por prueba manual (VoiceOver+Safari): una
- * región `aria-live` anidada en un control con nombre-por-contenido no se anuncia
- * de forma fiable — el motor de accesibilidad la trata como parte del cálculo del
- * nombre accesible del botón, no como una región live independiente, y el cambio
- * pasa en silencio. Sacarla como hermano es lo que la hace audible.
- *
- * Su texto se pone por interpolación PLANA, nunca `@if` alrededor del texto
- * (ADR-019 regla 3, bug encontrado primero en el Input): `@if` es estructural
- * — recrea el nodo de texto (`childList`) en vez de mutar su valor
- * (`characterData`) — y una región `aria-live` que RECREA su nodo dispara un
- * anuncio doble en NVDA, aunque el `<span>` contenedor ya sea permanente. El
- * pase manual original solo cubrió VoiceOver+Safari, donde este defecto no se
- * manifestó; verificado con MutationObserver sobre DOM real al corregirlo.
+ * El estado de carga se anuncia con **`aria-busy` + un `<span>` visualmente
+ * oculto enlazado por `aria-describedby`, SIN `aria-live` ni `role`** (ADR-019).
+ * El `<span>` es HERMANO del `<button>` (no anidado: una descripción anidada en
+ * un control con nombre-por-contenido se computa como parte del nombre
+ * accesible, no como descripción independiente — confirmado con VoiceOver). Su
+ * texto es interpolación plana (muta in situ, no recrea el nodo). NVDA/JAWS
+ * reannuncian nativamente la descripción de un control enfocado cuando cambia,
+ * así que `aria-live` sobra y, de hecho, duplica el anuncio en NVDA/JAWS y
+ * rompe el `aria-describedby` en VoiceOver — mismo patrón que el error del
+ * Input (ADR-019). Verificación manual con lector obligatoria antes de release
+ * (SPEC §8.5).
  */
 @Component({
   selector: 'aegis-button',
@@ -66,9 +63,7 @@ let nextSrId = 0;
       }
       <span class="aegis-btn__label"><ng-content /></span>
     </button>
-    <span class="aegis-btn__sr" [id]="srId" aria-live="polite">{{
-      brain.busy() ? loadingLabel() : ''
-    }}</span>
+    <span class="aegis-btn__sr" [id]="srId">{{ brain.busy() ? loadingLabel() : '' }}</span>
   `,
   styleUrl: './button.component.css',
 })
@@ -88,7 +83,7 @@ export class AegisButtonComponent {
   /** Tipo del `<button>` nativo. Default `button`: evita envíos accidentales. */
   readonly type = input<AegisButtonType>('button');
 
-  /** Texto anunciado por lector de pantalla mientras `loading` (`aria-live`). */
+  /** Texto que describe el estado de carga (vía `aria-describedby`). */
   readonly loadingLabel = input('Cargando…');
 
   /**
@@ -104,6 +99,6 @@ export class AegisButtonComponent {
     () => `aegis-btn aegis-btn--${this.variant()} aegis-btn--${this.size()}`,
   );
 
-  /** Id único de la región `aria-live`, para vincularla al botón por `aria-describedby`. */
+  /** Id único del `<span>` de estado, para vincularlo al botón por `aria-describedby`. */
   protected readonly srId = `aegis-btn-sr-${nextSrId++}`;
 }
