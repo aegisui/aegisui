@@ -4,6 +4,7 @@ import { render, screen } from '@testing-library/angular';
 import userEvent from '@testing-library/user-event';
 import axe from 'axe-core';
 import { AegisInputComponent, type AegisInputSize, type AegisInputType } from './input.component';
+import { expectLiveRegionMutatesInPlace } from '../../testing/live-region';
 
 /** Host de pruebas: el consumidor controla todos los inputs vía signals. */
 @Component({
@@ -175,6 +176,24 @@ describe('AegisInputComponent', () => {
 
     const describedByIds = input().getAttribute('aria-describedby')?.split(' ') ?? [];
     expect(describedByIds).not.toContain(alert?.id);
+  });
+
+  // Raíl automático (ADR-019 regla 3): un anuncio doble en NVDA puede venir de
+  // que el nodo role="alert" RECREE su contenido (childList) en vez de solo
+  // mutar el texto (characterData) — el propio contenedor permanente no basta
+  // si el texto de dentro se recrea con @if. No sustituye el pase manual (el
+  // anuncio en sí solo se oye con un lector real), pero caza este patrón
+  // concreto sin depender de tener el lector correcto a mano.
+  it('la región role="alert" muta su texto in situ (characterData), nunca lo recrea (childList)', async () => {
+    const { host, flush, container } = await setup();
+    const alert = container.querySelector('.aegis-input__error-live');
+    expect(alert).not.toBeNull();
+
+    await expectLiveRegionMutatesInPlace(alert!, () => {
+      host.invalid.set(true);
+      host.errorMessage.set('Formato inválido');
+      flush();
+    });
   });
 
   it('[AC14] invalid=true sin errorMessage: aria-invalid presente; el span de error sigue en aria-describedby pero vacío; el nodo role="alert" también vacío', async () => {

@@ -22,4 +22,4 @@ por no entender para qué existe. Formato corto: Contexto / Decisión / Consecue
 | [016](ADR-016-capa-3-local-y-modelo-de-dos-rieles.md) | La capa 3 es local al componente; theming a dos rieles (color→capa 2, estructura→capa 1) |
 | [017](ADR-017-storybook-vite-zoneless.md) | Storybook corre sobre `@storybook/angular-vite` (no la vía webpack, deprecada) |
 | [018](ADR-018-borde-separator-vs-strong-y-gate-de-borde.md) | `border.separator` (decorativo) vs `border.strong` (funcional, ≥3:1); el gate `contrast` empieza a verificar bordes |
-| [019](ADR-019-anuncio-de-estado-dinamico-describedby-estable-mas-alert-separado.md) | Anuncio de estado dinámico: `aria-describedby` estable + nodo `alert` separado (patrón canónico para todo componente enfocable) |
+| [019](ADR-019-anuncio-de-estado-dinamico-describedby-estable-mas-alert-separado.md) | Anuncio de estado dinámico: `describedby` estable + `alert` separado + mutación in situ (nunca `@if`); corrige Input y Button; raíl automático |

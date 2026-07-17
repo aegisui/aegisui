@@ -73,16 +73,8 @@ let nextId = 0;
     @if (helpText()) {
       <span class="aegis-input__help" [id]="helpId()">{{ helpText() }}</span>
     }
-    <span class="aegis-input__error" [id]="errorId()">
-      @if (invalid() && errorMessage()) {
-        {{ errorMessage() }}
-      }
-    </span>
-    <span class="aegis-input__error-live" role="alert">
-      @if (invalid() && errorMessage()) {
-        {{ errorMessage() }}
-      }
-    </span>
+    <span class="aegis-input__error" [id]="errorId()">{{ errorText() }}</span>
+    <span class="aegis-input__error-live" role="alert">{{ errorText() }}</span>
   `,
   styleUrl: './input.component.css',
 })
@@ -131,6 +123,18 @@ export class AegisInputComponent {
   /** Siempre definido (ADR-019): la relación aria-describedby con el error
    * nunca se crea/destruye en caliente, solo cambia el texto del span. */
   protected readonly errorId = computed(() => `${this.resolvedId()}-error`);
+
+  /**
+   * Texto visible del error, o `''`. A propósito interpolación PLANA en el
+   * template (nunca `@if` alrededor del texto, ADR-019 regla 3): `@if` es
+   * estructural — recrea el nodo de texto (`childList`) en vez de mutar su
+   * valor (`characterData`) — y una región `role="alert"` que RECREA su nodo
+   * dispara un anuncio doble en NVDA, aunque el `<span>` contenedor ya sea
+   * permanente. Verificado con MutationObserver sobre DOM real.
+   */
+  protected readonly errorText = computed(() =>
+    this.invalid() && this.errorMessage() ? this.errorMessage()! : '',
+  );
 
   protected onInput(event: Event): void {
     this.value.set((event.target as HTMLInputElement).value);

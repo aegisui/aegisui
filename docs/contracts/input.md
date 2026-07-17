@@ -297,31 +297,46 @@ propósito (ninguna tecla gestionada explícitamente por el componente).
 
 ### Anuncios a lector de pantalla
 
-- **Dos nodos, no uno (ADR-019).** El mensaje de error vive en DOS `<span>`
-  separados:
+- **Dos nodos, tres reglas (ADR-019).** El mensaje de error vive en DOS
+  `<span>` separados:
   1. Uno enlazado por `aria-describedby` (siempre presente, vacío si no hay
      error) — descripción bajo demanda, sin `role="alert"` ni `aria-live`.
   2. Uno aparte, visualmente oculto (misma técnica que `.aegis-btn__sr`),
      **fuera** de `aria-describedby`, con `role="alert"` — su único trabajo es
      disparar el anuncio cuando el texto cambia, incluso con el campo ya
      enfocado (validación en vivo).
+  3. **El texto de ambos se pone por interpolación PLANA** (`{{ errorText()
+     }}`, con `errorText` devolviendo `''` cuando no aplica) — **nunca** `@if`
+     envolviendo la interpolación. `@if` es estructural: recrea el nodo de
+     texto (mutación `childList`) en vez de mutar su valor (`characterData`),
+     y una región `role="alert"` que recrea su nodo dispara un anuncio doble
+     en NVDA aunque el `<span>` contenedor ya sea permanente.
 
   La primera versión de este componente usaba un solo nodo con los dos
-  papeles a la vez. El pase manual (NVDA+Firefox) encontró que eso producía un
-  **doble anuncio** con el campo ya enfocado: una vez por la región `alert`,
-  otra al releer la descripción cuya relación `aria-describedby` acababa de
-  crearse. VoiceOver+Safari lo colapsaba (por eso no se detectó ahí). Separar
-  ambos papeles, y sobre todo hacer que la relación `aria-describedby` sea
-  **estable desde el primer render** (nunca se crea/destruye con el foco
-  dentro, solo cambia el texto — mismo patrón que el `srId` del Button),
-  resuelve las dos causas. Detalle completo en ADR-019.
+  primeros papeles a la vez: el pase manual (NVDA+Firefox) encontró un
+  **doble anuncio** con el campo ya enfocado (una vez por la región `alert`,
+  otra al releer la descripción cuya relación acababa de crearse) —
+  VoiceOver+Safari lo colapsaba, por eso no se detectó ahí. Al separar los
+  nodos y estabilizar `aria-describedby` (reglas 1-2) pero dejar el texto
+  envuelto en `@if`, NVDA pasó a anunciar **dos veces seguidas e idénticas**:
+  la separación había resuelto las dos causas originales pero dejaba una
+  tercera — confirmada con `MutationObserver` sobre DOM real (`childList` en
+  el nodo `role="alert"`, no `characterData`). La regla 3 la resuelve.
+  Detalle completo, con las capturas de mutaciones, en ADR-019.
 
   Es el mismo tipo de punto frágil que el `aria-live` del `loading` del Button
-  (SPEC §8.5: axe no lo detecta ninguno de los dos), y se marca aquí igual:
-  **verificación manual con lector de pantalla obligatoria antes de release**
-  (NVDA+Firefox, VoiceOver+Safari) — comprobar que el mensaje se anuncia **una
-  sola vez** tanto al enfocar el campo por primera vez como al aparecer
-  mientras ya está enfocado, y que se sigue anunciando al reenfocar más tarde.
+  (SPEC §8.5: axe no lo detecta) — y el Button tenía exactamente el mismo
+  defecto de la regla 3 (su `.aegis-btn__sr` también envolvía el texto en
+  `@if`), sin corregir hasta que este ADR lo generalizó: su pase manual
+  original solo cubrió VoiceOver+Safari, donde no se manifestaba.
+  **Verificación manual con lector de pantalla obligatoria antes de
+  release** (NVDA+Firefox, VoiceOver+Safari) — comprobar que el mensaje se
+  anuncia **una sola vez** tanto al enfocar el campo por primera vez como al
+  aparecer mientras ya está enfocado, y que se sigue anunciando al reenfocar
+  más tarde. Un raíl automático (`expectLiveRegionMutatesInPlace`,
+  `packages/ui/src/testing/live-region.ts`) caza la regresión de la regla 3
+  con `MutationObserver` en cada test run, pero no sustituye el pase manual:
+  prueba la estructura, no si el anuncio suena bien en un lector real.
 - `helpText` (persistente, no ligado a un evento) **no** cambia: sigue
   condicional, sin `role="alert"` ni `aria-live` — no tiene el problema de
   re-anuncio (no hay una región live de por medio) y no hay motivo para
@@ -472,17 +487,23 @@ Foco:
 - [ ] `:focus-visible` pinta el anillo (accent o danger según `invalid`); no
       existe `outline: none` huérfano.
 
-Manual (antes de release, no de cada PR — SPEC §8.4):
+Manual (antes de release, no de cada PR — SPEC §8.4). Historial de pases,
+porque cada uno cambió la arquitectura y invalidó el anterior — **ningún
+resultado previo se hereda** hasta reverificar sobre el código actual:
 
-- [x] VoiceOver+Safari: el mensaje de error se anuncia una sola vez, tanto al
-      enfocar el campo por primera vez como al aparecer con el campo ya
-      enfocado. Verificado.
-- [ ] NVDA+Firefox: el primer pase (arquitectura de un solo `<span>`
-      `role="alert"` + `aria-describedby`) encontró un **doble anuncio** en el
-      caso "error aparece con el campo ya enfocado" — corregido en ADR-019
-      (dos nodos: descripción estable + alert separado). Pendiente de
-      reverificar con la arquitectura nueva: NVDA debe anunciarlo **una sola
-      vez** al aparecer, y seguir reanunciándolo al reenfocar más tarde.
+- [x] VoiceOver+Safari, arquitectura de un solo nodo: anuncia una sola vez.
+      (Por eso el defecto de NVDA no se vio hasta probar ese lector.)
+- [ ] NVDA+Firefox, arquitectura de un solo nodo: **doble anuncio** (región
+      `alert` + relectura de la descripción recién creada) — dos causas
+      distintas, ADR-019 reglas 1-2.
+- [ ] NVDA+Firefox, dos nodos + `@if` alrededor del texto: **doble anuncio
+      seguido e idéntico** — una sola causa (recreación de nodo, `childList`),
+      confirmada con `MutationObserver` — ADR-019 regla 3.
+- [ ] **Pendiente de verificar** — dos nodos + interpolación plana (sin
+      `@if`), arquitectura actual: NVDA y VoiceOver deben anunciarlo **una
+      sola vez** al aparecer, y seguir reanunciándolo al reenfocar más tarde.
+      Los dos lectores, no uno — el motivo de todo este historial es que un
+      pase con un solo lector no certifica el patrón.
 
 ## Fuera de alcance
 
