@@ -24,12 +24,18 @@ let nextId = 0;
  * §Accesibilidad, «el corazón de la a11y de un input»): el consumidor solo
  * aporta el *texto* de la etiqueta.
  *
- * El mensaje de error lleva `role="alert"` ADEMÁS de estar enlazado por
- * `aria-describedby`, para que se anuncie también cuando aparece con el campo
- * YA enfocado (validación en vivo) y no solo al enfocarlo por primera vez —
- * mismo problema que el `aria-live` del `loading` del Button. Verificación
- * MANUAL con lector de pantalla obligatoria antes de release (SPEC §8.5): el
- * caso frágil es exactamente ese segundo (contrato §Accesibilidad).
+ * El anuncio del error usa DOS nodos separados (ADR-019, patrón `srId` del
+ * Button generalizado): el `<span id>` enlazado por `aria-describedby` está
+ * SIEMPRE presente (vacío si no hay error) — la relación describedby nunca se
+ * crea ni se destruye con el campo ya enfocado, solo cambia su texto — y un
+ * `<span role="alert">` aparte, oculto y fuera de `aria-describedby`, cuyo
+ * único trabajo es disparar el anuncio dinámico. Mezclar ambos papeles en un
+ * solo nodo hacía que NVDA anunciara el error dos veces (una por la región
+ * live, otra al releer la descripción cuya relación acababa de aparecer);
+ * VoiceOver lo colapsaba, por eso no se veía en el primer pase manual.
+ * Verificación MANUAL con lector de pantalla obligatoria antes de release
+ * (SPEC §8.5): NVDA debe anunciarlo una sola vez al aparecer, y seguir
+ * reanunciándolo al reenfocar más tarde.
  */
 @Component({
   selector: 'aegis-input',
@@ -67,9 +73,16 @@ let nextId = 0;
     @if (helpText()) {
       <span class="aegis-input__help" [id]="helpId()">{{ helpText() }}</span>
     }
-    @if (invalid() && errorMessage()) {
-      <span class="aegis-input__error" [id]="errorId()" role="alert">{{ errorMessage() }}</span>
-    }
+    <span class="aegis-input__error" [id]="errorId()">
+      @if (invalid() && errorMessage()) {
+        {{ errorMessage() }}
+      }
+    </span>
+    <span class="aegis-input__error-live" role="alert">
+      @if (invalid() && errorMessage()) {
+        {{ errorMessage() }}
+      }
+    </span>
   `,
   styleUrl: './input.component.css',
 })
@@ -91,7 +104,9 @@ export class AegisInputComponent {
   /** Señal manual de validez (el consumidor decide cuándo el campo es inválido). */
   readonly invalid = input(false, { transform: booleanAttribute });
 
-  /** Solo se renderiza/enlaza cuando `invalid()` es `true`. */
+  /** Solo se PINTA (y se anuncia) cuando `invalid()` es `true`; el `<span>` de
+   * descripción existe siempre (ADR-019), así que el texto se muestra u oculta
+   * pero la relación `aria-describedby` nunca se crea en caliente. */
   readonly errorMessage = input<string | undefined>(undefined);
 
   /** Texto de ayuda persistente, independiente de `invalid`. */
@@ -113,9 +128,9 @@ export class AegisInputComponent {
     this.helpText() ? `${this.resolvedId()}-help` : undefined,
   );
 
-  protected readonly errorId = computed(() =>
-    this.invalid() && this.errorMessage() ? `${this.resolvedId()}-error` : undefined,
-  );
+  /** Siempre definido (ADR-019): la relación aria-describedby con el error
+   * nunca se crea/destruye en caliente, solo cambia el texto del span. */
+  protected readonly errorId = computed(() => `${this.resolvedId()}-error`);
 
   protected onInput(event: Event): void {
     this.value.set((event.target as HTMLInputElement).value);

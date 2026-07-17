@@ -126,29 +126,52 @@
   color: var(--aegis-input-required-indicator-color);
 }
 
-/* --- Ayuda y error --- */
+/* --- Ayuda y error ---
+ * El <span> de error está SIEMPRE en el DOM (y siempre en aria-describedby vía
+ * el brain), vacío cuando no hay error: mismo patrón que el `srId` del Button
+ * (ADR-019) — la relación describedby nunca se crea/destruye con el campo ya
+ * enfocado, solo cambia el texto. Por eso su margen va bajo `:not(:empty)`: un
+ * span vacío no debe dejar un hueco visual.
+ */
 .aegis-input__help,
 .aegis-input__error {
   --aegis-input-meta-gap: var(--aegis-space-1);
 
   display: block;
-  margin-block-start: var(--aegis-input-meta-gap);
 }
 
 .aegis-input__help {
   --aegis-input-help-color: var(--aegis-color-text-muted);
   --aegis-input-help-font-size: var(--aegis-font-size-sm);
 
+  margin-block-start: var(--aegis-input-meta-gap);
   color: var(--aegis-input-help-color);
   font-size: var(--aegis-input-help-font-size);
 }
 
-.aegis-input__error {
+.aegis-input__error:not(:empty) {
   --aegis-input-error-color: var(--aegis-color-state-danger-text);
   --aegis-input-error-font-size: var(--aegis-font-size-sm);
 
+  margin-block-start: var(--aegis-input-meta-gap);
   color: var(--aegis-input-error-color);
   font-size: var(--aegis-input-error-font-size);
+}
+
+/* Región de anuncio dinámico (visualmente oculta, en el árbol a11y) — separada
+ * a propósito del <span> de arriba: NO está en aria-describedby (ADR-019). Su
+ * único trabajo es que `role="alert"` dispare el anuncio cuando el texto
+ * cambia, incluso con el campo ya enfocado. */
+.aegis-input__error-live {
+  position: absolute;
+  inline-size: var(--aegis-border-width-hairline);
+  block-size: var(--aegis-border-width-hairline);
+  padding: 0;
+  margin: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
 }
 
 /* --- Reduced motion (WCAG): sin transiciones de borde/fondo --- */
