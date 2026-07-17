@@ -125,14 +125,11 @@ export class AegisInputComponent {
 
   /**
    * Enfoca el campo real. Delega en el brain (`.focus()` real vive en
-   * `AegisInput.focus()`, `@aegisui/cdk`); esta línea solo REENVÍA la llamada,
-   * no implementa lógica de foco. `cdk-before-ui` marca cualquier `.focus()`
-   * en `ui` por nombre de método sin mirar el receptor — falso positivo que
-   * la propia regla anticipa en su documentación ("si aparece un falso
-   * positivo, se discute en un issue").
+   * `AegisInput.focus()`, `@aegisui/cdk`); esta línea solo REENVÍA la llamada.
+   * `cdk-before-ui` reconoce el patrón `this.<viewChild>().focus()` como
+   * forwarding, no como lógica de foco (ver docstring de la regla).
    */
   focus(): void {
-    // eslint-disable-next-line @aegisui/cdk-before-ui -- delegación, no lógica de foco (ver comentario de arriba)
     this.brain().focus();
   }
 }
