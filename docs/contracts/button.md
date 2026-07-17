@@ -258,6 +258,15 @@ No hay otras teclas: un botón no captura flechas, `Esc` ni `Home/End`.
   `aria-busy` por sí solo (WCAG 4.1.3 Mensajes de estado).
 - El nombre accesible **no cambia** al entrar en carga (el spinner es
   `aria-hidden="true"`): el botón sigue anunciándose por su etiqueta.
+- **Corrección (ADR-019):** el texto de la región se pone por interpolación
+  plana (`{{ brain.busy() ? loadingLabel() : '' }}`), nunca por `@if`
+  envolviendo la interpolación. La versión original sí usaba `@if`: recreaba
+  el nodo de texto (`childList`) en vez de mutarlo (`characterData`), y una
+  región `aria-live` que recrea su nodo dispara un anuncio doble en NVDA —
+  encontrado al generalizar este patrón para el Input, no en el pase manual
+  original del Button (que solo cubrió VoiceOver+Safari, donde el defecto no
+  se manifestaba). Pendiente de reverificar el anuncio con NVDA+Firefox y
+  VoiceOver+Safari sobre la arquitectura corregida.
 
 ### Target size (2.5.8)
 

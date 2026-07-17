@@ -8,6 +8,7 @@ import {
   type AegisButtonSize,
   type AegisButtonVariant,
 } from './button.component';
+import { expectLiveRegionMutatesInPlace } from '../../testing/live-region';
 
 /** Host de pruebas: el consumidor escucha `(click)` en el `<aegis-button>`. */
 @Component({
@@ -237,5 +238,21 @@ describe('AegisButtonComponent', () => {
     expect(live).not.toBeNull();
     expect(button().contains(live)).toBe(false);
     expect(button().getAttribute('aria-describedby')).toBe(live?.id);
+  });
+
+  // Raíl automático (ADR-019 regla 3): el mismo defecto que se encontró primero
+  // en el Input (un @if alrededor del texto RECREA el nodo — childList — en vez
+  // de solo mutar su valor — characterData —, lo que dispara un anuncio doble en
+  // NVDA). El pase manual original de este aria-live solo cubrió VoiceOver, que
+  // no lo manifestaba.
+  it('la región aria-live muta su texto in situ (characterData), nunca lo recrea (childList)', async () => {
+    const { host, flush, container } = await setup();
+    const live = container.querySelector('[aria-live="polite"]');
+    expect(live).not.toBeNull();
+
+    await expectLiveRegionMutatesInPlace(live!, () => {
+      host.loading.set(true);
+      flush();
+    });
   });
 });

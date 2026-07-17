@@ -29,6 +29,14 @@ let nextSrId = 0;
  * de forma fiable — el motor de accesibilidad la trata como parte del cálculo del
  * nombre accesible del botón, no como una región live independiente, y el cambio
  * pasa en silencio. Sacarla como hermano es lo que la hace audible.
+ *
+ * Su texto se pone por interpolación PLANA, nunca `@if` alrededor del texto
+ * (ADR-019 regla 3, bug encontrado primero en el Input): `@if` es estructural
+ * — recrea el nodo de texto (`childList`) en vez de mutar su valor
+ * (`characterData`) — y una región `aria-live` que RECREA su nodo dispara un
+ * anuncio doble en NVDA, aunque el `<span>` contenedor ya sea permanente. El
+ * pase manual original solo cubrió VoiceOver+Safari, donde este defecto no se
+ * manifestó; verificado con MutationObserver sobre DOM real al corregirlo.
  */
 @Component({
   selector: 'aegis-button',
@@ -58,11 +66,9 @@ let nextSrId = 0;
       }
       <span class="aegis-btn__label"><ng-content /></span>
     </button>
-    <span class="aegis-btn__sr" [id]="srId" aria-live="polite">
-      @if (brain.busy()) {
-        {{ loadingLabel() }}
-      }
-    </span>
+    <span class="aegis-btn__sr" [id]="srId" aria-live="polite">{{
+      brain.busy() ? loadingLabel() : ''
+    }}</span>
   `,
   styleUrl: './button.component.css',
 })
