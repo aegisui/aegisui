@@ -3,10 +3,8 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
-  effect,
   input,
   model,
-  signal,
   viewChild,
 } from '@angular/core';
 import { AegisInput } from '@aegisui/cdk';
@@ -26,29 +24,15 @@ let nextId = 0;
  * §Accesibilidad, «el corazón de la a11y de un input»): el consumidor solo
  * aporta el *texto* de la etiqueta.
  *
- * El anuncio del error usa DOS nodos separados (ADR-019): el `<span id>`
- * enlazado por `aria-describedby` está SIEMPRE presente (vacío si no hay
- * error) y un `<span role="alert">` aparte, oculto y fuera de
- * `aria-describedby`, que dispara el anuncio dinámico. Ninguno usa `@if`
- * alrededor del texto (regla 3: recrear el nodo dispara un anuncio doble).
- *
- * Regla 4 (ADR-019): el nodo de `aria-describedby` NUNCA muta mientras el
- * campo tiene foco — solo se pone al día al perderlo (`brain.focused()`,
- * `@aegisui/cdk`). NVDA relee la descripción del campo ENFOCADO cuando el
- * nodo que ella referencia cambia de texto, aunque el atributo
- * `aria-describedby` en sí no cambie — un segundo canal de anuncio, distinto
- * de la recreación de nodo (regla 3) y del "un nodo, dos papeles" original.
- * Verificado con `MutationObserver`: sacar el error de `aria-describedby`
- * elimina el doble anuncio; de ahí que deba, en su lugar, dejar de mutar
- * mientras hay foco (no desaparecer del todo, para no perder el reanuncio al
- * reenfocar). Si el texto cambia varias veces con el campo ya enfocado (p.
- * ej. una validación en vivo que corrige su propio mensaje), la región
- * `alert` anuncia cada cambio; el nodo de `describedby` se pone al día una
- * sola vez, al perder el foco, con el ÚLTIMO valor — nunca uno intermedio.
- *
- * Verificación MANUAL con lector de pantalla obligatoria antes de release
- * (SPEC §8.5): NVDA y VoiceOver deben anunciarlo una sola vez al aparecer, y
- * seguir reanunciando el mensaje ACTUALIZADO al reenfocar más tarde.
+ * El mensaje de error se anuncia con **`aria-describedby` + `aria-invalid` y
+ * nada más** (ADR-019): un único `<span>` visible, siempre presente (vacío
+ * cuando no hay error), enlazado por `aria-describedby`. SIN `role="alert"`,
+ * SIN `aria-live`. NVDA/JAWS reannuncian nativamente el texto de la descripción
+ * de un campo enfocado cuando cambia; añadir una región live lo duplica en
+ * NVDA/JAWS y rompe la relación `aria-describedby` en VoiceOver (cuatro fuentes
+ * convergen: GOV.UK, Adrian Roselli, David MacDonald, React Aria — ver
+ * ADR-019). Verificación manual con lector obligatoria antes de release (SPEC
+ * §8.5): visible al aparecer, una lectura, reanuncio actualizado al reenfocar.
  */
 @Component({
   selector: 'aegis-input',
@@ -86,8 +70,7 @@ let nextId = 0;
     @if (helpText()) {
       <span class="aegis-input__help" [id]="helpId()">{{ helpText() }}</span>
     }
-    <span class="aegis-input__error" [id]="errorId()">{{ describedErrorText() }}</span>
-    <span class="aegis-input__error-live" role="alert">{{ errorText() }}</span>
+    <span class="aegis-input__error" [id]="errorId()">{{ errorText() }}</span>
   `,
   styleUrl: './input.component.css',
 })
@@ -109,9 +92,9 @@ export class AegisInputComponent {
   /** Señal manual de validez (el consumidor decide cuándo el campo es inválido). */
   readonly invalid = input(false, { transform: booleanAttribute });
 
-  /** Solo se PINTA (y se anuncia) cuando `invalid()` es `true`; el `<span>` de
-   * descripción existe siempre (ADR-019), así que el texto se muestra u oculta
-   * pero la relación `aria-describedby` nunca se crea en caliente. */
+  /** Solo se pinta (y describe) cuando `invalid()` es `true`. El `<span>` de
+   * error existe siempre (vacío si no hay error): la relación `aria-describedby`
+   * es estable, nunca se crea/destruye en caliente (ADR-019). */
   readonly errorMessage = input<string | undefined>(undefined);
 
   /** Texto de ayuda persistente, independiente de `invalid`. */
@@ -137,41 +120,19 @@ export class AegisInputComponent {
    * nunca se crea/destruye en caliente, solo cambia el texto del span. */
   protected readonly errorId = computed(() => `${this.resolvedId()}-error`);
 
-  /**
-   * Texto visible del error, o `''`. A propósito interpolación PLANA en el
-   * template (nunca `@if` alrededor del texto, ADR-019 regla 3): `@if` es
-   * estructural — recrea el nodo de texto (`childList`) en vez de mutar su
-   * valor (`characterData`) — y una región `role="alert"` que RECREA su nodo
-   * dispara un anuncio doble en NVDA, aunque el `<span>` contenedor ya sea
-   * permanente. Verificado con MutationObserver sobre DOM real.
-   */
+  /** Texto del `<span>` de error: el mensaje cuando `invalid`, o `''`.
+   * Interpolación plana en el template (no `@if` alrededor del texto): muta el
+   * nodo de texto in situ en vez de recrearlo — más limpio y sin sorpresas de
+   * reannuncio si algún AT trata la descripción como región viva. */
   protected readonly errorText = computed(() =>
     this.invalid() && this.errorMessage() ? this.errorMessage()! : '',
   );
 
-  private readonly brain = viewChild.required(AegisInput);
-
-  /**
-   * Texto que `aria-describedby` señala de verdad (ADR-019 regla 4). Se
-   * mantiene congelado mientras `brain().focused()` es `true` — si `errorText`
-   * cambia con el campo enfocado, este signal NO lo refleja todavía; lo hace
-   * en cuanto el campo pierde el foco (o de inmediato si nunca lo tuvo, p. ej.
-   * un campo que nace ya inválido). Así la región `describedby` nunca muta
-   * mientras el AT está leyendo el elemento enfocado (evita el segundo canal
-   * de anuncio), sin perder el reanuncio del texto ACTUALIZADO al reenfocar.
-   */
-  protected readonly describedErrorText = signal('');
-
-  private readonly syncDescribedErrorText = effect(() => {
-    const current = this.errorText();
-    if (!this.brain().focused()) {
-      this.describedErrorText.set(current);
-    }
-  });
-
   protected onInput(event: Event): void {
     this.value.set((event.target as HTMLInputElement).value);
   }
+
+  private readonly brain = viewChild.required(AegisInput);
 
   /**
    * Enfoca el campo real. Delega en el brain (`.focus()` real vive en

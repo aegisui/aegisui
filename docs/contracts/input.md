@@ -248,10 +248,9 @@ pinte.
 - `aria-describedby`: compone, en orden `helpText` → `errorMessage`, los ids
   aplicables (space-separated). El de `helpText` solo entra cuando hay
   `helpText`. **El de `errorMessage` está SIEMPRE**, desde el primer render,
-  vacío cuando no hay error — ADR-019: la relación no se crea ni se destruye
-  con el campo ya enfocado, solo cambia el texto del span (mismo patrón que el
-  `srId` del Button). Por eso `aria-describedby` nunca está ausente en el
-  Input: siempre hay, como mínimo, la entrada (a veces vacía) del error.
+  vacío cuando no hay error — ADR-019: la relación es estable, no se crea ni se
+  destruye en caliente; solo cambia el texto del span. Es el único canal de
+  anuncio del error: **sin `aria-live`, sin `role="alert"`** (ver §Anuncios).
 - **Nombre accesible:** viene del `<label for="{id}">` que el propio
   componente renderiza, asociado al `id` (auto-generado o, si el consumidor
   pasa uno propio vía el `id` nativo del host, respetado — ver más abajo).
@@ -297,75 +296,37 @@ propósito (ninguna tecla gestionada explícitamente por el componente).
 
 ### Anuncios a lector de pantalla
 
-- **Dos nodos, cuatro reglas (ADR-019).** El mensaje de error vive en DOS
-  `<span>` separados:
-  1. Uno enlazado por `aria-describedby` (siempre presente, vacío si no hay
-     error) — descripción bajo demanda, sin `role="alert"` ni `aria-live`.
-  2. Uno aparte, visualmente oculto (misma técnica que `.aegis-btn__sr`),
-     **fuera** de `aria-describedby`, con `role="alert"` — su único trabajo es
-     disparar el anuncio cuando el texto cambia, incluso con el campo ya
-     enfocado (validación en vivo).
-  3. **El texto de ambos se pone por interpolación PLANA** (`{{ errorText()
-     }}`, con `errorText` devolviendo `''` cuando no aplica) — **nunca** `@if`
-     envolviendo la interpolación. `@if` es estructural: recrea el nodo de
-     texto (mutación `childList`) en vez de mutar su valor (`characterData`),
-     y una región `role="alert"` que recrea su nodo dispara un anuncio doble
-     en NVDA aunque el `<span>` contenedor ya sea permanente.
-  4. **El nodo 1 (`aria-describedby`) no muta mientras el campo tiene foco.**
-     Se actualiza a partir del valor en vivo solo cuando el campo pierde el
-     foco (`brain.focused()`, `@aegisui/cdk`) — y toma el valor **más
-     reciente** en ese momento, nunca uno intermedio si el error cambió de
-     texto varias veces sin que el foco saliera nunca (validación en vivo que
-     corrige su propio mensaje). El nodo 2 (`role="alert"`) sigue reflejando
-     el valor en vivo siempre, sin esta restricción.
+- **Solo `aria-describedby` + `aria-invalid`, sin región live (ADR-019).** El
+  mensaje de error vive en UN único `<span>` visible, siempre presente en el
+  DOM (vacío cuando no hay error), enlazado por `aria-describedby` desde el
+  `<input>` con un `id` estable. `aria-invalid="true"` cuando aplica. **Sin
+  `role="alert"`, sin `aria-live`, sin `role="status"`.** El texto se interpola
+  plano (muta in situ, no se recrea el nodo).
 
-  Historial de los tres pases manuales que llevaron a estas cuatro reglas
-  (ninguno se hereda del anterior — cada arquitectura invalidó el resultado
-  previo):
-  1. **Un solo nodo** con los papeles de descripción y anuncio a la vez:
-     VoiceOver+Safari anunciaba una vez; NVDA+Firefox **dos** (región `alert`
-     + relectura de la descripción cuya relación acababa de crearse).
-  2. **Dos nodos + `describedby` estable** (reglas 1-2), pero el texto seguía
-     envuelto en `@if`: NVDA pasó a anunciar **dos veces seguidas e
-     idénticas** — la separación había resuelto las dos causas originales
-     pero dejaba una tercera. Confirmado con `MutationObserver`: `childList`
-     en el nodo `role="alert"`, no `characterData`. Regla 3.
-  3. **+ interpolación plana** (regla 3), pero NVDA **seguía** duplicando.
-     Diagnóstico: el atributo `aria-describedby` no cambiaba de valor, pero
-     el nodo al que apunta sí mutaba su texto con el campo enfocado — un
-     cuarto canal de re-anuncio, independiente de `role="alert"` y de si la
-     relación cambió. Confirmado quitando temporalmente el error de
-     `aria-describedby`: el duplicado desapareció. Congelar sin más ese nodo
-     mientras hay foco casi introduce un defecto peor (mensaje obsoleto si el
-     error cambia varias veces sin soltar el foco) — resuelto tomando siempre
-     el valor **más reciente** al perder el foco, nunca el primero visto.
-     Regla 4, verificada con `MutationObserver` en Chromium real (foco por
-     teclado genuino, no simulado): el nodo de `describedby` no muta ninguna
-     vez mientras el campo está enfocado, y muta una sola vez al perder el
-     foco, con el último valor.
+  Por qué no una región live: NVDA y JAWS **reannuncian nativamente** la
+  descripción de un control enfocado cuando su texto cambia — se comportan
+  como región live sin que se declare. Añadir `aria-live`/`role="alert"`
+  **duplica** el anuncio en NVDA/JAWS y **rompe** el `aria-describedby` en
+  VoiceOver. Cuatro fuentes independientes convergen: GOV.UK Design System,
+  Adrian Roselli, David MacDonald, React Aria (detalle y enlaces en ADR-019).
 
-  Es el mismo tipo de punto frágil que el `aria-live` del `loading` del Button
-  (SPEC §8.5: axe no lo detecta) — y el Button tenía exactamente el mismo
-  defecto de la regla 3 (su `.aegis-btn__sr` también envolvía el texto en
-  `@if`), corregido al generalizar este patrón. El Button **no** está
-  corregido de las reglas 1/2/4: su `srId` sigue siendo un único nodo con
-  doble papel, sin verificar contra este escenario exacto (ver
-  `docs/contracts/button.md`).
+  Este componente llegó aquí tras **cuatro** intentos con región live que
+  fallaron el pase manual (uno/dos anuncios en NVDA, o el mensaje ausente
+  hasta el blur). La causa común: una región live que sobraba. El historial
+  completo, para que nadie lo reabra, está en ADR-019 §"El camino recorrido".
+  El Button comparte ahora exactamente el mismo patrón limpio (su `srId`
+  también perdió el `aria-live`).
 
-  **Verificación manual con lector de pantalla obligatoria antes de
-  release** (NVDA+Firefox, VoiceOver+Safari) — comprobar que el mensaje se
-  anuncia **una sola vez** tanto al enfocar el campo por primera vez como al
-  aparecer mientras ya está enfocado, que se sigue anunciando (con el texto
-  ACTUALIZADO, aunque haya cambiado varias veces) al reenfocar más tarde. Un
-  raíl automático (`expectLiveRegionMutatesInPlace`,
-  `packages/ui/src/testing/live-region.ts`) caza la regresión de la regla 3
-  con `MutationObserver` en cada test run; las reglas 1, 2 y 4 no tienen raíl
-  automático (dependen enteramente del pase manual). Ninguno sustituye
-  escuchar el resultado real.
-- `helpText` (persistente, no ligado a un evento) **no** cambia: sigue
-  condicional, sin `role="alert"` ni `aria-live` — no tiene el problema de
-  re-anuncio (no hay una región live de por medio) y no hay motivo para
-  generalizarle el patrón de arriba.
+  **Verificación manual con lector de pantalla obligatoria antes de release**
+  (NVDA+Firefox, VoiceOver+Safari) — los cuatro casos: (1) campo normal;
+  (2) error ya presente al enfocar; (3) error apareciendo con el campo ya
+  enfocado; (4) error cambiando de texto varias veces sin soltar el foco.
+  Criterio en los cuatro: **visible al aparecer, una sola lectura, reanuncio
+  con el texto ACTUALIZADO al reenfocar**. La estructura (describedby estable,
+  cero región live) está verificada con `MutationObserver` en Chromium real;
+  no sustituye escuchar el resultado.
+- `helpText` (persistente, no ligado a un evento): igual, solo `aria-describedby`,
+  sin `role`/`aria-live`. Nunca lo necesitó.
 
 ### Target size (2.5.8)
 
@@ -460,18 +421,18 @@ Unitarios (Vitest + Testing Library):
 - [ ] `required=true` pone `required` nativo y `aria-required="true"`.
 - [ ] `invalid=true` pone `aria-invalid="true"`; `invalid=false` **no** pone
       `aria-invalid="false"` (atributo ausente).
-- [ ] Con `helpText`, `aria-describedby` incluye su id; sin él, solo el del
-      error (ADR-019: siempre presente, vacío si no hay error).
-- [ ] Con `invalid=true` y `errorMessage`, `aria-describedby` incluye
-      **ambos** ids (ayuda y error) si los dos existen, en ese orden.
+- [ ] **No existe ningún nodo con `role="alert"` ni `aria-live`**: el error se
+      anuncia solo por `aria-describedby` (ADR-019, Solución 5).
+- [ ] El `<span>` de error existe siempre y su id está siempre en
+      `aria-describedby`, vacío cuando no hay error.
+- [ ] Con `helpText`, `aria-describedby` incluye ambos ids (ayuda y error) en
+      ese orden.
 - [ ] La relación `aria-describedby` con el error es **estable**: el mismo id
-      antes y después de que aparezca el error (ADR-019) — solo cambia el
-      texto del `<span>` referenciado.
-- [ ] El nodo `role="alert"` del anuncio dinámico es un `<span>` **distinto**
-      del enlazado por `aria-describedby`, y no forma parte de él (ADR-019).
+      antes y después de que aparezca el error — solo cambia el texto del span.
+- [ ] Si el error cambia de texto, el mismo `<span>` se actualiza in situ (la
+      descripción siempre al día para el reenfoque).
 - [ ] `invalid=true` sin `errorMessage`: `aria-invalid` presente; el `<span>`
-      de `aria-describedby` sigue ahí pero vacío; el nodo `role="alert"`
-      también vacío.
+      de `aria-describedby` sigue ahí pero vacío.
 - [ ] `size` por defecto es `md`; cada valor aplica su escala.
 - [ ] El método `focus()` mueve el foco al `<input>` real.
 
@@ -512,33 +473,23 @@ Foco:
 - [ ] `:focus-visible` pinta el anillo (accent o danger según `invalid`); no
       existe `outline: none` huérfano.
 
-Manual (antes de release, no de cada PR — SPEC §8.4). Historial de pases,
-porque cada uno cambió la arquitectura y invalidó el anterior — **ningún
-resultado previo se hereda** hasta reverificar sobre el código actual:
+Manual (antes de release, no de cada PR — SPEC §8.4).
 
-- [x] VoiceOver+Safari, arquitectura de un solo nodo: anuncia una sola vez.
-      (Por eso el defecto de NVDA no se vio hasta probar ese lector.)
-- [ ] NVDA+Firefox, arquitectura de un solo nodo: **doble anuncio** (región
-      `alert` + relectura de la descripción recién creada) — dos causas
-      distintas, ADR-019 reglas 1-2.
-- [ ] NVDA+Firefox, dos nodos + `@if` alrededor del texto: **doble anuncio
-      seguido e idéntico** — una sola causa (recreación de nodo, `childList`),
-      confirmada con `MutationObserver` — ADR-019 regla 3.
-- [x] NVDA+Firefox, dos nodos + interpolación plana (sin `@if`): **seguía
-      duplicando**. Diagnóstico con `MutationObserver` + prueba de quitar el
-      error de `aria-describedby` confirmó una cuarta causa (relectura de la
-      descripción de un elemento enfocado cuyo nodo referenciado mutó) —
-      ADR-019 regla 4.
-- [ ] **Pendiente de verificar** — arquitectura actual (cuatro reglas: nodo
-      estable + nodo separado + interpolación plana + congelado con foco).
-      Verificado automáticamente con `MutationObserver` en Chromium real (foco
-      por teclado genuino) que la ESTRUCTURA es correcta: el nodo de
-      `describedby` no muta con el foco dentro y se actualiza al valor más
-      reciente al perderlo. Falta el oído: NVDA y VoiceOver deben anunciarlo
-      **una sola vez** al aparecer (incluso si el texto cambia varias veces
-      sin soltar el foco), y seguir reanunciando el mensaje ACTUALIZADO al
-      reenfocar más tarde. Los dos lectores, no uno — el motivo de todo este
-      historial es que un pase con un solo lector no certifica el patrón.
+Cuatro arquitecturas con región live fallaron el pase manual antes de llegar
+aquí; el historial completo está en ADR-019 §"El camino recorrido" (no se
+repite en el contrato: la regla operativa es la de abajo, no las cuatro
+descartadas). **Ningún resultado de esos pases se hereda** — cada uno era otra
+arquitectura.
+
+- [ ] **Pendiente** — arquitectura actual (Solución 5: solo `aria-describedby`
+      + `aria-invalid`, cero región live). La ESTRUCTURA está verificada con
+      `MutationObserver` en Chromium real (cero `role="alert"`/`aria-live`,
+      describedby estable, texto que muta in situ). Falta el oído, en
+      NVDA+Firefox **y** VoiceOver+Safari, los cuatro casos del banco manual
+      (`aegis-input-a11y-manual`): visible al aparecer, **una** lectura,
+      reanuncio con el texto ACTUALIZADO al reenfocar. Los dos lectores, no
+      uno — la lección de todo el historial es que un pase con un solo lector
+      no certifica el patrón.
 
 ## Fuera de alcance
 

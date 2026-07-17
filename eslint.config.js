@@ -48,16 +48,10 @@ export default tseslint.config(
   },
   {
     // Reglas TS específicas de los componentes de `ui` (su código fuente, no los
-    // tests, las stories ni las utilidades de test: un host de prueba no
-    // necesita contrato, y un `.focus()`/`MutationObserver` en un helper de
-    // test (packages/ui/src/testing/**) no es lógica de componente — es
-    // infraestructura para VERIFICAR lógica de cdk, no para implementarla.
+    // tests ni las stories: un host de prueba no necesita contrato, y un `.focus()`
+    // en un test no es lógica de componente).
     files: ['packages/ui/**/*.ts'],
-    ignores: [
-      'packages/ui/**/*.spec.ts',
-      'packages/ui/**/*.stories.ts',
-      'packages/ui/src/testing/**',
-    ],
+    ignores: ['packages/ui/**/*.spec.ts', 'packages/ui/**/*.stories.ts'],
     plugins: { '@aegisui': aegis },
     rules: {
       '@aegisui/contract-exists': 'error',

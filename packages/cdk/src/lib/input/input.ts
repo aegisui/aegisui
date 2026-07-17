@@ -1,12 +1,4 @@
-import {
-  booleanAttribute,
-  computed,
-  Directive,
-  ElementRef,
-  inject,
-  input,
-  signal,
-} from '@angular/core';
+import { booleanAttribute, computed, Directive, ElementRef, inject, input } from '@angular/core';
 
 let nextId = 0;
 
@@ -24,11 +16,14 @@ let nextId = 0;
  *   falte — nunca un `aria-describedby=""` vacío).
  * - el reflejo de `aria-invalid`/`aria-required` (ausentes, no `"false"`,
  *   cuando no aplican: una AT no necesita que se le diga "no inválido").
- * - `focused`, el estado de foco real del campo (ADR-019 regla 4): `ui` lo usa
- *   para congelar el texto que `aria-describedby` señala mientras el campo
- *   tiene foco — territorio de foco, vive aquí, no en `ui`.
  * - `focus()`, porque `.focus()` es territorio del cdk (regla
  *   `cdk-before-ui`): ninguna llamada a `.focus()` puede vivir en `ui`.
+ *
+ * El anuncio del error NO necesita ni `aria-live` ni `role="alert"` ni estado
+ * de foco: `aria-describedby` + `aria-invalid` bastan (ADR-019). NVDA/JAWS
+ * reannuncian nativamente el texto del nodo descrito cuando el campo enfocado
+ * cambia su descripción; añadir una región live lo duplicaría y rompería el
+ * `aria-describedby` en VoiceOver.
  */
 @Directive({
   selector: 'input[aegisInput]',
@@ -41,8 +36,6 @@ let nextId = 0;
     '[attr.aria-required]': "required() ? 'true' : null",
     '[attr.aria-invalid]': "invalid() ? 'true' : null",
     '[attr.aria-describedby]': 'describedBy()',
-    '(focus)': 'focused.set(true)',
-    '(blur)': 'focused.set(false)',
   },
 })
 export class AegisInput {
@@ -65,13 +58,6 @@ export class AegisInput {
     const ids = [this.helpId(), this.errorId()].filter((v): v is string => !!v);
     return ids.length > 0 ? ids.join(' ') : null;
   });
-
-  /**
-   * Estado de foco real del `<input>` (ADR-019 regla 4). `(focus)`/`(blur)`
-   * nativos, escuchados aquí directamente sobre el propio elemento — no hay
-   * problema de burbujeo porque el host de esta directiva ES el elemento.
-   */
-  readonly focused = signal(false);
 
   /** Enfoca el campo real. Expuesto para consumidores (p. ej. tras validar un formulario). */
   focus(): void {

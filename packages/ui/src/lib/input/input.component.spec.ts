@@ -4,7 +4,6 @@ import { render, screen } from '@testing-library/angular';
 import userEvent from '@testing-library/user-event';
 import axe from 'axe-core';
 import { AegisInputComponent, type AegisInputSize, type AegisInputType } from './input.component';
-import { expectLiveRegionMutatesInPlace } from '../../testing/live-region';
 
 /** Host de pruebas: el consumidor controla todos los inputs vía signals. */
 @Component({
@@ -121,163 +120,83 @@ describe('AegisInputComponent', () => {
     expect(input().getAttribute('aria-invalid')).toBe('true');
   });
 
-  it('[AC10] con helpText, aria-describedby lo incluye; sin él, solo el span de error (vacío)', async () => {
-    const { host, flush, input } = await setup();
-    // ADR-019: el span de error SIEMPRE está en aria-describedby, aunque esté
-    // vacío — la relación nunca se crea en caliente, solo cambia el texto.
-    const initial = input().getAttribute('aria-describedby');
-    expect(initial).not.toBeNull();
-    expect(document.getElementById(initial!)?.textContent).toBe('');
+  // --- Anuncio del error: SOLO aria-describedby + aria-invalid (ADR-019, Solución 5) ---
+  // Un único <span> visible, siempre presente (vacío si no hay error), enlazado
+  // por aria-describedby. Sin role="alert", sin aria-live: NVDA/JAWS reannuncian
+  // nativamente la descripción de un campo enfocado cuando cambia; una región
+  // live lo duplicaría (NVDA/JAWS) y rompería el describedby en VoiceOver.
 
-    host.helpText.set('Nunca compartimos tu correo.');
+  it('[AC10] no existe ningún nodo con role="alert" ni aria-live: el error se anuncia SOLO por aria-describedby', async () => {
+    const { host, flush, container } = await setup();
+    host.invalid.set(true);
+    host.errorMessage.set('Formato inválido');
     flush();
-    const describedBy = input().getAttribute('aria-describedby');
-    const ids = describedBy?.split(' ') ?? [];
-    expect(ids).toHaveLength(2);
-    expect(document.getElementById(ids[0])?.textContent).toBe('Nunca compartimos tu correo.');
+    expect(container.querySelector('[role="alert"]')).toBeNull();
+    expect(container.querySelector('[aria-live]')).toBeNull();
   });
 
-  it('[AC11] con invalid y errorMessage, aria-describedby incluye ayuda Y error, en ese orden', async () => {
+  it('[AC11] el <span> de error existe SIEMPRE y su id está SIEMPRE en aria-describedby, vacío cuando no hay error', async () => {
+    const { input, container } = await setup();
+    const errorSpan = container.querySelector('.aegis-input__error');
+    expect(errorSpan).not.toBeNull();
+    expect(errorSpan?.textContent).toBe('');
+
+    const describedBy = input().getAttribute('aria-describedby');
+    expect(describedBy).not.toBeNull();
+    expect(describedBy!.split(' ')).toContain(errorSpan!.id);
+  });
+
+  it('[AC12] con helpText, aria-describedby incluye ayuda Y error (en ese orden)', async () => {
     const { host, flush, input } = await setup();
-    host.helpText.set('Ayuda');
+    host.helpText.set('Nunca compartimos tu correo.');
     host.invalid.set(true);
     host.errorMessage.set('Formato inválido');
     flush();
     const ids = input().getAttribute('aria-describedby')?.split(' ') ?? [];
     expect(ids).toHaveLength(2);
-    expect(document.getElementById(ids[0])?.textContent).toBe('Ayuda');
+    expect(document.getElementById(ids[0])?.textContent).toBe('Nunca compartimos tu correo.');
     expect(document.getElementById(ids[1])?.textContent?.trim()).toBe('Formato inválido');
   });
 
-  it('[AC12] la relación aria-describedby con el error es ESTABLE: el mismo id, antes y después de que aparezca el error', async () => {
+  it('[AC13] la relación aria-describedby con el error es ESTABLE: el mismo id antes y después de que aparezca el error, solo cambia el texto', async () => {
     const { host, flush, input } = await setup();
-    const idsBefore = input().getAttribute('aria-describedby')?.split(' ') ?? [];
-    const errorIdBefore = idsBefore[idsBefore.length - 1];
-    expect(errorIdBefore).toBeTruthy();
+    const errorIdBefore = input().getAttribute('aria-describedby')!;
+    expect(document.getElementById(errorIdBefore)?.textContent).toBe('');
 
     host.invalid.set(true);
     host.errorMessage.set('Formato inválido');
     flush();
-    const idsAfter = input().getAttribute('aria-describedby')?.split(' ') ?? [];
-    const errorIdAfter = idsAfter[idsAfter.length - 1];
+    const errorIdAfter = input().getAttribute('aria-describedby')!;
 
     expect(errorIdAfter).toBe(errorIdBefore);
     expect(document.getElementById(errorIdAfter)?.textContent?.trim()).toBe('Formato inválido');
   });
 
-  it('[AC13] el nodo role="alert" del anuncio dinámico es DISTINTO del enlazado por aria-describedby, y no forma parte de él', async () => {
-    const { host, flush, input, container } = await setup();
+  it('[AC14] el texto del error se ACTUALIZA in situ si cambia (el mismo nodo, nuevo texto — descripción siempre al día para el reenfoque)', async () => {
+    const { host, flush, input } = await setup();
+    const errorId = input().getAttribute('aria-describedby')!;
+
     host.invalid.set(true);
-    host.errorMessage.set('Formato inválido');
+    host.errorMessage.set('Email inválido');
     flush();
+    expect(document.getElementById(errorId)?.textContent?.trim()).toBe('Email inválido');
 
-    const alert = container.querySelector('[role="alert"]');
-    expect(alert?.textContent?.trim()).toBe('Formato inválido');
-
-    const describedByIds = input().getAttribute('aria-describedby')?.split(' ') ?? [];
-    expect(describedByIds).not.toContain(alert?.id);
+    host.errorMessage.set('Ya está registrado');
+    flush();
+    expect(document.getElementById(errorId)?.textContent?.trim()).toBe('Ya está registrado');
   });
 
-  // Raíl automático (ADR-019 regla 3): un anuncio doble en NVDA puede venir de
-  // que el nodo role="alert" RECREE su contenido (childList) en vez de solo
-  // mutar el texto (characterData) — el propio contenedor permanente no basta
-  // si el texto de dentro se recrea con @if. No sustituye el pase manual (el
-  // anuncio en sí solo se oye con un lector real), pero caza este patrón
-  // concreto sin depender de tener el lector correcto a mano.
-  it('la región role="alert" muta su texto in situ (characterData), nunca lo recrea (childList)', async () => {
-    const { host, flush, container } = await setup();
-    const alert = container.querySelector('.aegis-input__error-live');
-    expect(alert).not.toBeNull();
-
-    await expectLiveRegionMutatesInPlace(alert!, () => {
-      host.invalid.set(true);
-      host.errorMessage.set('Formato inválido');
-      flush();
-    });
-  });
-
-  it('[AC14] invalid=true sin errorMessage: aria-invalid presente; el span de error sigue en aria-describedby pero vacío; el nodo role="alert" también vacío', async () => {
-    const { host, flush, input, container } = await setup();
+  it('[AC15] invalid=true sin errorMessage: aria-invalid presente; el span de error sigue en aria-describedby pero vacío', async () => {
+    const { host, flush, input } = await setup();
     host.invalid.set(true);
     flush();
     expect(input().getAttribute('aria-invalid')).toBe('true');
 
-    const ids = input().getAttribute('aria-describedby')?.split(' ') ?? [];
-    const errorId = ids[ids.length - 1];
-    expect(document.getElementById(errorId)?.textContent).toBe('');
-
-    const alert = container.querySelector('[role="alert"]');
-    expect(alert?.textContent).toBe('');
-  });
-
-  // --- ADR-019 regla 4: el nodo de aria-describedby se congela con el foco dentro ---
-  // Caso límite señalado por el usuario: si el error CAMBIA de texto varias veces
-  // mientras el campo sigue enfocado (validación en vivo que corrige su propio
-  // mensaje), el nodo de aria-describedby no debe quedarse con un valor intermedio
-  // obsoleto al perder el foco — debe reflejar el ÚLTIMO valor, nunca uno de paso.
-
-  it('el nodo de aria-describedby NO cambia mientras el campo tiene foco, y se actualiza con el valor MÁS RECIENTE al perder el foco', async () => {
-    const { host, flush, input } = await setup();
-    input().focus();
-    flush();
-    await new Promise((resolve) => setTimeout(resolve, 0));
-
-    host.invalid.set(true);
-    host.errorMessage.set('Email inválido');
-    flush();
-    await new Promise((resolve) => setTimeout(resolve, 0));
-
-    const errorId = input().getAttribute('aria-describedby')!;
-    expect(document.getElementById(errorId)?.textContent).toBe('');
-
-    // El error cambia de texto SIN salir del campo (validación en vivo).
-    host.errorMessage.set('Ya está registrado');
-    flush();
-    await new Promise((resolve) => setTimeout(resolve, 0));
-    expect(document.getElementById(errorId)?.textContent).toBe('');
-
-    input().blur();
-    flush();
-    await new Promise((resolve) => setTimeout(resolve, 0));
-
-    // Al perder el foco, el nodo se pone al día con el ÚLTIMO valor, no con
-    // "Email inválido" (el primero que apareció mientras estaba enfocado).
-    expect(document.getElementById(errorId)?.textContent).toBe('Ya está registrado');
-  });
-
-  it('si el campo nunca tuvo foco, el nodo de aria-describedby se puebla de inmediato (sin esperar a un blur)', async () => {
-    const { host, flush, input } = await setup();
-    host.invalid.set(true);
-    host.errorMessage.set('Formato inválido');
-    flush();
-    await new Promise((resolve) => setTimeout(resolve, 0));
-
-    const errorId = input().getAttribute('aria-describedby')!;
-    expect(document.getElementById(errorId)?.textContent).toBe('Formato inválido');
-  });
-
-  it('la región role="alert" anuncia CADA cambio en vivo aunque el nodo de aria-describedby permanezca congelado', async () => {
-    const { host, flush, input, container } = await setup();
-    input().focus();
-    flush();
-    await new Promise((resolve) => setTimeout(resolve, 0));
-
-    host.invalid.set(true);
-    host.errorMessage.set('Email inválido');
-    flush();
-    await new Promise((resolve) => setTimeout(resolve, 0));
-    expect(container.querySelector('[role="alert"]')?.textContent).toBe('Email inválido');
-
-    host.errorMessage.set('Ya está registrado');
-    flush();
-    await new Promise((resolve) => setTimeout(resolve, 0));
-    expect(container.querySelector('[role="alert"]')?.textContent).toBe('Ya está registrado');
-
     const errorId = input().getAttribute('aria-describedby')!;
     expect(document.getElementById(errorId)?.textContent).toBe('');
   });
 
-  it('[AC15] size por defecto es md; cada valor aplica su escala', async () => {
+  it('[AC16] size por defecto es md; cada valor aplica su escala', async () => {
     const { host, flush, input } = await setup();
     expect(input()).toHaveClass('aegis-input--md');
     for (const s of ['sm', 'lg'] as const) {
@@ -287,7 +206,7 @@ describe('AegisInputComponent', () => {
     }
   });
 
-  it('[AC16] el método focus() mueve el foco al <input> real', async () => {
+  it('[AC17] el método focus() mueve el foco al <input> real', async () => {
     const view = await render(AegisInputComponent, { inputs: { label: 'Correo' } });
     const component = view.fixture.componentInstance;
     component.focus();
@@ -296,7 +215,7 @@ describe('AegisInputComponent', () => {
 
   // --- Teclado (gate keyboard + unitarios) ------------------------------------
 
-  it('[AC17] Tab mueve el foco al campo; lo salta si disabled; lo respeta si readonly', async () => {
+  it('[AC18] Tab mueve el foco al campo; lo salta si disabled; lo respeta si readonly', async () => {
     const { host, flush, input } = await setup();
     input().focus();
     expect(input()).toHaveFocus();
@@ -312,7 +231,7 @@ describe('AegisInputComponent', () => {
     expect(input().disabled).toBe(true);
   });
 
-  it('[AC18] escribir un carácter actualiza value (comportamiento nativo)', async () => {
+  it('[AC19] escribir un carácter actualiza value (comportamiento nativo)', async () => {
     const user = userEvent.setup();
     const { host, input } = await setup();
     await user.type(input(), 'a');
@@ -321,7 +240,7 @@ describe('AegisInputComponent', () => {
 
   // --- Accesibilidad (axe) -----------------------------------------------------
 
-  it('[AC19] 0 violaciones en los 3 tamaños, en default', async () => {
+  it('[AC20] 0 violaciones en los 3 tamaños, en default', async () => {
     const { host, flush, container } = await setup();
     for (const s of ['sm', 'md', 'lg'] as const) {
       host.size.set(s);
@@ -330,7 +249,7 @@ describe('AegisInputComponent', () => {
     }
   });
 
-  it('[AC20] 0 violaciones en disabled, readonly, invalid (con y sin errorMessage)', async () => {
+  it('[AC21] 0 violaciones en disabled, readonly, invalid (con y sin errorMessage)', async () => {
     const { host, flush, container } = await setup();
 
     host.disabled.set(true);
@@ -352,12 +271,12 @@ describe('AegisInputComponent', () => {
     expect(await axeViolations(container), 'invalid con errorMessage').toEqual([]);
   });
 
-  it('[AC21] campo CON label: 0 violaciones', async () => {
+  it('[AC22] campo CON label: 0 violaciones', async () => {
     const { container } = await setup();
     expect(await axeViolations(container)).toEqual([]);
   });
 
-  it('[AC21] campo SIN label (ni aria-label externo): axe caza la falta de nombre accesible (test negativo)', async () => {
+  it('[AC22] campo SIN label (ni aria-label externo): axe caza la falta de nombre accesible (test negativo)', async () => {
     const view = await render(`<aegis-input />`, { imports: [AegisInputComponent] });
     const violations = await axeViolations(view.container);
     expect(violations.map((v) => v.id)).toContain('label');

@@ -3,13 +3,14 @@ import { AegisInputComponent } from '@aegisui/ui';
 
 /**
  * Banco de pruebas para la validación MANUAL con lector de pantalla (NVDA+Firefox,
- * VoiceOver+Safari) del Input — SPEC §8.5. El `role="alert"` del mensaje de error
- * es el punto frágil (equivalente al `aria-live` del `loading` del Button, docs/
- * contracts/input.md §Accesibilidad): no lo cubre axe ni ningún gate automático.
+ * VoiceOver+Safari) del Input — SPEC §8.5. El anuncio del error usa SOLO
+ * `aria-describedby` + `aria-invalid`, sin `aria-live` ni `role="alert"`
+ * (ADR-019, Solución 5): no lo cubre axe ni ningún gate automático. Criterio en
+ * los cuatro casos: visible al aparecer, UNA lectura, reanuncio ACTUALIZADO al
+ * reenfocar.
  *
- * Caso 2 usa `(focusin)` (bubblea) para disparar el error MIENTRAS el campo ya
- * está enfocado, sin mover el foco — la demostración en vivo de por qué
- * `(focus)`/`(blur)` nativos NO sirven aquí (no bubblean, contrato §Outputs).
+ * Los casos 3 y 4 usan `(focusin)` (bubblea) para disparar/cambiar el error
+ * MIENTRAS el campo ya está enfocado, sin mover el foco.
  */
 @Component({
   selector: 'aegis-input-a11y-manual',
@@ -42,9 +43,9 @@ import { AegisInputComponent } from '@aegisui/ui';
         <h3>3 · Error apareciendo con el campo YA enfocado (el caso frágil)</h3>
         <p class="hint">
           Enfoca el campo con Tab y NO toques nada más durante ~2s. A los 2s aparece un error sin
-          que el foco se mueva. Escucha: ¿se anuncia igual que el caso 2, o en silencio? Esto es lo
-          que <code>role="alert"</code> existe para resolver — y lo que ningún gate automático puede
-          confirmar.
+          que el foco se mueva. Escucha: ¿se anuncia UNA vez, o en silencio? Sin
+          <code>aria-live</code>, NVDA/JAWS deberían reannunciar la descripción del campo enfocado
+          nativamente.
         </p>
         <div (focusin)="onFocusIn()">
           <aegis-input
@@ -60,13 +61,13 @@ import { AegisInputComponent } from '@aegisui/ui';
       </div>
 
       <div class="case">
-        <h3>4 · El error CAMBIA de texto sin salir del campo (ADR-019 regla 4)</h3>
+        <h3>4 · El error CAMBIA de texto sin salir del campo (reanuncio actualizado)</h3>
         <p class="hint">
           Enfoca el campo y NO toques nada más durante ~4s. A los 2s aparece «Email inválido»; a los
           4s cambia a «Ya está registrado», sin mover el foco en ningún momento. Escucha: ¿se
           anuncia cada cambio una sola vez? Y sobre todo — sal del campo (Tab) y vuelve a entrar
           (Shift+Tab): ¿anuncia el mensaje ACTUALIZADO («Ya está registrado»), o el primero que
-          apareció?
+          apareció? Con describedby-solo, la descripción está siempre al día.
         </p>
         <div (focusin)="onFocusInMulti()">
           <aegis-input

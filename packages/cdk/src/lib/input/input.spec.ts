@@ -108,27 +108,4 @@ describe('AegisInput (cdk brain)', () => {
     brainRef.focus();
     expect(screen.getByRole('textbox')).toHaveFocus();
   });
-
-  // ADR-019 regla 4: `ui` congela el texto de aria-describedby mientras hay
-  // foco; esto solo es posible porque el brain expone el estado de foco real
-  // (territorio de foco = cdk, no ui).
-  describe('focused (ADR-019 regla 4)', () => {
-    it('empieza en false', async () => {
-      const view = await render(HostComponent);
-      const brainRef = view.fixture.debugElement.children[0].references['brain'] as AegisInput;
-      expect(brainRef.focused()).toBe(false);
-    });
-
-    it('pasa a true con (focus) y a false con (blur), sin depender de burbujeo', async () => {
-      const view = await render(HostComponent);
-      const brainRef = view.fixture.debugElement.children[0].references['brain'] as AegisInput;
-      const input = screen.getByRole('textbox') as HTMLInputElement;
-
-      input.focus();
-      expect(brainRef.focused()).toBe(true);
-
-      input.blur();
-      expect(brainRef.focused()).toBe(false);
-    });
-  });
 });
