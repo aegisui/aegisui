@@ -1,4 +1,4 @@
-# ADR-019: Anuncio de estado dinámico — `describedby` estable + `alert` separado + mutación in situ
+# ADR-019: Anuncio de estado dinámico — `describedby` estable + `alert` separado + mutación in situ + congelado con foco
 
 ## Contexto
 
@@ -74,10 +74,52 @@ nunca se probó con NVDA en este escenario exacto. **Es un bug de
 accesibilidad real en producción**, no una nota aparte: se corrige en el mismo
 cambio, con el mismo patrón.
 
+**Tercer pase manual — el `childList` no era la única causa.** Con las reglas
+1-3 aplicadas, NVDA seguía duplicando el caso frágil. Antes de tocar más
+código, diagnóstico con evidencia (no de oído):
+
+1. `MutationObserver` con `attributeFilter: ['aria-describedby']` sobre el
+   `<input>`: el valor del atributo **no cambiaba** al aparecer el error (era
+   `"aegis-input-N-error"` antes y después, idéntico) — la regla 1 ya lo
+   garantizaba. Pero el **nodo al que ese id apunta** sí mutaba su texto
+   (`characterData`) en el mismo instante, con el campo enfocado.
+2. **Prueba diagnóstica**: se sacó temporalmente el id del error de
+   `aria-describedby` (dejando solo la región `alert`) y se reescuchó. **El
+   doble anuncio desapareció.**
+
+Conclusión: NVDA relee la descripción del elemento **enfocado** cuando el
+nodo que ella referencia cambia de texto — un tercer canal, distinto de la
+recreación de nodo (regla 3) y del "un nodo, dos papeles" original (regla 1).
+Ni el valor del atributo `aria-describedby` ni el `role="alert"` tienen que
+ver: basta con que el contenido descrito de un elemento ya enfocado cambie.
+
+**El caso límite que casi rompe la solución obvia.** "No tocar el nodo de
+`describedby` mientras hay foco" es la respuesta directa — pero si el error
+cambia de texto **varias veces sin que el foco salga nunca** (validación en
+vivo que corrige su propio mensaje: "Email inválido" → "Ya está registrado"),
+congelar sin más deja el nodo con el **primer** valor visto en esa sesión de
+foco, no el último. Al reenfocar después, se leería un mensaje obsoleto —
+peor que el doble anuncio: información incorrecta, no repetida.
+
+Resuelto con un signal de foco real en el brain (`AegisInput.focused`,
+`(focus)`/`(blur)` nativos — territorio de foco, cdk, no `ui`) y, en `ui`, un
+`effect()` que solo *comete* el texto en vivo al signal de `describedby`
+cuando `!focused()`. Mientras hay foco, el signal de `describedby` no se
+toca pase lo que pase con el texto en vivo; en cuanto se pierde el foco (o si
+nunca lo hubo), se pone al día con el valor **más reciente** en ese momento —
+nunca uno intermedio, porque el `effect()` lee el valor actual, no el primero
+que vio.
+
+Verificado con `MutationObserver` en Chromium real (no jsdom, no simulado):
+foco real vía teclado, error cambia dos veces con el campo enfocado — el
+nodo de `describedby` no muta ninguna de las dos veces (queda `""`); al
+perder el foco, muta UNA vez, al **último** valor ("Ya está registrado.", no
+"Email inválido."). La región `alert` mutó las dos veces, en vivo, como debía.
+
 ## Decisión
 
 **Todo anuncio de estado dinámico (validación, progreso, cualquier cosa que
-aparezca con el control ya enfocado) sigue TRES reglas:**
+aparezca con el control ya enfocado) sigue CUATRO reglas:**
 
 1. **Nodo de descripción — estable.** El `id` que entra en
    `aria-describedby` existe **siempre**, desde el primer render, tenga o no
@@ -98,28 +140,69 @@ aparezca con el control ya enfocado) sigue TRES reglas:**
    deben mostrar/ocultar su texto con una expresión condicional que devuelva
    `''` (`{{ cond() ? texto() : '' }}`), no con `@if` envolviendo la
    interpolación.
+4. **El nodo de descripción no muta mientras el elemento tiene foco.**
+   Aunque las reglas 1-3 se cumplan, NVDA relee la descripción de un elemento
+   ENFOCADO si el nodo que ella referencia cambia de texto — un canal más,
+   independiente de `role="alert"` y de si la relación `describedby` cambió.
+   El nodo de anuncio (regla 2) sigue reflejando el valor en vivo siempre; el
+   de descripción (regla 1) solo se actualiza a partir de ese valor en vivo
+   cuando el elemento **no** tiene foco — y toma el valor **más reciente** en
+   ese momento, nunca uno intermedio de los vistos mientras estuvo enfocado.
+   Requiere que el componente conozca su propio estado de foco real
+   (`focused`, expuesto por el brain — territorio de foco, cdk, no `ui`).
 
 Aplicado al Input (`packages/ui/src/lib/input/input.component.ts`):
 
 ```html
-<span class="aegis-input__error" [id]="errorId()">{{ errorText() }}</span>
+<span class="aegis-input__error" [id]="errorId()">{{ describedErrorText() }}</span>
 <span class="aegis-input__error-live" role="alert">{{ errorText() }}</span>
 ```
 
-con `errorText = computed(() => invalid() && errorMessage() ? errorMessage()! : '')`.
+```ts
+// cdk: AegisInput expone el foco real (regla 4).
+readonly focused = signal(false);
+// host: { '(focus)': 'focused.set(true)', '(blur)': 'focused.set(false)' }
+
+// ui: valor en vivo (región alert, regla 2) vs. valor "comprometido"
+// (región describedby, reglas 1 y 4).
+protected readonly errorText = computed(() =>
+  this.invalid() && this.errorMessage() ? this.errorMessage()! : '',
+);
+protected readonly describedErrorText = signal('');
+private readonly syncDescribedErrorText = effect(() => {
+  const current = this.errorText();
+  if (!this.brain().focused()) {
+    this.describedErrorText.set(current);
+  }
+});
+```
 
 `errorId()` pasa de condicional a **siempre definido**
-(`${resolvedId()}-error`). El brain (`AegisInput`, `@aegisui/cdk`) no cambia:
-su composición de `aria-describedby` ya filtraba solo ids truthy.
+(`${resolvedId()}-error`). El brain (`AegisInput`, `@aegisui/cdk`) no cambia
+su composición de `aria-describedby` (ya filtraba solo ids truthy) — solo
+gana el signal `focused`.
 
-Aplicado al Button (`packages/ui/src/lib/button/button.component.ts`), regla 3
-únicamente (ya cumplía 1 y 2):
+Aplicado al Button (`packages/ui/src/lib/button/button.component.ts`), por
+ahora solo regla 3:
 
 ```html
 <span class="aegis-btn__sr" [id]="srId" aria-live="polite"
   >{{ brain.busy() ? loadingLabel() : '' }}</span
 >
 ```
+
+**Corrección sobre este mismo ADR:** una versión anterior de este documento
+afirmaba que el Button ya cumplía las reglas 1 y 2. Es falso — revisado el
+código: `srId` es **un único nodo** que es a la vez el objetivo de
+`aria-describedby` (`[attr.aria-describedby]="srId"` en el `<button>`) y la
+región `aria-live="polite"`. Es exactamente el patrón "un nodo, dos papeles"
+que causó el bug original del Input (regla 1), solo que aquí la relación
+`describedby` sí es estable desde el principio (no se crea en caliente), así
+que la manifestación sería distinta — pero el riesgo de doble anuncio con el
+botón ya enfocado (regla 4) no está descartado, solo sin probar. **Pendiente**
+de decidir si el Button necesita el mismo split en dos nodos + `focused`
+antes de dar el pase manual de Button por bueno — no se ha tocado su
+estructura de nodos en este ADR, solo la regla 3 (interpolación plana).
 
 El span vacío no debe dejar un hueco visual: en el Input, el margen va bajo
 `:not(:empty)` en CSS — verificado empíricamente que un nodo de texto con
@@ -154,15 +237,25 @@ Usado en `button.component.spec.ts` (región `.aegis-btn__sr`) y
 
 - **Patrón canónico de la librería para cualquier componente enfocable**
   (Switch, Select, Toast futuro, y el resto de la Fase 4 en adelante): las
-  tres reglas juntas, no dos. El siguiente componente enfocable debe
+  CUATRO reglas juntas, no menos. El siguiente componente enfocable debe
   **encontrar** este ADR y el raíl automático, no volver a descubrirlo con un
-  lector de pantalla.
-- Coste: un `<span>` oculto más por instancia, casi siempre vacío. Barato.
+  lector de pantalla — incluida la regla 4, la más fácil de pasar por alto
+  porque solo se manifiesta cuando el estado cambia **varias veces** con el
+  foco dentro.
+- Coste: un `<span>` oculto más por instancia (casi siempre vacío) y un
+  `effect()` en `ui` con su signal de foco en el brain. Barato, pero regla 4
+  es la más fácil de olvidar copiando el patrón sin leer el porqué.
 - El contrato del Input se actualiza: "`invalid=true` sin `errorMessage`: …
   sin entrada nueva en `aria-describedby`" pasa a "hay una entrada estable en
-  `aria-describedby`, vacía cuando no hay error" (mismo patrón `srId`).
-- El Button queda corregido en el mismo cambio (no como una tarea aparte):
-  mismo bug, mismo commit, mismo patrón.
+  `aria-describedby`, vacía cuando no hay error, congelada mientras el campo
+  tiene foco" (mismo patrón `srId`, más la regla 4).
+- El Button queda corregido de la regla 3 en el mismo cambio (no como una
+  tarea aparte). **No** queda corregido de las reglas 1/2/4: su `srId` sigue
+  siendo un único nodo con doble papel (`aria-describedby` + `aria-live`), el
+  mismo patrón que causó el bug original del Input. No se ha tocado su
+  estructura de nodos — es una decisión pendiente, a tomar cuando se haga el
+  pase manual de Button sobre este escenario concreto (estado que cambia con
+  el botón ya enfocado), no antes.
 - El agujero de **proceso**, no solo de código: el pase manual original del
   Button (Fase 3) certificó el patrón con un solo lector/navegador
   (VoiceOver+Safari) y ese resultado se tomó como "el patrón está bien" sin
@@ -172,8 +265,10 @@ Usado en `button.component.spec.ts` (región `.aegis-btn__sr`) y
   esta ADR reduce cuánto depende esa certificación de la suerte de qué lector
   se probó primero, para este tipo concreto de defecto.
 - Sigue habiendo un límite honesto: `axe` y el raíl automático no evalúan si
-  un lector de pantalla anuncia una vez, dos, o de forma coherente entre sí.
-  La verificación **manual** sigue siendo obligatoria antes de release (SPEC
-  §8.4/§8.5) para todo componente con anuncio dinámico — este ADR no la
-  sustituye, documenta el patrón que la hace pasar y cachea automáticamente
-  una clase de regresión conocida sobre ese patrón.
+  un lector de pantalla anuncia una vez, dos, o de forma coherente entre sí,
+  ni si el texto reanunciado está actualizado. La verificación **manual**
+  sigue siendo obligatoria antes de release (SPEC §8.4/§8.5) para todo
+  componente con anuncio dinámico — este ADR no la sustituye, documenta el
+  patrón que la hace pasar y cachea automáticamente una clase de regresión
+  conocida (regla 3) sobre ese patrón. Las reglas 1, 2 y 4 no tienen (todavía)
+  raíl automático — dependen enteramente del pase manual.

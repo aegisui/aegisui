@@ -3,8 +3,10 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  effect,
   input,
   model,
+  signal,
   viewChild,
 } from '@angular/core';
 import { AegisInput } from '@aegisui/cdk';
@@ -24,18 +26,29 @@ let nextId = 0;
  * §Accesibilidad, «el corazón de la a11y de un input»): el consumidor solo
  * aporta el *texto* de la etiqueta.
  *
- * El anuncio del error usa DOS nodos separados (ADR-019, patrón `srId` del
- * Button generalizado): el `<span id>` enlazado por `aria-describedby` está
- * SIEMPRE presente (vacío si no hay error) — la relación describedby nunca se
- * crea ni se destruye con el campo ya enfocado, solo cambia su texto — y un
- * `<span role="alert">` aparte, oculto y fuera de `aria-describedby`, cuyo
- * único trabajo es disparar el anuncio dinámico. Mezclar ambos papeles en un
- * solo nodo hacía que NVDA anunciara el error dos veces (una por la región
- * live, otra al releer la descripción cuya relación acababa de aparecer);
- * VoiceOver lo colapsaba, por eso no se veía en el primer pase manual.
+ * El anuncio del error usa DOS nodos separados (ADR-019): el `<span id>`
+ * enlazado por `aria-describedby` está SIEMPRE presente (vacío si no hay
+ * error) y un `<span role="alert">` aparte, oculto y fuera de
+ * `aria-describedby`, que dispara el anuncio dinámico. Ninguno usa `@if`
+ * alrededor del texto (regla 3: recrear el nodo dispara un anuncio doble).
+ *
+ * Regla 4 (ADR-019): el nodo de `aria-describedby` NUNCA muta mientras el
+ * campo tiene foco — solo se pone al día al perderlo (`brain.focused()`,
+ * `@aegisui/cdk`). NVDA relee la descripción del campo ENFOCADO cuando el
+ * nodo que ella referencia cambia de texto, aunque el atributo
+ * `aria-describedby` en sí no cambie — un segundo canal de anuncio, distinto
+ * de la recreación de nodo (regla 3) y del "un nodo, dos papeles" original.
+ * Verificado con `MutationObserver`: sacar el error de `aria-describedby`
+ * elimina el doble anuncio; de ahí que deba, en su lugar, dejar de mutar
+ * mientras hay foco (no desaparecer del todo, para no perder el reanuncio al
+ * reenfocar). Si el texto cambia varias veces con el campo ya enfocado (p.
+ * ej. una validación en vivo que corrige su propio mensaje), la región
+ * `alert` anuncia cada cambio; el nodo de `describedby` se pone al día una
+ * sola vez, al perder el foco, con el ÚLTIMO valor — nunca uno intermedio.
+ *
  * Verificación MANUAL con lector de pantalla obligatoria antes de release
- * (SPEC §8.5): NVDA debe anunciarlo una sola vez al aparecer, y seguir
- * reanunciándolo al reenfocar más tarde.
+ * (SPEC §8.5): NVDA y VoiceOver deben anunciarlo una sola vez al aparecer, y
+ * seguir reanunciando el mensaje ACTUALIZADO al reenfocar más tarde.
  */
 @Component({
   selector: 'aegis-input',
@@ -73,7 +86,7 @@ let nextId = 0;
     @if (helpText()) {
       <span class="aegis-input__help" [id]="helpId()">{{ helpText() }}</span>
     }
-    <span class="aegis-input__error" [id]="errorId()">{{ errorText() }}</span>
+    <span class="aegis-input__error" [id]="errorId()">{{ describedErrorText() }}</span>
     <span class="aegis-input__error-live" role="alert">{{ errorText() }}</span>
   `,
   styleUrl: './input.component.css',
@@ -136,11 +149,29 @@ export class AegisInputComponent {
     this.invalid() && this.errorMessage() ? this.errorMessage()! : '',
   );
 
+  private readonly brain = viewChild.required(AegisInput);
+
+  /**
+   * Texto que `aria-describedby` señala de verdad (ADR-019 regla 4). Se
+   * mantiene congelado mientras `brain().focused()` es `true` — si `errorText`
+   * cambia con el campo enfocado, este signal NO lo refleja todavía; lo hace
+   * en cuanto el campo pierde el foco (o de inmediato si nunca lo tuvo, p. ej.
+   * un campo que nace ya inválido). Así la región `describedby` nunca muta
+   * mientras el AT está leyendo el elemento enfocado (evita el segundo canal
+   * de anuncio), sin perder el reanuncio del texto ACTUALIZADO al reenfocar.
+   */
+  protected readonly describedErrorText = signal('');
+
+  private readonly syncDescribedErrorText = effect(() => {
+    const current = this.errorText();
+    if (!this.brain().focused()) {
+      this.describedErrorText.set(current);
+    }
+  });
+
   protected onInput(event: Event): void {
     this.value.set((event.target as HTMLInputElement).value);
   }
-
-  private readonly brain = viewChild.required(AegisInput);
 
   /**
    * Enfoca el campo real. Delega en el brain (`.focus()` real vive en

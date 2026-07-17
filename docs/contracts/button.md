@@ -258,15 +258,27 @@ No hay otras teclas: un botón no captura flechas, `Esc` ni `Home/End`.
   `aria-busy` por sí solo (WCAG 4.1.3 Mensajes de estado).
 - El nombre accesible **no cambia** al entrar en carga (el spinner es
   `aria-hidden="true"`): el botón sigue anunciándose por su etiqueta.
-- **Corrección (ADR-019):** el texto de la región se pone por interpolación
-  plana (`{{ brain.busy() ? loadingLabel() : '' }}`), nunca por `@if`
-  envolviendo la interpolación. La versión original sí usaba `@if`: recreaba
-  el nodo de texto (`childList`) en vez de mutarlo (`characterData`), y una
-  región `aria-live` que recrea su nodo dispara un anuncio doble en NVDA —
-  encontrado al generalizar este patrón para el Input, no en el pase manual
-  original del Button (que solo cubrió VoiceOver+Safari, donde el defecto no
-  se manifestaba). Pendiente de reverificar el anuncio con NVDA+Firefox y
-  VoiceOver+Safari sobre la arquitectura corregida.
+- **Corrección de la regla 3 (ADR-019):** el texto de la región se pone por
+  interpolación plana (`{{ brain.busy() ? loadingLabel() : '' }}`), nunca por
+  `@if` envolviendo la interpolación. La versión original sí usaba `@if`:
+  recreaba el nodo de texto (`childList`) en vez de mutarlo (`characterData`),
+  y una región `aria-live` que recrea su nodo dispara un anuncio doble en
+  NVDA — encontrado al generalizar este patrón para el Input, no en el pase
+  manual original del Button (que solo cubrió VoiceOver+Safari, donde el
+  defecto no se manifestaba). **Corregido y verificado** con
+  `MutationObserver`: la región solo produce `characterData`.
+- **Hueco abierto, reglas 1/2/4 (ADR-019) — sin corregir todavía:** `srId` es
+  un único `<span>` que es a la vez el objetivo de `aria-describedby`
+  (`[attr.aria-describedby]="srId"`) y la región `aria-live="polite"` —
+  exactamente el patrón "un nodo, dos papeles" que causó el bug original del
+  Input. La relación `describedby` del Button ya es estable desde el
+  principio (nunca se crea en caliente), así que no es idéntico al bug del
+  Input, pero el riesgo de doble anuncio con el botón ya enfocado (regla 4:
+  releer la descripción de un elemento enfocado cuya descripción cambió) no
+  está descartado — solo sin probar. **No se ha tocado la estructura de nodos
+  del Button.** Pendiente de decidir (con el pase manual de este escenario
+  concreto, no antes) si necesita el mismo split en dos nodos + señal de foco
+  que el Input.
 
 ### Target size (2.5.8)
 

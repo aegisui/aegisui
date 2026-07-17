@@ -210,6 +210,73 @@ describe('AegisInputComponent', () => {
     expect(alert?.textContent).toBe('');
   });
 
+  // --- ADR-019 regla 4: el nodo de aria-describedby se congela con el foco dentro ---
+  // Caso límite señalado por el usuario: si el error CAMBIA de texto varias veces
+  // mientras el campo sigue enfocado (validación en vivo que corrige su propio
+  // mensaje), el nodo de aria-describedby no debe quedarse con un valor intermedio
+  // obsoleto al perder el foco — debe reflejar el ÚLTIMO valor, nunca uno de paso.
+
+  it('el nodo de aria-describedby NO cambia mientras el campo tiene foco, y se actualiza con el valor MÁS RECIENTE al perder el foco', async () => {
+    const { host, flush, input } = await setup();
+    input().focus();
+    flush();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    host.invalid.set(true);
+    host.errorMessage.set('Email inválido');
+    flush();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    const errorId = input().getAttribute('aria-describedby')!;
+    expect(document.getElementById(errorId)?.textContent).toBe('');
+
+    // El error cambia de texto SIN salir del campo (validación en vivo).
+    host.errorMessage.set('Ya está registrado');
+    flush();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(document.getElementById(errorId)?.textContent).toBe('');
+
+    input().blur();
+    flush();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    // Al perder el foco, el nodo se pone al día con el ÚLTIMO valor, no con
+    // "Email inválido" (el primero que apareció mientras estaba enfocado).
+    expect(document.getElementById(errorId)?.textContent).toBe('Ya está registrado');
+  });
+
+  it('si el campo nunca tuvo foco, el nodo de aria-describedby se puebla de inmediato (sin esperar a un blur)', async () => {
+    const { host, flush, input } = await setup();
+    host.invalid.set(true);
+    host.errorMessage.set('Formato inválido');
+    flush();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    const errorId = input().getAttribute('aria-describedby')!;
+    expect(document.getElementById(errorId)?.textContent).toBe('Formato inválido');
+  });
+
+  it('la región role="alert" anuncia CADA cambio en vivo aunque el nodo de aria-describedby permanezca congelado', async () => {
+    const { host, flush, input, container } = await setup();
+    input().focus();
+    flush();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    host.invalid.set(true);
+    host.errorMessage.set('Email inválido');
+    flush();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(container.querySelector('[role="alert"]')?.textContent).toBe('Email inválido');
+
+    host.errorMessage.set('Ya está registrado');
+    flush();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(container.querySelector('[role="alert"]')?.textContent).toBe('Ya está registrado');
+
+    const errorId = input().getAttribute('aria-describedby')!;
+    expect(document.getElementById(errorId)?.textContent).toBe('');
+  });
+
   it('[AC15] size por defecto es md; cada valor aplica su escala', async () => {
     const { host, flush, input } = await setup();
     expect(input()).toHaveClass('aegis-input--md');

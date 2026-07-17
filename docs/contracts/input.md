@@ -297,7 +297,7 @@ propósito (ninguna tecla gestionada explícitamente por el componente).
 
 ### Anuncios a lector de pantalla
 
-- **Dos nodos, tres reglas (ADR-019).** El mensaje de error vive en DOS
+- **Dos nodos, cuatro reglas (ADR-019).** El mensaje de error vive en DOS
   `<span>` separados:
   1. Uno enlazado por `aria-describedby` (siempre presente, vacío si no hay
      error) — descripción bajo demanda, sin `role="alert"` ni `aria-live`.
@@ -311,32 +311,57 @@ propósito (ninguna tecla gestionada explícitamente por el componente).
      texto (mutación `childList`) en vez de mutar su valor (`characterData`),
      y una región `role="alert"` que recrea su nodo dispara un anuncio doble
      en NVDA aunque el `<span>` contenedor ya sea permanente.
+  4. **El nodo 1 (`aria-describedby`) no muta mientras el campo tiene foco.**
+     Se actualiza a partir del valor en vivo solo cuando el campo pierde el
+     foco (`brain.focused()`, `@aegisui/cdk`) — y toma el valor **más
+     reciente** en ese momento, nunca uno intermedio si el error cambió de
+     texto varias veces sin que el foco saliera nunca (validación en vivo que
+     corrige su propio mensaje). El nodo 2 (`role="alert"`) sigue reflejando
+     el valor en vivo siempre, sin esta restricción.
 
-  La primera versión de este componente usaba un solo nodo con los dos
-  primeros papeles a la vez: el pase manual (NVDA+Firefox) encontró un
-  **doble anuncio** con el campo ya enfocado (una vez por la región `alert`,
-  otra al releer la descripción cuya relación acababa de crearse) —
-  VoiceOver+Safari lo colapsaba, por eso no se detectó ahí. Al separar los
-  nodos y estabilizar `aria-describedby` (reglas 1-2) pero dejar el texto
-  envuelto en `@if`, NVDA pasó a anunciar **dos veces seguidas e idénticas**:
-  la separación había resuelto las dos causas originales pero dejaba una
-  tercera — confirmada con `MutationObserver` sobre DOM real (`childList` en
-  el nodo `role="alert"`, no `characterData`). La regla 3 la resuelve.
-  Detalle completo, con las capturas de mutaciones, en ADR-019.
+  Historial de los tres pases manuales que llevaron a estas cuatro reglas
+  (ninguno se hereda del anterior — cada arquitectura invalidó el resultado
+  previo):
+  1. **Un solo nodo** con los papeles de descripción y anuncio a la vez:
+     VoiceOver+Safari anunciaba una vez; NVDA+Firefox **dos** (región `alert`
+     + relectura de la descripción cuya relación acababa de crearse).
+  2. **Dos nodos + `describedby` estable** (reglas 1-2), pero el texto seguía
+     envuelto en `@if`: NVDA pasó a anunciar **dos veces seguidas e
+     idénticas** — la separación había resuelto las dos causas originales
+     pero dejaba una tercera. Confirmado con `MutationObserver`: `childList`
+     en el nodo `role="alert"`, no `characterData`. Regla 3.
+  3. **+ interpolación plana** (regla 3), pero NVDA **seguía** duplicando.
+     Diagnóstico: el atributo `aria-describedby` no cambiaba de valor, pero
+     el nodo al que apunta sí mutaba su texto con el campo enfocado — un
+     cuarto canal de re-anuncio, independiente de `role="alert"` y de si la
+     relación cambió. Confirmado quitando temporalmente el error de
+     `aria-describedby`: el duplicado desapareció. Congelar sin más ese nodo
+     mientras hay foco casi introduce un defecto peor (mensaje obsoleto si el
+     error cambia varias veces sin soltar el foco) — resuelto tomando siempre
+     el valor **más reciente** al perder el foco, nunca el primero visto.
+     Regla 4, verificada con `MutationObserver` en Chromium real (foco por
+     teclado genuino, no simulado): el nodo de `describedby` no muta ninguna
+     vez mientras el campo está enfocado, y muta una sola vez al perder el
+     foco, con el último valor.
 
   Es el mismo tipo de punto frágil que el `aria-live` del `loading` del Button
   (SPEC §8.5: axe no lo detecta) — y el Button tenía exactamente el mismo
   defecto de la regla 3 (su `.aegis-btn__sr` también envolvía el texto en
-  `@if`), sin corregir hasta que este ADR lo generalizó: su pase manual
-  original solo cubrió VoiceOver+Safari, donde no se manifestaba.
+  `@if`), corregido al generalizar este patrón. El Button **no** está
+  corregido de las reglas 1/2/4: su `srId` sigue siendo un único nodo con
+  doble papel, sin verificar contra este escenario exacto (ver
+  `docs/contracts/button.md`).
+
   **Verificación manual con lector de pantalla obligatoria antes de
   release** (NVDA+Firefox, VoiceOver+Safari) — comprobar que el mensaje se
   anuncia **una sola vez** tanto al enfocar el campo por primera vez como al
-  aparecer mientras ya está enfocado, y que se sigue anunciando al reenfocar
-  más tarde. Un raíl automático (`expectLiveRegionMutatesInPlace`,
+  aparecer mientras ya está enfocado, que se sigue anunciando (con el texto
+  ACTUALIZADO, aunque haya cambiado varias veces) al reenfocar más tarde. Un
+  raíl automático (`expectLiveRegionMutatesInPlace`,
   `packages/ui/src/testing/live-region.ts`) caza la regresión de la regla 3
-  con `MutationObserver` en cada test run, pero no sustituye el pase manual:
-  prueba la estructura, no si el anuncio suena bien en un lector real.
+  con `MutationObserver` en cada test run; las reglas 1, 2 y 4 no tienen raíl
+  automático (dependen enteramente del pase manual). Ninguno sustituye
+  escuchar el resultado real.
 - `helpText` (persistente, no ligado a un evento) **no** cambia: sigue
   condicional, sin `role="alert"` ni `aria-live` — no tiene el problema de
   re-anuncio (no hay una región live de por medio) y no hay motivo para
@@ -499,11 +524,21 @@ resultado previo se hereda** hasta reverificar sobre el código actual:
 - [ ] NVDA+Firefox, dos nodos + `@if` alrededor del texto: **doble anuncio
       seguido e idéntico** — una sola causa (recreación de nodo, `childList`),
       confirmada con `MutationObserver` — ADR-019 regla 3.
-- [ ] **Pendiente de verificar** — dos nodos + interpolación plana (sin
-      `@if`), arquitectura actual: NVDA y VoiceOver deben anunciarlo **una
-      sola vez** al aparecer, y seguir reanunciándolo al reenfocar más tarde.
-      Los dos lectores, no uno — el motivo de todo este historial es que un
-      pase con un solo lector no certifica el patrón.
+- [x] NVDA+Firefox, dos nodos + interpolación plana (sin `@if`): **seguía
+      duplicando**. Diagnóstico con `MutationObserver` + prueba de quitar el
+      error de `aria-describedby` confirmó una cuarta causa (relectura de la
+      descripción de un elemento enfocado cuyo nodo referenciado mutó) —
+      ADR-019 regla 4.
+- [ ] **Pendiente de verificar** — arquitectura actual (cuatro reglas: nodo
+      estable + nodo separado + interpolación plana + congelado con foco).
+      Verificado automáticamente con `MutationObserver` en Chromium real (foco
+      por teclado genuino) que la ESTRUCTURA es correcta: el nodo de
+      `describedby` no muta con el foco dentro y se actualiza al valor más
+      reciente al perderlo. Falta el oído: NVDA y VoiceOver deben anunciarlo
+      **una sola vez** al aparecer (incluso si el texto cambia varias veces
+      sin soltar el foco), y seguir reanunciando el mensaje ACTUALIZADO al
+      reenfocar más tarde. Los dos lectores, no uno — el motivo de todo este
+      historial es que un pase con un solo lector no certifica el patrón.
 
 ## Fuera de alcance
 

@@ -58,6 +58,26 @@ import { AegisInputComponent } from '@aegisui/ui';
           Estado: {{ liveInvalid() ? 'error disparado' : 'a la espera de foco' }}
         </p>
       </div>
+
+      <div class="case">
+        <h3>4 · El error CAMBIA de texto sin salir del campo (ADR-019 regla 4)</h3>
+        <p class="hint">
+          Enfoca el campo y NO toques nada más durante ~4s. A los 2s aparece «Email inválido»; a los
+          4s cambia a «Ya está registrado», sin mover el foco en ningún momento. Escucha: ¿se
+          anuncia cada cambio una sola vez? Y sobre todo — sal del campo (Tab) y vuelve a entrar
+          (Shift+Tab): ¿anuncia el mensaje ACTUALIZADO («Ya está registrado»), o el primero que
+          apareció?
+        </p>
+        <div (focusin)="onFocusInMulti()">
+          <aegis-input
+            label="Correo (dos cambios en vivo)"
+            value="alguien@ejemplo.com"
+            [invalid]="multiInvalid()"
+            [errorMessage]="multiError()"
+          />
+        </div>
+        <p class="hint" aria-live="off">Estado: {{ multiError() ?? 'a la espera de foco' }}</p>
+      </div>
     </div>
   `,
 })
@@ -75,5 +95,23 @@ export class InputA11yManualComponent {
       this.liveInvalid.set(true);
       this.liveError.set('Este correo ya está registrado.');
     }, 2000);
+  }
+
+  protected readonly multiInvalid = signal(false);
+  protected readonly multiError = signal<string | undefined>(undefined);
+  private triggeredMulti = false;
+
+  protected onFocusInMulti(): void {
+    if (this.triggeredMulti) {
+      return;
+    }
+    this.triggeredMulti = true;
+    setTimeout(() => {
+      this.multiInvalid.set(true);
+      this.multiError.set('Email inválido.');
+    }, 2000);
+    setTimeout(() => {
+      this.multiError.set('Ya está registrado.');
+    }, 4000);
   }
 }
