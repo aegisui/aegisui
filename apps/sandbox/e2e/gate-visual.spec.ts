@@ -129,4 +129,31 @@ for (const theme of ['light', 'dark'] as const) {
     });
     expect(styles).toMatchSnapshot(`card-styles-${theme}.txt`);
   });
+
+  test(`visual · Badge real · ${theme}`, async ({ page }) => {
+    await applyTheme(page, theme);
+    const styles = await page.evaluate(() => {
+      const props = [
+        'color',
+        'background-color',
+        'border-top-color',
+        'border-top-left-radius',
+        'font-size',
+        'font-weight',
+        'padding-inline-start',
+        'padding-block-start',
+      ] as const;
+      const scope = document.querySelector('[aria-label="Galería del Badge"]') ?? document;
+      return [...scope.querySelectorAll('[data-cell]')]
+        .map((el) => {
+          const cs = getComputedStyle(el);
+          const cell = el.getAttribute('data-cell') ?? '?';
+          const line = props.map((p) => `${p}=${cs.getPropertyValue(p)}`).join(' · ');
+          return `${cell}: ${line}`;
+        })
+        .sort()
+        .join('\n');
+    });
+    expect(styles).toMatchSnapshot(`badge-styles-${theme}.txt`);
+  });
 }

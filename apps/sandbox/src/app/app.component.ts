@@ -15,6 +15,7 @@ import { InputGalleryComponent } from './input-gallery.component';
 import { InputA11yManualComponent } from './input-a11y-manual.component';
 import { SwitchGalleryComponent } from './switch-gallery.component';
 import { CardGalleryComponent } from './card-gallery.component';
+import { BadgeGalleryComponent } from './badge-gallery.component';
 
 type Theme = 'light' | 'dark';
 
@@ -50,6 +51,7 @@ interface Preset {
     InputA11yManualComponent,
     SwitchGalleryComponent,
     CardGalleryComponent,
+    BadgeGalleryComponent,
   ],
   styleUrl: './app.component.css',
   template: `
@@ -209,6 +211,16 @@ interface Preset {
           verificar que el anillo de foco no queda recortado (2.4.11).
         </p>
         <aegis-card-gallery />
+      </section>
+
+      <section class="panel" aria-labelledby="badge-title">
+        <h2 id="badge-title">Badge (Fase 4)</h2>
+        <p class="muted">
+          Quinto y último componente del set mínimo. Las cinco variantes son tinte + texto oscuro,
+          nunca sólido con texto blanco (ADR-014/015). Cada una lleva texto distinto a propósito: el
+          color refuerza, no comunica solo (1.4.1).
+        </p>
+        <aegis-badge-gallery />
       </section>
     </main>
   `,

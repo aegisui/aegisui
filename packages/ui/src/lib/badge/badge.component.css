@@ -1,0 +1,101 @@
+/*
+ * Capa 3 del Badge (LOCAL al componente, ADR-016). Dos rieles:
+ *   - COLOR      -> capa 2 (--aegis-color-*), que ya resuelve el tema por sí sola.
+ *   - ESTRUCTURA -> capa 1 (--aegis-space/radius/font/border-width).
+ * Cero literales: cualquier valor es var(--aegis-*). El tema no se decide aquí.
+ *
+ * TODAS LAS VARIANTES SON TINTE + TEXTO OSCURO. Nunca sólido saturado con texto
+ * blanco (ADR-014/015). Un badge es ESTADO, no acción:
+ *
+ *   - `danger`  -> state.danger.*     NUNCA destructive.* (esa es la acción que
+ *                                     borra; un badge solo DESCRIBE un estado).
+ *   - `accent`  -> accent.bg/text     NUNCA accent.solid/on-solid (ese es el par
+ *                                     del botón primario; un badge no debe
+ *                                     parecer un botón).
+ *   - success/warning -> state.*.{bg,text,border}
+ *
+ * Para success/warning/danger el error ni siquiera es expresable: no existe un
+ * `state.*.solid` (ADR-014 lo previene por AUSENCIA de token). Este componente es
+ * la primera confirmación de que ese raíl estructural funciona — al escribirlo,
+ * la opción incorrecta no estaba disponible.
+ *
+ * EL BORDE ES DECORATIVO (ADR-018): los `state.*.border` no llegan a 3:1 contra
+ * el lienzo, y no tienen por qué. El Badge no es un control; su señal visual es
+ * el TINTE y su contenido es el TEXTO. Compárese con el Switch, donde la pista
+ * apagada SÍ exige borde a 3:1 con el mismo tipo de relleno: 1.4.11 pregunta por
+ * la FUNCIÓN, no por el color.
+ *
+ * `:host(...)` para las variantes, no `.aegis-badge--x` a secas: la clase vive en
+ * el host y un selector suelto se scopea al template (lección de la Card).
+ */
+
+:host {
+  display: inline-flex;
+  align-items: center;
+  box-sizing: border-box;
+  padding-inline: var(--aegis-badge-padding-inline);
+  padding-block: var(--aegis-badge-padding-block);
+  border: var(--aegis-badge-border-width) solid var(--aegis-badge-border-color);
+  border-radius: var(--aegis-badge-radius);
+  font-size: var(--aegis-badge-font-size);
+  font-weight: var(--aegis-badge-font-weight);
+  line-height: var(--aegis-badge-line-height);
+  color: var(--aegis-badge-fg);
+  background: var(--aegis-badge-bg);
+
+  /* --- Estructura (riel capa 1) --- */
+  --aegis-badge-border-width: var(--aegis-border-width-hairline);
+  --aegis-badge-radius: var(--aegis-radius-sm);
+  --aegis-badge-padding-inline: var(--aegis-space-3);
+  --aegis-badge-padding-block: var(--aegis-space-1);
+  --aegis-badge-font-size: var(--aegis-font-size-sm);
+  --aegis-badge-font-weight: var(--aegis-font-weight-medium);
+  --aegis-badge-line-height: var(--aegis-font-leading-tight);
+
+  /* --- Color (riel capa 2): neutral por defecto --- */
+  --aegis-badge-bg: var(--aegis-color-surface-sunken);
+  --aegis-badge-fg: var(--aegis-color-text-strong);
+  --aegis-badge-border-color: var(--aegis-color-border-separator);
+}
+
+/* --- Variantes (tinte + texto oscuro; ver cabecera) --- */
+:host(.aegis-badge--neutral) {
+  --aegis-badge-bg: var(--aegis-color-surface-sunken);
+  --aegis-badge-fg: var(--aegis-color-text-strong);
+  --aegis-badge-border-color: var(--aegis-color-border-separator);
+}
+
+:host(.aegis-badge--accent) {
+  --aegis-badge-bg: var(--aegis-color-accent-bg);
+  --aegis-badge-fg: var(--aegis-color-accent-text);
+  --aegis-badge-border-color: var(--aegis-color-accent-bg);
+}
+
+:host(.aegis-badge--success) {
+  --aegis-badge-bg: var(--aegis-color-state-success-bg);
+  --aegis-badge-fg: var(--aegis-color-state-success-text);
+  --aegis-badge-border-color: var(--aegis-color-state-success-border);
+}
+
+:host(.aegis-badge--warning) {
+  --aegis-badge-bg: var(--aegis-color-state-warning-bg);
+  --aegis-badge-fg: var(--aegis-color-state-warning-text);
+  --aegis-badge-border-color: var(--aegis-color-state-warning-border);
+}
+
+:host(.aegis-badge--danger) {
+  --aegis-badge-bg: var(--aegis-color-state-danger-bg);
+  --aegis-badge-fg: var(--aegis-color-state-danger-text);
+  --aegis-badge-border-color: var(--aegis-color-state-danger-border);
+}
+
+/* --- Tamaños --- */
+:host(.aegis-badge--sm) {
+  --aegis-badge-padding-inline: var(--aegis-space-2);
+  --aegis-badge-font-size: var(--aegis-font-size-xs);
+}
+
+:host(.aegis-badge--md) {
+  --aegis-badge-padding-inline: var(--aegis-space-3);
+  --aegis-badge-font-size: var(--aegis-font-size-sm);
+}
