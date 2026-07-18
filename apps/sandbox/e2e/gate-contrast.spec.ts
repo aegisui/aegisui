@@ -4,6 +4,7 @@ import { applyTheme, readCells } from './lib/gallery';
 import { readInputCells } from './lib/input-gallery';
 import { readSwitchCells } from './lib/switch-gallery';
 import { readCardCells, probeFocusRingClipping } from './lib/card-gallery';
+import { readBadgeCells } from './lib/badge-gallery';
 
 /**
  * Gate `contrast` sobre el Button REAL (§9.2, WCAG 1.4.3), fuente de verdad =
@@ -134,5 +135,34 @@ for (const theme of ['light', 'dark'] as const) {
     await applyTheme(page, theme);
     const probe = await probeFocusRingClipping(page);
     expect(probe.ringVisible, `overflow de la Card = ${probe.overflow}`).toBe(true);
+  });
+
+  // Umbral de TEXTO (4.5:1), no de UI (3:1): font-size-xs/sm están por debajo
+  // del umbral de "texto grande", así que 3:1 sería el error fácil aquí. El
+  // borde NO se verifica: es decorativo (ADR-018).
+  test(`contrast · Badge real · ${theme}`, async ({ page }) => {
+    await applyTheme(page, theme);
+    const cells = await readBadgeCells(page);
+    expect(cells.length).toBeGreaterThan(0);
+    // Anti-verde-falso: las 5 variantes tienen que estar representadas.
+    expect(new Set(cells.map((c) => c.variant)).size).toBe(5);
+
+    for (const c of cells) {
+      const ratio = contrastRatio(c.color, c.bg);
+      expect(
+        ratio,
+        `${c.cell} [${theme}] texto ${c.color} sobre tinte ${c.bg} = ${ratio.toFixed(2)}:1`,
+      ).toBeGreaterThanOrEqual(4.5);
+    }
+
+    // Guarda anti-verde-falso: las variantes tienen que producir tintes
+    // DISTINTOS. Si los selectores dejaran de casar con el host (el bug de la
+    // Card), las cinco renderizarían idénticas y el contraste seguiría pasando.
+    const tintes = new Set(cells.map((c) => c.bg));
+    expect(tintes.size, `tintes distintos: ${[...tintes].join(' | ')}`).toBe(5);
+
+    // Y 1.4.1: el texto tiene que distinguir por sí solo, no solo el color.
+    const textos = new Set(cells.map((c) => c.text));
+    expect(textos.size, `textos distintos: ${[...textos].join(' | ')}`).toBeGreaterThan(1);
   });
 }

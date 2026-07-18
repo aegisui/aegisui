@@ -1,7 +1,5 @@
 # Contrato: Badge
 
-**Estado:** implementación pendiente
-
 > Quinto y último del set mínimo de la landing. El **más simple de los cinco**:
 > texto estilado, sin interacción, sin foco, sin teclado, sin estado. Su
 > superficie de riesgo no está en el comportamiento sino en el **color**: es el
