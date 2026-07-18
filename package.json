@@ -21,7 +21,9 @@
     "contracts": "node scripts/check-contracts.mjs",
     "size": "size-limit",
     "storybook": "storybook dev -p 6006",
-    "storybook:build": "storybook build -o dist/storybook"
+    "storybook:build": "storybook build -o dist/storybook",
+    "assemble-dist": "node scripts/assemble-dist.mjs",
+    "publish-smoke": "node scripts/assemble-dist.mjs && node scripts/publish-smoke.mjs"
   },
   "devDependencies": {
     "@aegisui/generators": "workspace:*",

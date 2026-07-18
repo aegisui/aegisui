@@ -115,6 +115,34 @@ Lo que queda documentado, y es la parte que ningún ruleset arregla: **mergear u
 PR apilado sigue siendo una decisión humana**. La regla de proceso es mirar los
 checks del PR apilado, no solo los de la base.
 
+## Nota posterior: apilar tiene un coste de CICLO DE VIDA, no solo de CI
+
+Este ADR arregló que un PR apilado **reciba** sus checks. Al mergear el set
+mínimo (Switch → Card → Badge) apareció el otro filo del mismo cuchillo, que
+este ADR no cubría:
+
+**Al mergear el PR de abajo y borrar su rama, GitHub CIERRA automáticamente el
+PR de arriba** (su base deja de existir). Y un PR así **no se puede reabrir ni
+reapuntar**:
+
+```
+GraphQL: Could not open the pull request. (reopenPullRequest)
+GraphQL: Cannot change the base branch of a closed pull request. (updatePullRequest)
+```
+
+Pasó con el PR de la Card (#21): hubo que abrir uno nuevo (#23) con el mismo
+contenido. Con el del Badge (#22) se evitó **reapuntándolo a `main` antes** de
+mergear la Card, mientras seguía abierto.
+
+**Regla de proceso:** al mergear una pila, **reapuntar el PR de arriba a `main`
+ANTES de mergear el de abajo**, nunca después. El orden importa: reapuntar es
+gratis mientras el PR está abierto e imposible en cuanto se cierra.
+
+Segundo efecto, menor pero seguro: tras un merge por **squash**, la rama de
+arriba arrastra los commits originales del de abajo, que ya están en `main`
+comprimidos y conflictúan consigo mismos. Se replaya solo lo propio con
+`git rebase --onto main <tip-antiguo-de-la-base> <rama>`.
+
 ## Consecuencias
 
 - Ningún PR de este repo puede volver a quedarse sin checks por su rama base.

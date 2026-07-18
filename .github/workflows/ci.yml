@@ -94,6 +94,21 @@ jobs:
       - run: pnpm nx run-many -t build
       - run: pnpm peer-floor
 
+  # `publish-smoke` verifica los ARTEFACTOS desde un consumidor externo real
+  # (issue #19): empaqueta, instala con npm en un proyecto FUERA del monorepo,
+  # ejecuta `aegisui add button` y typechequea los 5 componentes. Es la única
+  # forma válida de comprobarlo: dentro del repo, el fallback del CLI siempre
+  # salva la papeleta y pnpm siempre resuelve `workspace:` — por eso los cinco
+  # componentes reportaban "CLI ✓" con ADR-003 roto.
+  publish-smoke:
+    name: publish-smoke
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - run: pnpm nx run-many -t build
+      - run: pnpm publish-smoke
+
   # `contracts` corre la reconciliación contrato<->componente sobre los fixtures
   # (dos direcciones) y, "además de", sobre packages/ui cuando existan (Fase 3).
   contracts:
