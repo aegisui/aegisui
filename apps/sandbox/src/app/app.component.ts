@@ -16,6 +16,7 @@ import { InputA11yManualComponent } from './input-a11y-manual.component';
 import { SwitchGalleryComponent } from './switch-gallery.component';
 import { CardGalleryComponent } from './card-gallery.component';
 import { BadgeGalleryComponent } from './badge-gallery.component';
+import { ComposicionBenchComponent } from './composicion-bench.component';
 
 type Theme = 'light' | 'dark';
 
@@ -52,6 +53,7 @@ interface Preset {
     SwitchGalleryComponent,
     CardGalleryComponent,
     BadgeGalleryComponent,
+    ComposicionBenchComponent,
   ],
   styleUrl: './app.component.css',
   template: `
@@ -221,6 +223,18 @@ interface Preset {
           color refuerza, no comunica solo (1.4.1).
         </p>
         <aegis-badge-gallery />
+      </section>
+
+      <section class="panel" aria-labelledby="composicion-title">
+        <h2 id="composicion-title">Banco de composición — pase manual de cierre</h2>
+        <p class="muted">
+          Los cinco componentes del set mínimo en un formulario realista. Las galerías verifican
+          cada componente en aislamiento; esto verifica lo que ninguna puede: el recorrido de foco a
+          través de los cinco, el anillo de foco dentro de una Card (2.4.11), el contraste sobre
+          <code>surface.raised</code> en vez de <code>canvas</code>, y quién anuncia y quién no
+          (ADR-019). Guion del pase en <code>docs/pase-manual-set-minimo.md</code>.
+        </p>
+        <aegis-composicion-bench />
       </section>
     </main>
   `,
