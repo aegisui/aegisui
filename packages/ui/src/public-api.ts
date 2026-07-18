@@ -10,3 +10,4 @@ export const AEGIS_UI_VERSION = '0.1.0';
 export * from './lib/button/button.component';
 export * from './lib/input/input.component';
 export * from './lib/switch/switch.component';
+export * from './lib/card/card.component';

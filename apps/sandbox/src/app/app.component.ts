@@ -14,6 +14,7 @@ import { ButtonA11yManualComponent } from './button-a11y-manual.component';
 import { InputGalleryComponent } from './input-gallery.component';
 import { InputA11yManualComponent } from './input-a11y-manual.component';
 import { SwitchGalleryComponent } from './switch-gallery.component';
+import { CardGalleryComponent } from './card-gallery.component';
 
 type Theme = 'light' | 'dark';
 
@@ -48,6 +49,7 @@ interface Preset {
     InputGalleryComponent,
     InputA11yManualComponent,
     SwitchGalleryComponent,
+    CardGalleryComponent,
   ],
   styleUrl: './app.component.css',
   template: `
@@ -197,6 +199,16 @@ interface Preset {
           <code>contrast</code> mida el pulgar contra su pista en los dos estados.
         </p>
         <aegis-switch-gallery />
+      </section>
+
+      <section class="panel" aria-labelledby="card-title">
+        <h2 id="card-title">Card (Fase 4)</h2>
+        <p class="muted">
+          Cuarto componente del set mínimo. Contenedor sin rol ARIA, sin foco y sin estados: la
+          semántica la aporta el consumidor. La última celda proyecta un botón en la esquina para
+          verificar que el anillo de foco no queda recortado (2.4.11).
+        </p>
+        <aegis-card-gallery />
       </section>
     </main>
   `,

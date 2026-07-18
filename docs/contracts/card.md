@@ -1,7 +1,5 @@
 # Contrato: Card
 
-**Estado:** implementación pendiente
-
 > Cuarto del set mínimo de la landing. Es el componente **más simple de los
 > cinco en accesibilidad**: no tiene rol, ni estado, ni teclado, ni foco. Su
 > contrato es corto **a propósito** — inflarlo con secciones ceremoniales de
