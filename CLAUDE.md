@@ -20,6 +20,8 @@ Node ≥ 22.22.3 (ver `.nvmrc`) y pnpm vía corepack (versión pineada en `packa
 | Typecheck (`tsc --noEmit`, strict) | `pnpm typecheck` |
 | peer-floor (minVersion del artefacto ≤ 20) | `pnpm peer-floor` (requiere build antes) |
 | Tamaño (size-limit) | `pnpm size` (requiere build antes) |
+| Ensamblar el artefacto publicable | `pnpm assemble-dist` (requiere build antes) |
+| Smoke de publicación (consumidor EXTERNO) | `pnpm publish-smoke` (requiere build antes; ADR-022) |
 | e2e / Playwright (vs sandbox) | `pnpm nx run sandbox:e2e` |
 | Storybook (dev) | `pnpm nx run tokens:build && pnpm storybook` |
 | Storybook (build estático) | `pnpm nx run tokens:build && pnpm storybook:build` |
@@ -49,6 +51,7 @@ Node ≥ 22.22.3 (ver `.nvmrc`) y pnpm vía corepack (versión pineada en `packa
 - `tools/fixtures/{good,bad,bad-tokens}` → **test de regresión permanente de los raíles**: demuestran que cada gate pasa sobre `good/` y falla sobre `bad/` (ADR-009, ADR-013). Incluye los `fixture-*.rendered.{light,dark}.html` (objetivo de los gates DOM) y el `## Teclado` del contrato (objetivo de `keyboard`).
 - `scripts/gates/` → los 6 gates DOM de §9.2 (analizadores propios, cero deps) + `run.mjs` (las dos direcciones; es el comando de cada job de CI). ADR-013.
 - `scripts/check-peer-floor.mjs` → gate `peer-floor`.
+- `scripts/assemble-dist.mjs` → ensambla el artefacto publicable (fuente incluida por ADR-001, manifiestos de `cli`/`icons`, `workspace:` resuelto a rango real). `scripts/publish-smoke.mjs` → lo verifica desde un proyecto **fuera del monorepo** con npm (ADR-022): dentro del repo el fallback del CLI hace verde un ADR-003 roto.
 - `scripts/check-contracts.mjs` → reconciliación contrato↔componente (la usa el gate `contracts` sobre fixtures y sobre `packages/ui` en Fase 3).
 - `docs/{SPEC,CONTRIBUTING}.md`, `docs/adr/`, `docs/contracts/` (uno por componente).
 - `.github/workflows/ci.yml` → gates de §9.2. `.changeset/` → versionado.
