@@ -1,5 +1,6 @@
-import type { Meta, StoryObj } from '@storybook/angular-vite';
-import { moduleMetadata } from '@storybook/angular';
+// `moduleMetadata` sale de `@storybook/angular-vite`, NUNCA de `@storybook/angular`:
+// esa segunda es la vía webpack deprecada y no está instalada (ADR-017).
+import { moduleMetadata, type Meta, type StoryObj } from '@storybook/angular-vite';
 import { AegisCardComponent } from './card.component';
 import { AegisButtonComponent } from '../button/button.component';
 
