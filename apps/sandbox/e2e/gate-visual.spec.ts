@@ -26,7 +26,8 @@ for (const theme of ['light', 'dark'] as const) {
         'padding-inline-start',
         'padding-block-start',
       ] as const;
-      return [...document.querySelectorAll('[data-cell]')]
+      const scope = document.querySelector('[aria-label="Galería del Button"]') ?? document;
+      return [...scope.querySelectorAll('[data-cell]')]
         .map((el) => {
           const btn = (el.tagName === 'BUTTON' ? el : el.querySelector('button')) as HTMLElement;
           const cs = getComputedStyle(btn);
@@ -38,5 +39,34 @@ for (const theme of ['light', 'dark'] as const) {
         .join('\n');
     });
     expect(styles).toMatchSnapshot(`button-styles-${theme}.txt`);
+  });
+
+  test(`visual · Input real · ${theme}`, async ({ page }) => {
+    await applyTheme(page, theme);
+    const styles = await page.evaluate(() => {
+      const props = [
+        'color',
+        'background-color',
+        'border-top-color',
+        'border-top-width',
+        'border-top-left-radius',
+        'font-size',
+        'min-block-size',
+        'padding-inline-start',
+        'padding-block-start',
+      ] as const;
+      const scope = document.querySelector('[aria-label="Galería del Input"]') ?? document;
+      return [...scope.querySelectorAll('[data-cell]')]
+        .map((el) => {
+          const field = (el.tagName === 'INPUT' ? el : el.querySelector('input')) as HTMLElement;
+          const cs = getComputedStyle(field);
+          const cell = el.getAttribute('data-cell') ?? '?';
+          const line = props.map((p) => `${p}=${cs.getPropertyValue(p)}`).join(' · ');
+          return `${cell}: ${line}`;
+        })
+        .sort()
+        .join('\n');
+    });
+    expect(styles).toMatchSnapshot(`input-styles-${theme}.txt`);
   });
 }

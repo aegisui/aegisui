@@ -21,14 +21,19 @@ let nextSrId = 0;
  * teclado, foco y supresión de activación vive en el brain (`aegisButton`); aquí
  * solo se pinta con tokens de capa 3 `--aegis-btn-*` (definidos en el CSS, dos
  * rieles: color→capa 2, estructura→capa 1; ADR-016) y se compone el spinner, la
- * etiqueta proyectada y la región `aria-live` de carga.
+ * etiqueta proyectada y el texto de estado de carga.
  *
- * La región `aria-live` es HERMANA del `<button>`, no anidada dentro (vinculada
- * por `aria-describedby`). Confirmado por prueba manual (VoiceOver+Safari): una
- * región `aria-live` anidada en un control con nombre-por-contenido no se anuncia
- * de forma fiable — el motor de accesibilidad la trata como parte del cálculo del
- * nombre accesible del botón, no como una región live independiente, y el cambio
- * pasa en silencio. Sacarla como hermano es lo que la hace audible.
+ * El estado de carga se anuncia con un `<span>` hermano con **`aria-live="polite"`,
+ * SIN `aria-describedby` en el `<button>`** (ADR-019, Regla 2: notificación
+ * transitoria de estado → solo aria-live). Su texto se interpola plano (muta in
+ * situ, no recrea el nodo). VoiceOver NO reanuncía `aria-describedby` cuando cambia
+ * el nodo descrito en caliente — `aria-live` es el único canal que VoiceOver honra
+ * para notificaciones live. Si el span estuviera también en `aria-describedby`, NVDA
+ * recibiría el anuncio dos veces (live + relectura nativa de la descripción). El
+ * `<span>` es HERMANO del `<button>` (no anidado: una descripción anidada en un
+ * control con nombre-por-contenido se computa como parte del nombre accesible, no
+ * como descripción independiente). Distinto del Input: su error es una descripción
+ * PERSISTENTE → describedby-solo, sin live region (ADR-019, Regla 1).
  */
 @Component({
   selector: 'aegis-button',
@@ -47,7 +52,6 @@ let nextSrId = 0;
       [attr.type]="type()"
       [attr.aria-label]="ariaLabel()"
       [attr.aria-labelledby]="ariaLabelledby()"
-      [attr.aria-describedby]="srId"
       aegisButton
       #brain="aegisButton"
       [disabled]="disabled()"
@@ -58,11 +62,9 @@ let nextSrId = 0;
       }
       <span class="aegis-btn__label"><ng-content /></span>
     </button>
-    <span class="aegis-btn__sr" [id]="srId" aria-live="polite">
-      @if (brain.busy()) {
-        {{ loadingLabel() }}
-      }
-    </span>
+    <span class="aegis-btn__sr" [id]="srId" aria-live="polite">{{
+      brain.busy() ? loadingLabel() : ''
+    }}</span>
   `,
   styleUrl: './button.component.css',
 })
@@ -82,7 +84,7 @@ export class AegisButtonComponent {
   /** Tipo del `<button>` nativo. Default `button`: evita envíos accidentales. */
   readonly type = input<AegisButtonType>('button');
 
-  /** Texto anunciado por lector de pantalla mientras `loading` (`aria-live`). */
+  /** Texto anunciado por `aria-live` mientras `loading`. */
   readonly loadingLabel = input('Cargando…');
 
   /**
@@ -98,6 +100,6 @@ export class AegisButtonComponent {
     () => `aegis-btn aegis-btn--${this.variant()} aegis-btn--${this.size()}`,
   );
 
-  /** Id único de la región `aria-live`, para vincularla al botón por `aria-describedby`. */
+  /** Id único del `<span>` aria-live de estado (hermano del botón). */
   protected readonly srId = `aegis-btn-sr-${nextSrId++}`;
 }

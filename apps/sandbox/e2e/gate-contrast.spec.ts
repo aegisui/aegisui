@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { contrastRatio } from './lib/contrast';
 import { applyTheme, readCells } from './lib/gallery';
+import { readInputCells } from './lib/input-gallery';
 
 /**
  * Gate `contrast` sobre el Button REAL (§9.2, WCAG 1.4.3), fuente de verdad =
@@ -21,6 +22,33 @@ for (const theme of ['light', 'dark'] as const) {
         ratio,
         `${c.cell} [${theme}] ${c.color} sobre ${c.bg} = ${ratio.toFixed(2)}:1`,
       ).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+
+  // El texto deshabilitado está exento de 1.4.3/1.4.11 (mismo criterio que el
+  // Button); el borde (1.4.11, UI) se comprueba además del texto — es la
+  // lección de ADR-018: un borde funcional no verificado es un borde que puede
+  // fallar en silencio.
+  test(`contrast · Input real · ${theme}`, async ({ page }) => {
+    await applyTheme(page, theme);
+    const cells = await readInputCells(page);
+    expect(cells.length).toBeGreaterThan(0);
+
+    for (const c of cells) {
+      if (c.disabled) {
+        continue;
+      }
+      const textRatio = contrastRatio(c.color, c.bg);
+      expect(
+        textRatio,
+        `${c.cell} [${theme}] texto ${c.color} sobre ${c.bg} = ${textRatio.toFixed(2)}:1`,
+      ).toBeGreaterThanOrEqual(4.5);
+
+      const borderRatio = contrastRatio(c.borderColor, c.bg);
+      expect(
+        borderRatio,
+        `${c.cell} [${theme}] borde ${c.borderColor} sobre ${c.bg} = ${borderRatio.toFixed(2)}:1`,
+      ).toBeGreaterThanOrEqual(3);
     }
   });
 }

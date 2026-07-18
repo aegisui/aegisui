@@ -213,29 +213,53 @@ describe('AegisButtonComponent', () => {
     expect(screen.getByRole('button').getAttribute('aria-label')).toBe('Cerrar');
   });
 
-  // --- aria-live de carga (estructura; el ANUNCIO real se valida a mano con lector) ---
+  // --- Estado de carga: aria-live="polite" en el <span> hermano; SIN
+  //     aria-describedby en el botón (ADR-019, Regla 2: notificación transitoria).
+  //     El ANUNCIO real se valida a mano con lector; aquí solo la estructura. ---
 
-  it('expone una región aria-live=polite que anuncia la carga', async () => {
-    const { host, flush, container } = await setup();
-    const live = container.querySelector('[aria-live="polite"]');
-    expect(live).not.toBeNull();
-    expect(live?.textContent?.trim()).toBe('');
+  it('anuncia la carga con un <span> aria-live="polite" hermano, SIN aria-describedby en el botón', async () => {
+    const { host, flush, button, container } = await setup();
+    const sr = container.querySelector('.aegis-btn__sr');
+    expect(sr).not.toBeNull();
+    expect(sr?.getAttribute('aria-live')).toBe('polite');
+    expect(sr?.getAttribute('role')).toBeNull();
+    // El botón NO tiene aria-describedby: aria-live es el único canal (ADR-019 Regla 2).
+    expect(button().getAttribute('aria-describedby')).toBeNull();
+    expect(sr?.textContent?.trim()).toBe('');
+
     host.loading.set(true);
     flush();
-    expect(live?.textContent?.trim()).toBe('Cargando…');
+    expect(sr?.textContent?.trim()).toBe('Cargando…');
   });
 
-  // Regresión (hallazgo de pase manual, VoiceOver+Safari): una región aria-live
-  // ANIDADA dentro de un control con nombre-por-contenido (button/link) no se
-  // anuncia de forma fiable — el motor de accesibilidad la trata como parte del
-  // cálculo del nombre accesible, no como una región live independiente. Este
-  // patrón volverá en cualquier componente futuro que anuncie estado (toast,
-  // validación de formularios): el test protege el patrón, no solo el Button.
-  it('la región aria-live es HERMANA del <button>, no anidada dentro (y va enlazada por aria-describedby)', async () => {
+  // Regresión (ADR-019 Regla 4): @if recrea el nodo de texto (childList) y una
+  // región aria-live que recrea su nodo dispara el anuncio dos veces en NVDA.
+  // Interpolación plana garantiza solo mutaciones characterData.
+  it('el texto de carga muta in situ (characterData), nunca recrea el nodo (childList)', async () => {
+    const { host, flush, container } = await setup();
+    const sr = container.querySelector('.aegis-btn__sr')!;
+
+    const mutations: MutationRecord[] = [];
+    const observer = new MutationObserver((list) => mutations.push(...list));
+    observer.observe(sr, { childList: true, characterData: true, subtree: true });
+
+    host.loading.set(true);
+    flush();
+    await Promise.resolve(); // MutationObserver callbacks son microtasks; drenar antes de desconectar
+    observer.disconnect();
+
+    expect(mutations.some((m) => m.type === 'childList')).toBe(false);
+    expect(mutations.some((m) => m.type === 'characterData')).toBe(true);
+  });
+
+  // Regresión (hallazgo de pase manual, VoiceOver+Safari): un <span> de
+  // descripción ANIDADO dentro de un control con nombre-por-contenido
+  // (button/link) se computa como parte del nombre accesible, no como
+  // descripción independiente. Sacarlo como HERMANO es lo que lo hace audible.
+  it('el <span> de estado es HERMANO del <button>, no anidado dentro', async () => {
     const { button, container } = await setup();
-    const live = container.querySelector('[aria-live="polite"]');
-    expect(live).not.toBeNull();
-    expect(button().contains(live)).toBe(false);
-    expect(button().getAttribute('aria-describedby')).toBe(live?.id);
+    const sr = container.querySelector('.aegis-btn__sr');
+    expect(sr).not.toBeNull();
+    expect(button().contains(sr)).toBe(false);
   });
 });

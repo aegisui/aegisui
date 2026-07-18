@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { applyTheme, readCells } from './lib/gallery';
+import { readInputCells } from './lib/input-gallery';
 
 /**
  * Gate `target-size` sobre el Button REAL (§9.2, WCAG 2.5.8): todo objetivo
@@ -13,6 +14,17 @@ for (const theme of ['light', 'dark'] as const) {
   test(`target-size · Button real · ${theme}`, async ({ page }) => {
     await applyTheme(page, theme);
     const cells = await readCells(page);
+    expect(cells.length).toBeGreaterThan(0);
+
+    for (const c of cells) {
+      expect(c.width, `${c.cell} ancho`).toBeGreaterThanOrEqual(MIN);
+      expect(c.height, `${c.cell} alto`).toBeGreaterThanOrEqual(MIN);
+    }
+  });
+
+  test(`target-size · Input real · ${theme}`, async ({ page }) => {
+    await applyTheme(page, theme);
+    const cells = await readInputCells(page);
     expect(cells.length).toBeGreaterThan(0);
 
     for (const c of cells) {

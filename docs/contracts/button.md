@@ -252,12 +252,29 @@ No hay otras teclas: un botón no captura flechas, `Esc` ni `Home/End`.
 
 ### Anuncios a lector de pantalla
 
-- Entrar/salir de `loading` se refleja con `aria-busy`, y además se anuncia un
-  texto de estado («Cargando…») mediante una región **`aria-live="polite"`**
-  visualmente oculta, asociada al botón, para lectores que no verbalizan
-  `aria-busy` por sí solo (WCAG 4.1.3 Mensajes de estado).
+- Entrar/salir de `loading` se refleja con `aria-busy` y, además, con un
+  `<span>` visualmente oculto hermano del botón con **`aria-live="polite"`**
+  (WCAG 4.1.3 Mensajes de estado), para lectores que no verbalizan `aria-busy`
+  por sí solos.
+- **`aria-live` en el span, sin `aria-describedby` en el botón (ADR-019,
+  Regla 2: notificación transitoria de estado → solo aria-live).** El texto se
+  interpola plano (muta in situ, no recrea el nodo). VoiceOver no reanuncía
+  `aria-describedby` cuando cambia el nodo descrito en caliente — `aria-live`
+  es el único canal que VoiceOver honra para notificaciones live. Si el span
+  estuviera también en `aria-describedby`, NVDA recibiría el anuncio dos veces
+  (live + relectura nativa de la descripción). El `<span>` es **hermano** del
+  `<button>`, no anidado: una descripción anidada en un control con
+  nombre-por-contenido se computa como parte del nombre accesible (confirmado
+  con VoiceOver).
 - El nombre accesible **no cambia** al entrar en carga (el spinner es
   `aria-hidden="true"`): el botón sigue anunciándose por su etiqueta.
+- **Distinto del Input** (cuyo error es una descripción persistente → solo
+  `aria-describedby` + `aria-invalid`, sin live region — ADR-019, Regla 1).
+  Son naturalezas distintas y la regla se acota a cada una.
+- **Pase manual verificado** (NVDA+Firefox y VoiceOver+Safari): activar
+  `loading` con el botón enfocado anuncia «Cargando…» una sola vez. NVDA
+  añade «no disponible» y «procesando» (de `aria-disabled`/`aria-busy` nativos
+  del navegador — información correcta, no duplicado de la librería).
 
 ### Target size (2.5.8)
 
@@ -307,8 +324,8 @@ apagado, no solo `opacity`).
 - Las transiciones de `background`/`color`/`border` se **anulan** bajo
   `prefers-reduced-motion: reduce` (regla `require-reduced-motion`).
 - El spinner de `loading` **no rota** bajo reduced-motion: la carga se comunica
-  por `aria-busy`, el texto de la región `aria-live` y un indicador estático. No
-  hay movimiento sin alternativa.
+  por `aria-busy`, el texto de estado (vía `aria-live`) y un indicador estático.
+  No hay movimiento sin alternativa.
 
 ### Espaciado de texto (1.4.12)
 
@@ -333,8 +350,8 @@ fuerza interlineado/espaciado (regla `no-fixed-text-height`).
   orden icono/texto y el spinner se reflejan automáticamente. Sin `left/right`
   físicos.
 - **`loading` asíncrono:** al pasar a `loading`, aparece spinner + `aria-busy` +
-  anuncio live, se retiene el foco y se suprime la activación; al resolver, todo
-  revierte y el botón vuelve a ser activable sin mover el foco.
+  anuncio via `aria-live`, se retiene el foco y se suprime la activación; al
+  resolver, todo revierte y el botón vuelve a ser activable sin mover el foco.
 - **`disabled` durante `loading`:** gana `disabled` (nativo, sin spinner).
 - **Doble activación / clic rápido:** en `loading` no se emiten más `click`
   (el `cdk` los detiene); protege contra envíos duplicados.

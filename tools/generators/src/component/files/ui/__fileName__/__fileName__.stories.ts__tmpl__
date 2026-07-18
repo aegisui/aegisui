@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '@storybook/angular';
+import type { Meta, StoryObj } from '@storybook/angular-vite';
 import { Aegis<%= className %>Component } from './<%= fileName %>.component';
 
 const meta: Meta<Aegis<%= className %>Component> = {

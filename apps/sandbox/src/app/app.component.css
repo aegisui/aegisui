@@ -12,7 +12,7 @@
   flex-wrap: wrap;
   gap: var(--aegis-space-3);
   padding: var(--aegis-space-4) var(--aegis-space-5);
-  border-bottom: 1px solid var(--aegis-color-border-default);
+  border-bottom: 1px solid var(--aegis-color-border-separator);
   background: var(--aegis-color-surface-canvas);
 }
 
@@ -47,7 +47,7 @@ h1 {
   display: inline-flex;
   padding: 0.25rem;
   gap: 0.25rem;
-  border: 1px solid var(--aegis-color-border-default);
+  border: 1px solid var(--aegis-color-border-separator);
   border-radius: var(--aegis-radius-md);
   background: var(--aegis-color-surface-sunken);
 }
@@ -94,7 +94,7 @@ h3 {
 
 .panel {
   padding: var(--aegis-space-5);
-  border: 1px solid var(--aegis-color-border-default);
+  border: 1px solid var(--aegis-color-border-separator);
   border-radius: var(--aegis-radius-lg);
   background: var(--aegis-color-surface-raised);
   box-shadow: var(--aegis-elevation-1);
@@ -271,7 +271,7 @@ h3 {
 .card {
   max-width: 34rem;
   padding: var(--aegis-space-5);
-  border: 1px solid var(--aegis-color-border-default);
+  border: 1px solid var(--aegis-color-border-separator);
   border-radius: var(--aegis-radius-lg);
   background: var(--aegis-color-surface-raised);
   box-shadow: var(--aegis-elevation-2);
