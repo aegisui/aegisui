@@ -1,0 +1,74 @@
+/*
+ * Capa 3 de la Card (LOCAL al componente, ADR-016). Dos rieles:
+ *   - COLOR      -> capa 2 (--aegis-color-*), que ya resuelve el tema por sí sola.
+ *   - ESTRUCTURA -> capa 1 (--aegis-space/radius/border-width/elevation).
+ * Cero literales: cualquier valor es var(--aegis-*). El tema no se decide aquí.
+ *
+ * EL BORDE ES DECORATIVO -> border-separator, NO border-strong (ADR-018,
+ * contrato §Riel de color). La Card no es un control: no se enfoca, no se activa,
+ * no tiene estado, así que su borde no es "la única señal de límite de un control
+ * interactivo" y 1.4.11 no le exige 3:1. El contenido es legible por sí mismo
+ * (text.strong sobre surface.raised = 15.56:1) sin depender de que el borde se
+ * vea. Sobre-contrastarlo "por si acaso" haría que el borde de un Input —que SÍ
+ * es funcional— dejara de distinguirse del contorno de una tarjeta: la jerarquía
+ * de bordes es información, y gastarla en decoración la destruye.
+ *
+ * SIN `overflow: hidden`, y es una decisión de accesibilidad, no un olvido: el
+ * `border-radius` recortaría el anillo de foco de un control proyectado en la
+ * esquina (2.4.11). Es un fallo clásico y está testeado.
+ */
+
+:host {
+  display: block;
+  box-sizing: border-box;
+  padding: var(--aegis-card-padding);
+  border: var(--aegis-card-border-width) solid var(--aegis-card-border-color);
+  border-radius: var(--aegis-card-radius);
+  color: var(--aegis-card-fg);
+  background: var(--aegis-card-bg);
+  box-shadow: var(--aegis-card-shadow);
+
+  /* --- Estructura (riel capa 1) --- */
+  --aegis-card-border-width: var(--aegis-border-width-hairline);
+  --aegis-card-radius: var(--aegis-radius-lg);
+  --aegis-card-padding: var(--aegis-space-5);
+  --aegis-card-shadow: var(--aegis-elevation-0);
+
+  /* --- Color (riel capa 2) --- */
+  --aegis-card-bg: var(--aegis-color-surface-raised);
+  --aegis-card-fg: var(--aegis-color-text-strong);
+  --aegis-card-border-color: var(--aegis-color-border-separator);
+}
+
+/* --- Padding ---
+ * `:host(...)`, NO `.aegis-card--p-sm` a secas: con encapsulación emulada, un
+ * selector de clase suelto se scopea a elementos DEL TEMPLATE y nunca casa con
+ * el propio host, que es donde vive la clase. Escrito sin `:host()`, las clases
+ * se aplicaban pero el CSS no casaba: las cuatro variantes de padding y las dos
+ * de elevación renderizaban IDÉNTICAS. Los tests unitarios no podían cazarlo
+ * (la clase sí estaba); lo cazó el snapshot del gate `visual` al mirarlo. */
+:host(.aegis-card--p-none) {
+  --aegis-card-padding: var(--aegis-space-0);
+}
+
+:host(.aegis-card--p-sm) {
+  --aegis-card-padding: var(--aegis-space-3);
+}
+
+:host(.aegis-card--p-md) {
+  --aegis-card-padding: var(--aegis-space-5);
+}
+
+:host(.aegis-card--p-lg) {
+  --aegis-card-padding: var(--aegis-space-6);
+}
+
+/* --- Elevación ---
+ * `flat` no es un caso especial del CSS: es el mismo token con valor `none`. */
+:host(.aegis-card--flat) {
+  --aegis-card-shadow: var(--aegis-elevation-0);
+}
+
+:host(.aegis-card--raised) {
+  --aegis-card-shadow: var(--aegis-elevation-2);
+}

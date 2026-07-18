@@ -3,6 +3,7 @@ import { contrastRatio } from './lib/contrast';
 import { applyTheme, readCells } from './lib/gallery';
 import { readInputCells } from './lib/input-gallery';
 import { readSwitchCells } from './lib/switch-gallery';
+import { readCardCells, probeFocusRingClipping } from './lib/card-gallery';
 
 /**
  * Gate `contrast` sobre el Button REAL (§9.2, WCAG 1.4.3), fuente de verdad =
@@ -92,5 +93,46 @@ for (const theme of ['light', 'dark'] as const) {
         `${c.cell} [${theme}] límite de pista (borde ${c.trackBorderColor} / relleno ${c.trackBg}) sobre ${c.canvasBg} = ${boundary.toFixed(2)}:1`,
       ).toBeGreaterThanOrEqual(3);
     }
+  });
+
+  // La Card CAMBIA el fondo del contenido (canvas -> raised), así que el par
+  // texto/superficie es suyo y hay que medirlo. Su BORDE no se verifica contra
+  // 3:1 a propósito: es decorativo (border-separator, ADR-018) — la Card no es
+  // un control y su borde no comunica ningún estado.
+  test(`contrast · Card real · ${theme}`, async ({ page }) => {
+    await applyTheme(page, theme);
+    const cells = await readCardCells(page);
+    expect(cells.length).toBeGreaterThan(0);
+
+    for (const c of cells) {
+      const ratio = contrastRatio(c.color, c.bg);
+      expect(
+        ratio,
+        `${c.cell} [${theme}] texto ${c.color} sobre ${c.bg} = ${ratio.toFixed(2)}:1`,
+      ).toBeGreaterThanOrEqual(4.5);
+
+      // 2.4.11: un overflow oculto recortaría el anillo de foco del contenido.
+      expect(c.overflowX, `${c.cell} overflow-x`).not.toBe('hidden');
+      expect(c.overflowY, `${c.cell} overflow-y`).not.toBe('hidden');
+    }
+
+    // Guarda anti-verde-falso: los `input` de la Card tienen que producir CSS
+    // distinto. Escritos como `.aegis-card--p-sm` en vez de `:host(...)`, los
+    // selectores no casaban con el host y las cuatro variantes de padding
+    // renderizaban idénticas — con la clase correctamente puesta, así que
+    // ningún test unitario podía verlo. Esto lo caza sin depender de que
+    // alguien lea el snapshot.
+    const paddings = new Set(cells.map((c) => c.paddingTop));
+    expect(paddings.size, `paddings distintos: ${[...paddings].join(', ')}`).toBeGreaterThan(1);
+    const shadows = new Set(cells.map((c) => c.boxShadow));
+    expect(shadows.size, `sombras distintas: ${[...shadows].join(', ')}`).toBeGreaterThan(1);
+  });
+
+  // El test que de verdad importa en la Card: un control proyectado EN LA
+  // ESQUINA mantiene su anillo de foco visible, sin recorte.
+  test(`focus-no-recortado · Card real · ${theme}`, async ({ page }) => {
+    await applyTheme(page, theme);
+    const probe = await probeFocusRingClipping(page);
+    expect(probe.ringVisible, `overflow de la Card = ${probe.overflow}`).toBe(true);
   });
 }
