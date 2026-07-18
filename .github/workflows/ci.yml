@@ -1,8 +1,16 @@
 name: CI
 
+# `pull_request` SIN filtro `branches:` a propósito (ADR-021): dispara contra
+# CUALQUIER rama base, no solo main. Con el filtro anterior (`branches: [main]`),
+# un PR apilado sobre otra rama se quedaba literalmente SIN NINGÚN check —
+# "no checks reported"— y en silencio. Un PR sin checks es peor que uno en rojo:
+# parece aprobable y no ha verificado nada. Es la versión más pura del
+# verde-falso que SPEC §13 prohíbe.
+#
+# `push` sí se queda acotado a main: es el build de la rama principal, y sin el
+# filtro cada push a cada rama duplicaría el trabajo que ya hace el PR.
 on:
   pull_request:
-    branches: [main]
   push:
     branches: [main]
 
