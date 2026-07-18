@@ -69,4 +69,36 @@ for (const theme of ['light', 'dark'] as const) {
     });
     expect(styles).toMatchSnapshot(`input-styles-${theme}.txt`);
   });
+
+  // El snapshot cubre pista Y pulgar: el pulgar bicolor es una decisión de
+  // contraste (contrato §Riel de color), así que su `background-color` por
+  // estado forma parte del baseline. Unificarlo saldría como diff.
+  test(`visual · Switch real · ${theme}`, async ({ page }) => {
+    await applyTheme(page, theme);
+    const styles = await page.evaluate(() => {
+      const trackProps = [
+        'background-color',
+        'border-top-color',
+        'border-top-width',
+        'inline-size',
+        'block-size',
+      ] as const;
+      const thumbProps = ['background-color', 'inline-size', 'block-size'] as const;
+      const scope = document.querySelector('[aria-label="Galería del Switch"]') ?? document;
+      return [...scope.querySelectorAll('[data-cell]')]
+        .map((el) => {
+          const track = el.querySelector('.aegis-switch__track') as HTMLElement;
+          const thumb = el.querySelector('.aegis-switch__thumb') as HTMLElement;
+          const tcs = getComputedStyle(track);
+          const hcs = getComputedStyle(thumb);
+          const cell = el.getAttribute('data-cell') ?? '?';
+          const t = trackProps.map((p) => `track-${p}=${tcs.getPropertyValue(p)}`).join(' · ');
+          const h = thumbProps.map((p) => `thumb-${p}=${hcs.getPropertyValue(p)}`).join(' · ');
+          return `${cell}: ${t} · ${h}`;
+        })
+        .sort()
+        .join('\n');
+    });
+    expect(styles).toMatchSnapshot(`switch-styles-${theme}.txt`);
+  });
 }

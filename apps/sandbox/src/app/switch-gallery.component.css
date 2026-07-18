@@ -1,0 +1,26 @@
+/* Layout del sandbox (una app, no un componente): la capa 2 tiñe; el propio
+   Switch trae su capa 3. Aquí solo maquetamos la galería. */
+.gallery {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.group {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.group h3 {
+  margin: 0;
+  font-size: var(--aegis-font-size-sm);
+  font-weight: var(--aegis-font-weight-semibold);
+  color: var(--aegis-color-text-muted);
+  text-transform: capitalize;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 1.5rem;
+}

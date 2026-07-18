@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { applyTheme, readCells } from './lib/gallery';
 import { readInputCells } from './lib/input-gallery';
+import { readSwitchCells } from './lib/switch-gallery';
 
 /**
  * Gate `target-size` sobre el Button REAL (§9.2, WCAG 2.5.8): todo objetivo
@@ -25,6 +26,20 @@ for (const theme of ['light', 'dark'] as const) {
   test(`target-size · Input real · ${theme}`, async ({ page }) => {
     await applyTheme(page, theme);
     const cells = await readInputCells(page);
+    expect(cells.length).toBeGreaterThan(0);
+
+    for (const c of cells) {
+      expect(c.width, `${c.cell} ancho`).toBeGreaterThanOrEqual(MIN);
+      expect(c.height, `${c.cell} alto`).toBeGreaterThanOrEqual(MIN);
+    }
+  });
+
+  // Se mide el <button>, NO la pista pintada: en `sm` la pista es menor de 24px
+  // y el objetivo lo garantiza el min-*-size del botón. Ese es el criterio de
+  // 2.5.8 (objetivo, no ornamento) y `sm` es donde podría romperse.
+  test(`target-size · Switch real · ${theme}`, async ({ page }) => {
+    await applyTheme(page, theme);
+    const cells = await readSwitchCells(page);
     expect(cells.length).toBeGreaterThan(0);
 
     for (const c of cells) {
