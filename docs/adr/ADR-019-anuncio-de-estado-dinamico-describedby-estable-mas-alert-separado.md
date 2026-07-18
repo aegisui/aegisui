@@ -1,143 +1,179 @@
-# ADR-019: Errores/estado de un control enfocable — solo `aria-describedby` + `aria-invalid`, sin región live
+# ADR-019: Anuncio de estado dinámico — dos reglas por naturaleza del mensaje
 
 ## Contexto
 
-Los controles de formulario tienen que comunicar a un lector de pantalla un
-mensaje asociado que puede aparecer o cambiar **mientras el control ya tiene
-foco**: el error de validación de un Input, el "Cargando…" de un Button. El
-punto frágil (SPEC §8.5) es que ese mensaje se anuncie **una sola vez** al
-aparecer, **con el texto actualizado**, y siga estando disponible al reenfocar
-— sin duplicados, sin silencios. Ni axe ni ningún gate automático lo detectan;
-solo se confirma con un pase manual real.
+Los controles de formulario necesitan comunicar mensajes que pueden aparecer o
+cambiar mientras el control tiene foco: el error de un Input, el "Cargando…" de
+un Button. El criterio (SPEC §8.5): visible al aparecer, UNA lectura, reanuncio
+actualizado al reenfocar. Ni axe ni ningún gate automático lo detectan; solo se
+confirma con pase manual real.
 
-## Decisión
+## Decisión — dos reglas acotadas por la naturaleza del mensaje
 
-**Un mensaje asociado a UN control enfocable (error de campo, estado del
-control) se comunica SOLO con `aria-describedby` + `aria-invalid`. Sin
-`aria-live`, sin `role="alert"`, sin `role="status"`.**
+La naturaleza del mensaje determina el canal. **Nunca los dos a la vez sobre el
+mismo contenido**: esa es la causa invariable del doble anuncio.
 
-Concretamente:
+---
 
-- Un **único `<span>`**, enlazado por `aria-describedby` desde el control, con
-  su `id` **siempre presente** en `aria-describedby` (vacío cuando no hay
-  mensaje). La relación no se crea ni se destruye en caliente; solo cambia el
-  texto del span, mutándolo in situ (interpolación plana, no `@if` que recrea
-  el nodo).
-- El control refleja `aria-invalid="true"` cuando corresponde (Input) o
-  `aria-busy` (Button).
-- El `<span>` es **hermano** del control, no anidado dentro: una descripción
-  anidada en un control con nombre-por-contenido (button/link) se computa como
-  parte del *nombre* accesible, no como descripción independiente.
+### Regla 1 — Descripción persistente asociada a un control
 
-**Por qué no una región live.** NVDA y JAWS reannuncian **nativamente** la
-descripción de un control enfocado cuando su texto cambia — se comportan como
-si fuera una región live, sin que se declare. Añadir `aria-live`/`role="alert"`
-encima:
+*Ejemplos: error de validación, texto de ayuda.*
 
-- **duplica** el anuncio en NVDA y JAWS (una vez por la región live, otra por
-  la relectura nativa de la descripción), y
-- **rompe** la relación `aria-describedby` en VoiceOver (deja de exponer la
-  descripción al enfocar/reenfocar).
+→ **SOLO `aria-describedby` + `aria-invalid`. Sin región live.**
 
-Cuatro fuentes independientes convergen en la misma conclusión:
+Un `<span>` con `id` estable, siempre presente en `aria-describedby` (vacío
+cuando no hay mensaje). Texto en interpolación plana (muta in situ). Sin
+`aria-live`, sin `role="alert"`, sin `role="status"`.
 
-- **GOV.UK Design System** — su componente de error usa solo `aria-describedby`
-  + `aria-invalid`; ni `aria-live` ni `role`.
-- **Adrian Roselli**, "Exposing Field Errors" (testing extensivo): `aria-describedby`
-  sin región live es lo más consistente; se anuncia al enfocar/reenfocar, y
-  añadir `aria-live` recorta o pierde el nombre del siguiente campo enfocado.
-- **David MacDonald**, test dedicado a esta combinación: con `aria-live` en el
-  error, NVDA/JAWS lo leen dos veces al salir del campo; "funcionan
-  perfectamente solo con `aria-describedby`". Con `aria-live` presente,
-  VoiceOver deja de respetar el `aria-describedby`.
-- **React Aria (Adobe)** usa `aria-describedby` para el error, no una región
-  live separada.
+**Por qué:** NVDA y JAWS reannuncian **nativamente** la descripción de un control
+enfocado cuando su texto cambia — se comportan como región live sin que se
+declare. Añadir `aria-live`/`role="alert"` encima:
 
-### Toast / notificación espontánea es OTRO caso — SÍ necesita región live
+- duplica el anuncio en NVDA/JAWS (una vez por live, otra por relectura nativa), y
+- rompe la relación `aria-describedby` en VoiceOver (deja de exponer la descripción
+  al enfocar/reenfocar).
 
-Esta decisión aplica **solo** a un mensaje asociado a un control enfocable vía
-`aria-describedby`. Una notificación que **no** está asociada a ningún control
-y aparece de forma espontánea (un Toast, una alerta global) **no** tiene un
-elemento enfocado cuya descripción releer — ahí una región live
-(`aria-live`/`role="status"`/`role="alert"`) es la herramienta correcta y
-necesaria. **No matar el `aria-live` de un Toast citando este ADR.** La regla
-de arriba distingue por el vínculo con el foco, no por "las regiones live son
-malas".
+**Componente:** `<aegis-input>` — `<span class="aegis-input__error">`, `errorId()`
+estable, `aria-invalid` desde el brain.
 
-### Aplicación
+---
 
-- **Input** (`packages/ui/src/lib/input/input.component.ts`): un `<span
-  class="aegis-input__error" [id]="errorId()">{{ errorText() }}</span>` visible,
-  siempre presente, en `aria-describedby`; `aria-invalid` desde el brain. Sin
-  nodo oculto, sin `role`, sin `aria-live`.
-- **Button** (`packages/ui/src/lib/button/button.component.ts`): el `<span
-  class="aegis-btn__sr" [id]="srId">` (visualmente oculto, el spinner es la
-  señal visual) en `aria-describedby`; `aria-busy` desde el brain. Se le
-  **quitó** el `aria-live="polite"` que tenía.
+### Regla 2 — Notificación transitoria de estado
 
-En ambos, `errorId`/`srId` son estables desde el primer render y el texto se
-interpola plano (muta in situ). El brain (`AegisInput`, `AegisButton`) no
-necesita conocer el estado de foco: se eliminó el signal `focused` que una
-iteración anterior había añadido.
+*Ejemplos: carga de un botón, Toast espontáneo.*
 
-## El camino recorrido (apéndice, para que nadie reabra esto)
+→ **SOLO `aria-live`. Sin `aria-describedby` sobre el mismo nodo.**
 
-Se llegó aquí tras cuatro intentos fallidos, **todos** partiendo de la premisa
-falsa de que hacía falta una región live para anunciar el error con el campo
-enfocado. Cada uno resolvía el síntoma del anterior y descubría una causa
-nueva; ninguno cuestionó la premisa hasta ir a la literatura.
+Un `<span>` hermano con `aria-live="polite"` (o la política adecuada). Texto en
+interpolación plana (muta in situ). El control **no** apunta a ese span con
+`aria-describedby`.
+
+**Por qué:** VoiceOver **no** reanuncía `aria-describedby` cuando el nodo descrito
+cambia mientras el control está enfocado — solo lo lee al enfocar. `aria-live` es
+el único canal que VoiceOver honra para notificaciones live. Si el span estuviera
+también en `aria-describedby`, NVDA lo anunciaría dos veces (live + relectura
+nativa de la descripción).
+
+**Componente:** `<aegis-button>` — `<span class="aegis-btn__sr" aria-live="polite">`,
+`srId` estable. El `<button>` no tiene `aria-describedby`. El `<span>` es hermano,
+no anidado: una descripción anidada en un control nombre-por-contenido se computa
+como parte del nombre accesible, no como descripción independiente.
+
+---
+
+### Regla 3 — Nunca dos canales sobre el mismo contenido
+
+La causa invariable del doble anuncio: activar `aria-live` y tener `aria-describedby`
+apuntando al mismo nodo, con el control enfocado. NVDA anuncia por ambos canales.
+Elegir uno exclusivamente (según la naturaleza del mensaje) elimina el doble.
+
+---
+
+### Regla 4 — Interpolación plana, nunca `@if` alrededor del texto
+
+`@if` es estructural: recrea el nodo de texto (`childList`). Una región `aria-live`
+que recrea su nodo dispara el anuncio por la inserción Y por la mutación de texto
+siguiente — dos disparos de la misma fuente. Interpolación plana
+(`{{ expresión }}`) muta el nodo de texto existente (`characterData`) — un
+solo disparo.
+
+Esta regla aplica a ambas reglas: al span de `aria-describedby` y al span de
+`aria-live`.
+
+**Raíl automático (ADR-019 Regla 4):** el spec del Button verifica con
+`MutationObserver` que la transición `loading=false→true` produce solo mutaciones
+`characterData`, sin ninguna `childList`. Si alguien reintroduce `@if`, el test
+falla. Cuando llegue el Toast (la próxima región live legítima), el mismo raíl
+debe copiarse ahí.
+
+---
+
+## Aplicación en la librería
+
+| Componente | Canal | Elemento | Notas |
+|---|---|---|---|
+| `<aegis-input>` | `aria-describedby` | `aegis-input__error`, `errorId()` | Visible; siempre en DOM; vacío si no hay error |
+| `<aegis-button>` | `aria-live="polite"` | `aegis-btn__sr`, `srId` | Oculto visualmente; hermano del `<button>`; sin describedby en el botón |
+| Toast (futuro) | `aria-live` | A definir | Notificación espontánea sin control asociado |
+
+---
+
+## Limitaciones conocidas por lector de pantalla
+
+### VoiceOver — Input, cambio sucesivo del mensaje con foco dentro (opción 4)
+
+VoiceOver anuncia el **primer** mensaje cuando `aria-invalid` cambia de `null` a
+`"true"` (transición de estado que dispara re-lectura del campo). Cambios
+posteriores del texto del error **sin nueva transición de `aria-invalid`** no se
+anuncian en directo. Al reenfocar, VoiceOver puede leer el primer valor cacheado
+en lugar del actual.
+
+Sin solución limpia: cualquier mecanismo para forzar a VoiceOver a re-leer
+(aria-live, cambio de `aria-describedby` en caliente) reactiva el doble anuncio
+en NVDA. El mensaje correcto se lee al reenfocar. NVDA anuncia todos los cambios
+correctamente. Documentado en el contrato del Input.
+
+### NVDA — Button: "no disponible" + "procesando" durante la carga
+
+`aria-disabled="true"` → NVDA anuncia "no disponible"; `aria-busy="true"` → NVDA
+anuncia "procesando". Son el comportamiento estándar de NVDA con esos atributos en
+un botón enfocado, no un defecto de la librería. El usuario recibe información
+correcta: el botón está ocupado y temporalmente no disponible.
+
+---
+
+## El camino recorrido (para que nadie lo reabra)
+
+Se llegó aquí tras cuatro intentos fallidos con región live para el Input y un
+retroceso posterior en el Button (que extrapoló la Regla 1 donde correspondía la
+Regla 2). La lección central: **las naturalezas son distintas; la regla no es
+una sola**.
+
+### Input — cuatro intentos fallidos
+
+Todos partían de la premisa falsa de que hacía falta una región live para anunciar
+el error con el campo enfocado. Cada uno resolvía el síntoma del anterior y
+descubría una causa nueva; ninguno cuestionó la premisa hasta ir a la literatura.
 
 | # | Arquitectura | Resultado (pase manual real) |
 |---|---|---|
-| 1 | Un nodo: `role="alert"` + `aria-describedby` juntos, condicional | VoiceOver: una vez ✓. **NVDA: dos veces** (región alert + relectura de la descripción recién creada). |
-| 2 | Dos nodos (describedby estable + alert separado), texto con `@if` | **NVDA: dos veces seguidas** — `@if` recrea el nodo de texto (`childList`, no `characterData`); una región live que recrea su nodo redispara. |
-| 3 | Dos nodos + interpolación plana (sin `@if`) | **NVDA: seguía duplicando.** El atributo `aria-describedby` no cambiaba, pero el nodo referenciado sí mutaba con el foco dentro — la relectura nativa de la descripción, un canal aparte del `role="alert"`. |
-| 4 | + `describedby` congelado mientras hay foco (signal `focused` en cdk) | Estructura correcta, pero **regresión de UX**: el mensaje visible no aparecía hasta el blur — el usuario ve el campo en rojo sin saber qué corregir mientras escribe. Un mensaje ausente-cuando-lo-necesitas es peor que uno duplicado. |
+| 1 | Un nodo: `role="alert"` + `aria-describedby` juntos, condicional | VoiceOver: una vez ✓. **NVDA: dos veces** (alert + relectura de describedby recién creado). |
+| 2 | Dos nodos (describedby estable + alert separado), texto con `@if` | **NVDA: dos veces seguidas** — `@if` recrea el nodo de texto (`childList`); una live que recrea su nodo redispara. |
+| 3 | Dos nodos + interpolación plana | **NVDA: seguía duplicando.** `aria-describedby` estable pero su nodo mutaba con foco dentro — canal aparte del `role="alert"`. |
+| 4 | + `describedby` congelado con foco (signal `focused` en cdk) | Estructura correcta, pero regresión de UX: el mensaje visible no aparecía hasta el blur. Un mensaje ausente-cuando-lo-necesitas es peor que uno duplicado. |
 
-**La realización** (intento 5, este ADR): las cuatro arquitecturas compartían
-el error que la literatura señala — una región live que sobra. El propio NVDA
-ya reanuncia la descripción de un campo enfocado; toda la maquinaria
-(nodo oculto separado, `focused` en el cdk, congelado con `effect`, el raíl
-`expectLiveRegionMutatesInPlace`) existía para gestionar una región live que no
-debía existir. Quitándola, `aria-describedby` solo cumple los cuatro criterios
-a la vez: visible al aparecer, una lectura, reanuncio actualizado al reenfocar,
-y VoiceOver correcto.
+La realización (Solución 5, Regla 1 de este ADR): las cuatro arquitecturas
+compartían el error que la literatura señala — una región live que sobra. Quitándola,
+`aria-describedby` solo cumple los cuatro criterios a la vez. Cuatro fuentes
+independientes convergen: **GOV.UK Design System**, **Adrian Roselli**
+("Exposing Field Errors"), **David MacDonald** (test de la combinación aria-live +
+describedby) y **React Aria (Adobe)** — todas usan solo `aria-describedby` para el
+error, sin región live.
 
-**Lección de proceso, no solo de código.** El pase manual original del Button
-(Fase 3) certificó su patrón con un solo lector (VoiceOver+Safari), donde el
-doble anuncio de NVDA no se manifiesta; ese "verde" se tomó como "el patrón
-está bien" y sirvió de referencia ("copia el `srId` del Button") para el Input
-— cuando en realidad el Button nunca cumplió el patrón. **Un pase manual
-limitado a un lector no certifica el patrón, solo lo verificado en ese lector.**
-Y: cuando cuatro intentos seguidos fallan, la respuesta correcta es parar y
-buscar cómo lo resuelve el estándar de facto, no un quinto intento a ciegas.
+### Button — la extrapolación errónea
 
-### El raíl `expectLiveRegionMutatesInPlace`, retirado
+La Solución 5 del Input se aplicó al Button con la premisa de que "describedby-solo
+basta para todo". El pase manual reveló que es falsa para notificaciones transitorias:
+VoiceOver no reanuncía `aria-describedby` en caliente, así que eliminar `aria-live`
+del Button silenció VoiceOver para el estado de carga.
 
-Un helper de test (`packages/ui/src/testing/live-region.ts`) cazaba
-automáticamente la regresión del intento 2 (`childList` en una región live). Se
-**eliminó**: la Solución 5 no deja ninguna región live en la librería, así que
-el helper quedaba sin consumidor, y este repo no mantiene infraestructura de
-test sin nada real que verificar (anti-verde-falso, SPEC §13). Cuando llegue el
-**Toast** — una región live legítima — el `childList`-vs-`characterData`
-volverá a importar y el helper debe reintroducirse entonces, contra ese
-componente real.
+El `aria-live` del Button era correcto desde el principio. El problema original
+(doble anuncio en NVDA) no venía del `aria-live` sino del `@if` que recreaba el
+nodo de texto (Regla 4, intento 2 del Input). Corregido `@if` → interpolación
+plana (Regla 4), `aria-live` puede convivir con un span sin `aria-describedby`
+sin producir ningún doble.
 
-## Consecuencias
+### El raíl `expectLiveRegionMutatesInPlace`, retirado y reinstaurado
 
-- **Patrón canónico** para todo componente con un mensaje asociado a un control
-  enfocable (Input hecho, Button hecho, Switch/Select por venir): solo
-  `aria-describedby` + `aria-invalid`/`aria-busy`, nodo estable, texto plano,
-  cero región live. El siguiente componente debe encontrar **esta** decisión,
-  no las cuatro iteraciones fallidas (por eso viven en el apéndice, no en la
-  regla).
-- **Toast/notificaciones espontáneas** conservan su región live — caso
-  distinto, explícitamente fuera de esta regla.
-- Menos maquinaria: se eliminaron el nodo oculto del Input, el signal `focused`
-  del brain, el `effect` de congelado, el helper de test y su spec, y el ignore
-  de eslint que el helper necesitaba. El código queda más simple que en
-  cualquiera de los cuatro intentos.
-- **Pendiente**: el pase manual de Input **y** Button sobre la Solución 5
-  (NVDA+Firefox y VoiceOver+Safari), los cuatro casos. La estructura está
-  verificada con `MutationObserver` en Chromium real; falta el oído. Ningún
-  resultado de los pases anteriores se hereda: cada uno era otra arquitectura.
+Un helper de test cazaba la regresión del intento 2 (`childList` en una región
+live). Se eliminó cuando se creyó que la librería no tendría más live regions.
+Reinstaurado directamente en el spec del Button (que ahora sí tiene `aria-live`)
+como verificación de Regla 4. Se moverá a un helper compartido cuando el Toast
+sume un segundo consumidor.
+
+### Lección de proceso
+
+Un pase manual limitado a un lector no certifica el patrón — solo lo verificado
+en ese lector. Cuando cuatro intentos seguidos fallan, parar y buscar cómo lo
+resuelve el estándar de facto es la respuesta correcta, no un quinto intento a
+ciegas.

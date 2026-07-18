@@ -325,6 +325,15 @@ propósito (ninguna tecla gestionada explícitamente por el componente).
   con el texto ACTUALIZADO al reenfocar**. La estructura (describedby estable,
   cero región live) está verificada con `MutationObserver` en Chromium real;
   no sustituye escuchar el resultado.
+
+  **Limitación conocida — VoiceOver, caso 4** (cambio sucesivo del mensaje sin
+  soltar el foco): VoiceOver anuncia el primer mensaje cuando `aria-invalid`
+  cambia de `null` a `"true"`. Cambios posteriores del texto del error, sin
+  nueva transición de `aria-invalid`, no se anuncian en directo; al reenfocar,
+  VoiceOver puede leer el primer valor en lugar del actual. Sin solución limpia:
+  cualquier señal extra para VoiceOver (aria-live, cambio de describedby en
+  caliente) reactiva el doble anuncio en NVDA. NVDA anuncia todos los cambios
+  correctamente. Detalle completo en ADR-019 §"Limitaciones conocidas".
 - `helpText` (persistente, no ligado a un evento): igual, solo `aria-describedby`,
   sin `role`/`aria-live`. Nunca lo necesitó.
 

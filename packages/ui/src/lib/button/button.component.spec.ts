@@ -213,22 +213,43 @@ describe('AegisButtonComponent', () => {
     expect(screen.getByRole('button').getAttribute('aria-label')).toBe('Cerrar');
   });
 
-  // --- Estado de carga: SOLO aria-busy + aria-describedby (ADR-019, Solución 5).
+  // --- Estado de carga: aria-live="polite" en el <span> hermano; SIN
+  //     aria-describedby en el botón (ADR-019, Regla 2: notificación transitoria).
   //     El ANUNCIO real se valida a mano con lector; aquí solo la estructura. ---
 
-  it('describe la carga con un <span> enlazado por aria-describedby, SIN aria-live ni role', async () => {
+  it('anuncia la carga con un <span> aria-live="polite" hermano, SIN aria-describedby en el botón', async () => {
     const { host, flush, button, container } = await setup();
     const sr = container.querySelector('.aegis-btn__sr');
     expect(sr).not.toBeNull();
-    expect(sr?.getAttribute('aria-live')).toBeNull();
+    expect(sr?.getAttribute('aria-live')).toBe('polite');
     expect(sr?.getAttribute('role')).toBeNull();
-    // El botón siempre describe ese span (id estable), vacío hasta que carga.
-    expect(button().getAttribute('aria-describedby')).toBe(sr?.id);
+    // El botón NO tiene aria-describedby: aria-live es el único canal (ADR-019 Regla 2).
+    expect(button().getAttribute('aria-describedby')).toBeNull();
     expect(sr?.textContent?.trim()).toBe('');
 
     host.loading.set(true);
     flush();
     expect(sr?.textContent?.trim()).toBe('Cargando…');
+  });
+
+  // Regresión (ADR-019 Regla 4): @if recrea el nodo de texto (childList) y una
+  // región aria-live que recrea su nodo dispara el anuncio dos veces en NVDA.
+  // Interpolación plana garantiza solo mutaciones characterData.
+  it('el texto de carga muta in situ (characterData), nunca recrea el nodo (childList)', async () => {
+    const { host, flush, container } = await setup();
+    const sr = container.querySelector('.aegis-btn__sr')!;
+
+    const mutations: MutationRecord[] = [];
+    const observer = new MutationObserver((list) => mutations.push(...list));
+    observer.observe(sr, { childList: true, characterData: true, subtree: true });
+
+    host.loading.set(true);
+    flush();
+    await Promise.resolve(); // MutationObserver callbacks son microtasks; drenar antes de desconectar
+    observer.disconnect();
+
+    expect(mutations.some((m) => m.type === 'childList')).toBe(false);
+    expect(mutations.some((m) => m.type === 'characterData')).toBe(true);
   });
 
   // Regresión (hallazgo de pase manual, VoiceOver+Safari): un <span> de
@@ -240,6 +261,5 @@ describe('AegisButtonComponent', () => {
     const sr = container.querySelector('.aegis-btn__sr');
     expect(sr).not.toBeNull();
     expect(button().contains(sr)).toBe(false);
-    expect(button().getAttribute('aria-describedby')).toBe(sr?.id);
   });
 });

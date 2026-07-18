@@ -23,17 +23,17 @@ let nextSrId = 0;
  * rieles: color→capa 2, estructura→capa 1; ADR-016) y se compone el spinner, la
  * etiqueta proyectada y el texto de estado de carga.
  *
- * El estado de carga se anuncia con **`aria-busy` + un `<span>` visualmente
- * oculto enlazado por `aria-describedby`, SIN `aria-live` ni `role`** (ADR-019).
- * El `<span>` es HERMANO del `<button>` (no anidado: una descripción anidada en
- * un control con nombre-por-contenido se computa como parte del nombre
- * accesible, no como descripción independiente — confirmado con VoiceOver). Su
- * texto es interpolación plana (muta in situ, no recrea el nodo). NVDA/JAWS
- * reannuncian nativamente la descripción de un control enfocado cuando cambia,
- * así que `aria-live` sobra y, de hecho, duplica el anuncio en NVDA/JAWS y
- * rompe el `aria-describedby` en VoiceOver — mismo patrón que el error del
- * Input (ADR-019). Verificación manual con lector obligatoria antes de release
- * (SPEC §8.5).
+ * El estado de carga se anuncia con un `<span>` hermano con **`aria-live="polite"`,
+ * SIN `aria-describedby` en el `<button>`** (ADR-019, Regla 2: notificación
+ * transitoria de estado → solo aria-live). Su texto se interpola plano (muta in
+ * situ, no recrea el nodo). VoiceOver NO reanuncía `aria-describedby` cuando cambia
+ * el nodo descrito en caliente — `aria-live` es el único canal que VoiceOver honra
+ * para notificaciones live. Si el span estuviera también en `aria-describedby`, NVDA
+ * recibiría el anuncio dos veces (live + relectura nativa de la descripción). El
+ * `<span>` es HERMANO del `<button>` (no anidado: una descripción anidada en un
+ * control con nombre-por-contenido se computa como parte del nombre accesible, no
+ * como descripción independiente). Distinto del Input: su error es una descripción
+ * PERSISTENTE → describedby-solo, sin live region (ADR-019, Regla 1).
  */
 @Component({
   selector: 'aegis-button',
@@ -52,7 +52,6 @@ let nextSrId = 0;
       [attr.type]="type()"
       [attr.aria-label]="ariaLabel()"
       [attr.aria-labelledby]="ariaLabelledby()"
-      [attr.aria-describedby]="srId"
       aegisButton
       #brain="aegisButton"
       [disabled]="disabled()"
@@ -63,7 +62,9 @@ let nextSrId = 0;
       }
       <span class="aegis-btn__label"><ng-content /></span>
     </button>
-    <span class="aegis-btn__sr" [id]="srId">{{ brain.busy() ? loadingLabel() : '' }}</span>
+    <span class="aegis-btn__sr" [id]="srId" aria-live="polite">{{
+      brain.busy() ? loadingLabel() : ''
+    }}</span>
   `,
   styleUrl: './button.component.css',
 })
@@ -83,7 +84,7 @@ export class AegisButtonComponent {
   /** Tipo del `<button>` nativo. Default `button`: evita envíos accidentales. */
   readonly type = input<AegisButtonType>('button');
 
-  /** Texto que describe el estado de carga (vía `aria-describedby`). */
+  /** Texto anunciado por `aria-live` mientras `loading`. */
   readonly loadingLabel = input('Cargando…');
 
   /**
@@ -99,6 +100,6 @@ export class AegisButtonComponent {
     () => `aegis-btn aegis-btn--${this.variant()} aegis-btn--${this.size()}`,
   );
 
-  /** Id único del `<span>` de estado, para vincularlo al botón por `aria-describedby`. */
+  /** Id único del `<span>` aria-live de estado (hermano del botón). */
   protected readonly srId = `aegis-btn-sr-${nextSrId++}`;
 }
