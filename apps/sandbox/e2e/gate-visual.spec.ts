@@ -101,4 +101,32 @@ for (const theme of ['light', 'dark'] as const) {
     });
     expect(styles).toMatchSnapshot(`switch-styles-${theme}.txt`);
   });
+
+  test(`visual · Card real · ${theme}`, async ({ page }) => {
+    await applyTheme(page, theme);
+    const styles = await page.evaluate(() => {
+      const props = [
+        'color',
+        'background-color',
+        'border-top-color',
+        'border-top-width',
+        'border-top-left-radius',
+        'padding-top',
+        'padding-inline-start',
+        'box-shadow',
+        'overflow-x',
+      ] as const;
+      const scope = document.querySelector('[aria-label="Galería de la Card"]') ?? document;
+      return [...scope.querySelectorAll('[data-cell]')]
+        .map((el) => {
+          const cs = getComputedStyle(el);
+          const cell = el.getAttribute('data-cell') ?? '?';
+          const line = props.map((p) => `${p}=${cs.getPropertyValue(p)}`).join(' · ');
+          return `${cell}: ${line}`;
+        })
+        .sort()
+        .join('\n');
+    });
+    expect(styles).toMatchSnapshot(`card-styles-${theme}.txt`);
+  });
 }
