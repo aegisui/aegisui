@@ -23,3 +23,4 @@ por no entender para qué existe. Formato corto: Contexto / Decisión / Consecue
 | [017](ADR-017-storybook-vite-zoneless.md) | Storybook corre sobre `@storybook/angular-vite` (no la vía webpack, deprecada) |
 | [018](ADR-018-borde-separator-vs-strong-y-gate-de-borde.md) | `border.separator` (decorativo) vs `border.strong` (funcional, ≥3:1); el gate `contrast` empieza a verificar bordes |
 | [019](ADR-019-anuncio-de-estado-dinamico-describedby-estable-mas-alert-separado.md) | Error/estado de un control enfocable: solo `aria-describedby` + `aria-invalid`, SIN región live (NVDA reanuncia nativo; live duplica y rompe VoiceOver). Toast es otro caso |
+| [020](ADR-020-reconciliacion-asimetrica-y-contrato-pendiente.md) | El gate `contracts` reconcilia de verdad `packages/ui`; las dos direcciones son asimétricas (componente sin contrato = deuda, siempre falla; contrato huérfano = trabajo en curso, se DECLARA y el marcador caduca solo) |

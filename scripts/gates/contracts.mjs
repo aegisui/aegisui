@@ -12,7 +12,7 @@
 import { join } from 'node:path';
 import { existsSync } from 'node:fs';
 import { read, FIXTURES } from './lib/util.mjs';
-import { reconcile } from '../check-contracts.mjs';
+import { reconcile, violations } from '../check-contracts.mjs';
 
 const goodContractsDir = join(FIXTURES, 'good/docs/contracts');
 const goodCss = join(FIXTURES, 'good/src/lib/fixture-good/fixture-good.component.css');
@@ -20,46 +20,51 @@ const goodCss = join(FIXTURES, 'good/src/lib/fixture-good/fixture-good.component
 const tokensIn = (text) => new Set(text.match(/--aegis-[a-z0-9-]+/gi) ?? []);
 
 function goodViolations() {
-  const violations = [];
-  const { missingContract, orphanContract } = reconcile(
-    join(FIXTURES, 'good/src'),
-    goodContractsDir,
-  );
-  for (const n of missingContract) {
-    violations.push(`componente sin contrato: ${n}`);
+  const result = reconcile(join(FIXTURES, 'good/src'), goodContractsDir);
+  const found = violations(result);
+
+  // Salvaguarda anti-verde-falso: good/ incluye a propósito un contrato huérfano
+  // que SÍ declara "**Estado:** implementación pendiente" (el estado normal de
+  // SPEC §6 entre el PR del contrato y el de la implementación). Si esa
+  // excepción dejara de reconocerse, o si el fixture perdiera ese contrato, el
+  // canario ya no cubriría la asimetría de ADR-020.
+  if (!result.pendingContracts.has('fixture-good-pending')) {
+    found.push(
+      'el fixture good/ ha perdido su contrato pendiente (fixture-good-pending): ' +
+        'la excepción de ADR-020 se quedaría sin cobertura',
+    );
   }
-  for (const n of orphanContract) {
-    violations.push(`contrato sin componente: ${n}`);
-  }
+
   // Cobertura de tokens: todo --aegis-* del CSS debe estar en el contrato.
   const declared = tokensIn(read(join(goodContractsDir, 'fixture-good.md')));
   for (const token of tokensIn(read(goodCss))) {
     if (!declared.has(token)) {
-      violations.push(`token ${token} usado por el componente pero no declarado en su contrato`);
+      found.push(`token ${token} usado por el componente pero no declarado en su contrato`);
     }
   }
-  return violations;
+  return found;
 }
 
 function badViolations() {
-  // bad/ tiene componente (@Component aegis-fixture-bad) pero ningún contrato.
-  const { componentNames, missingContract, orphanContract } = reconcile(
-    join(FIXTURES, 'bad/src'),
-    join(FIXTURES, 'bad/docs/contracts'),
-  );
-  const violations = [];
-  for (const n of missingContract) {
-    violations.push(`componente sin contrato: ${n}`);
+  // bad/ rompe la reconciliación en las DOS direcciones (ADR-020):
+  //  - `aegis-fixture-bad` es un componente sin contrato (deuda).
+  //  - `fixture-bad-orphan.md` es un contrato sin componente que NO declara
+  //    estado pendiente (contrato muerto / marcador olvidado).
+  const result = reconcile(join(FIXTURES, 'bad/src'), join(FIXTURES, 'bad/docs/contracts'));
+  const found = violations(result);
+
+  // Salvaguarda anti-verde-falso: las dos direcciones tienen que seguir cazadas.
+  // Si alguien "arregla" el fixture, el gate deja de probar lo que dice probar.
+  if (result.componentNames.size === 0) {
+    found.push('no se encontró el componente de bad/: fixture mal montado');
   }
-  for (const n of orphanContract) {
-    violations.push(`contrato sin componente: ${n}`);
+  if (result.missingContract.length === 0) {
+    found.push('bad/ ya no tiene ningún componente sin contrato: dirección 1 sin cobertura');
   }
-  // Salvaguarda anti-verde-falso: si no encontró el componente, no hay nada que
-  // reconciliar y el fixture estaría mal montado.
-  if (componentNames.size === 0) {
-    violations.push('no se encontró el componente de bad/: fixture mal montado');
+  if (result.orphanUndeclared.length === 0) {
+    found.push('bad/ ya no tiene ningún contrato huérfano sin declarar: dirección 2 sin cobertura');
   }
-  return violations;
+  return found;
 }
 
 // Comprobación real "además de" los fixtures: cuando existan componentes en
@@ -68,23 +73,20 @@ export function realPackagesViolations() {
   if (!existsSync('packages/ui/src')) {
     return [];
   }
-  const { componentNames, missingContract, orphanContract } = reconcile(
-    'packages/ui/src',
-    'docs/contracts',
-  );
-  if (componentNames.size === 0) {
-    return []; // aún no hay componentes reales: los fixtures son el objetivo.
+  const result = reconcile('packages/ui/src', 'docs/contracts');
+  if (result.componentNames.size === 0 && result.contractNames.size === 0) {
+    return []; // aún no hay objetivos reales: los fixtures son el objetivo.
   }
-  return [
-    ...missingContract.map((n) => `[packages/ui] componente sin contrato: ${n}`),
-    ...orphanContract.map((n) => `[packages/ui] contrato sin componente: ${n}`),
-  ];
+  return violations({ ...result, prefix: '[packages/ui]' });
 }
 
 export default {
   id: 'contracts',
   phase: 3,
-  badExpectation: 'componente sin su contrato (correspondencia rota)',
+  badExpectation: 'componente sin contrato Y contrato huérfano sin declarar (ambas direcciones)',
   good: goodViolations,
   bad: badViolations,
+  // La línea que faltaba: sin esto, `run.mjs` nunca reconciliaba packages/ui y el
+  // gate pasaba en verde sin mirar los componentes reales (verde falso, SPEC §13).
+  realPackagesViolations,
 };
