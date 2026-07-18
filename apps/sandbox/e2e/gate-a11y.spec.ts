@@ -28,4 +28,14 @@ for (const theme of ['light', 'dark'] as const) {
 
     expect(results.violations, JSON.stringify(results.violations.map((v) => v.id))).toEqual([]);
   });
+
+  test(`a11y · Switch real · ${theme}`, async ({ page }) => {
+    await applyTheme(page, theme);
+    const results = await new AxeBuilder({ page })
+      .include('[aria-label="Galería del Switch"]')
+      .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'])
+      .analyze();
+
+    expect(results.violations, JSON.stringify(results.violations.map((v) => v.id))).toEqual([]);
+  });
 }

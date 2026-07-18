@@ -1,7 +1,5 @@
 # Contrato: Switch
 
-**Estado:** implementación pendiente
-
 > Tercero del set mínimo de la landing (Button ✓, Input ✓, **Switch**, Card,
 > Badge). Es el **único de los tres restantes con superficie real de
 > accesibilidad**, y aun así es mucho menor que la del Input: no tiene
@@ -89,6 +87,7 @@ Pista (track):
 - `--aegis-switch-track-bg`
 - `--aegis-switch-track-bg-checked`
 - `--aegis-switch-track-border-color`
+- `--aegis-switch-track-border-color-hover`
 - `--aegis-switch-track-border-width`
 - `--aegis-switch-track-inline-size`
 - `--aegis-switch-track-block-size`
@@ -100,6 +99,7 @@ Pulgar (thumb):
 - `--aegis-switch-thumb-bg-checked`
 - `--aegis-switch-thumb-size`
 - `--aegis-switch-thumb-inset`
+- `--aegis-switch-thumb-offset-rest`
 - `--aegis-switch-thumb-radius`
 
 Foco:
@@ -113,8 +113,11 @@ Etiqueta y área táctil:
 - `--aegis-switch-label-color`
 - `--aegis-switch-label-font-size`
 - `--aegis-switch-label-font-weight`
+- `--aegis-switch-label-line-height`
 - `--aegis-switch-label-gap`
 - `--aegis-switch-min-target-size`
+- `--aegis-switch-reset-padding`
+- `--aegis-switch-reset-border-width`
 
 Movimiento:
 
@@ -133,6 +136,7 @@ usa `destructive.*`: activar un interruptor no es una acción destructiva
 | `--aegis-switch-track-bg` (off) | `--aegis-color-surface-sunken` |
 | `--aegis-switch-track-bg-checked` | `--aegis-color-accent-solid` |
 | `--aegis-switch-track-border-color` | `--aegis-color-border-strong` |
+| `--aegis-switch-track-border-color-hover` | `--aegis-color-accent-border` |
 | `--aegis-switch-thumb-bg` (off) | `--aegis-color-border-strong` |
 | `--aegis-switch-thumb-bg-checked` | `--aegis-color-accent-on-solid` |
 | `--aegis-switch-focus-ring-color` | `--aegis-color-accent-ring` |
@@ -200,7 +204,20 @@ pero lo conserva transparente para que la geometría no salte entre estados.
 | `--aegis-switch-transition-easing` | `--aegis-motion-easing-standard` |
 | `--aegis-switch-label-font-size` | `--aegis-font-size-sm` (sm) · `--aegis-font-size-base` (md/lg) |
 | `--aegis-switch-label-font-weight` | `--aegis-font-weight-medium` |
+| `--aegis-switch-label-line-height` | `--aegis-font-leading-normal` |
 | `--aegis-switch-label-gap` | `--aegis-space-3` |
+| `--aegis-switch-thumb-offset-rest` | `--aegis-space-0` (posición de reposo del pulgar) |
+| `--aegis-switch-reset-padding` | `--aegis-space-0` (reset del `<button>`) |
+| `--aegis-switch-reset-border-width` | `--aegis-border-width-none` (reset del `<button>`) |
+
+> **Nota de implementación.** Los tres últimos (`thumb-offset-rest`,
+> `reset-padding`, `reset-border-width`) no estaban en la versión aprobada del
+> contrato: aparecieron al implementar, porque neutralizar el `padding` y el
+> `border` nativos del `<button>` y fijar la posición de reposo del pulgar
+> exigen un valor, y `no-literal-design-values` prohíbe escribir `0` a pelo. La
+> respuesta correcta es tokenizar (ADR-016 §3), no relajar la regla — así que se
+> declaran aquí. Lo cazó `tokens-declared-in-contract` en el primer lint, que es
+> exactamente su trabajo.
 
 **Toda la geometría cae en la escala de capa 1 ya existente — ni un primitivo
 nuevo, ni un literal.** La escala `space` es deliberadamente gruesa
@@ -209,13 +226,23 @@ no al revés:
 
 | Tamaño | Pista (inline × block) | Pulgar | Inset | Ratio |
 |---|---|---|---|---|
-| `sm` | 32 × 16 px | 8 px | 4 px | 2:1 |
-| `md` | 48 × 24 px | 16 px | 4 px | 2:1 |
-| `lg` | 64 × 32 px | 24 px | 4 px | 2:1 |
+| `sm` | 32 × 16 px | 6 px | 4 px | 2:1 |
+| `md` | 48 × 24 px | 14 px | 4 px | 2:1 |
+| `lg` | 64 × 32 px | 22 px | 4 px | 2:1 |
 
-El pulgar sale de `block − 2 × inset` en los tres casos, así que la relación es
-consistente y el recorrido del pulgar es `inline − block` sin ningún cálculo con
-literales. `--aegis-radius-full` (`9999px`) también existe ya.
+El pulgar **se deriva**, no se fija:
+`block − 2 × inset − 2 × ancho-de-borde`. El recorrido es `inline − block`, que
+encaja exacto precisamente por esa derivación, y no necesita ningún literal.
+
+> **Corrección durante la implementación.** La versión aprobada de este contrato
+> daba el pulgar como `block − 2 × inset` (8/16/24 px, peldaños de la escala
+> `space`), **olvidando el borde de 1 px de la pista**. Con esa medida el pulgar
+> quedaba 2 px más alto que la caja de contenido y flex lo **encogía en
+> horizontal sin avisar**: salía ovalado (22×24 en `lg`) en vez de redondo. Lo
+> cazó el snapshot del gate `visual` al **mirarlo** — ningún test lo habría dicho,
+> porque el error era una deformación coherente en los tres tamaños. Los valores
+> reales son 6/14/22 px, y ahora el CSS los **calcula** en vez de afirmarlos, así
+> que no pueden volver a desincronizarse de la pista.
 
 ## Estados
 

@@ -1,0 +1,195 @@
+/*
+ * Capa 3 del Switch (LOCAL al componente, ADR-016). Dos rieles:
+ *   - COLOR      -> capa 2 (--aegis-color-*), que ya resuelve el tema por sí sola.
+ *   - ESTRUCTURA -> capa 1 (--aegis-space/radius/font/motion/border-width/focus-ring).
+ * Cero literales: cualquier valor es var(--aegis-*). El tema no se decide aquí.
+ *
+ * El Switch es una SUPERFICIE DE ACCIÓN (lo pulsas): mapea a accent.*, nunca a
+ * state.* (ADR-014, "jade es lo que pulsas, el estado es lo que lees") ni a
+ * destructive.* (activar un interruptor no destruye nada, ADR-015).
+ *
+ * DOS DECISIONES DE CONTRASTE QUE SALIERON DE VERIFICAR, no de estilo
+ * (docs/contracts/switch.md §Riel de color):
+ *
+ *   1. El PULGAR ES BICOLOR. Un pulgar blanco sobre la pista apagada da 1.16:1
+ *      en tema claro y 1.25:1 en el oscuro: falla 1.4.11. El pulgar comunica el
+ *      estado por posición, así que si se funde con la pista apagada el estado
+ *      "off" deja de percibirse. Off -> border-strong (3.89/5.65); on ->
+ *      accent.on-solid (5.09/9.57).
+ *   2. La PISTA APAGADA LLEVA BORDE OBLIGATORIO. Su relleno (surface.sunken) da
+ *      1.16:1 contra el lienzo: el BORDE (border-strong, 4.52/7.09), no el
+ *      relleno, es su señal de límite.
+ */
+
+:host {
+  display: inline-flex;
+  align-items: start;
+  gap: var(--aegis-switch-label-gap);
+
+  /* El gap vive en el host (separa pista y etiqueta), así que su token también. */
+  --aegis-switch-label-gap: var(--aegis-space-3);
+}
+
+.aegis-switch {
+  /* --- Estructura (riel capa 1); las medidas por tamaño se sobreescriben abajo --- */
+  --aegis-switch-track-inline-size: var(--aegis-space-7);
+  --aegis-switch-track-block-size: var(--aegis-space-5);
+  --aegis-switch-thumb-inset: var(--aegis-space-1);
+
+  /* El pulgar se DERIVA de la caja de contenido de la pista, no se afirma: es
+   * `block - 2*inset - 2*borde`. Fijarlo a un peldaño de la escala (space-5 en
+   * `lg`, p. ej.) lo dejaba 2px MÁS ALTO que el contenido de la pista, y flex lo
+   * encogía en horizontal sin avisar: el pulgar salía ovalado (22x24) en vez de
+   * redondo. Lo cazó el snapshot del gate `visual` al mirarlo.
+   * Se resta término a término (no `2 *`) para no introducir un literal. */
+  --aegis-switch-thumb-size: calc(
+    var(--aegis-switch-track-block-size) - var(--aegis-switch-thumb-inset) -
+      var(--aegis-switch-thumb-inset) - var(--aegis-switch-track-border-width) -
+      var(--aegis-switch-track-border-width)
+  );
+  --aegis-switch-track-border-width: var(--aegis-border-width-hairline);
+  --aegis-switch-track-radius: var(--aegis-radius-full);
+  --aegis-switch-thumb-radius: var(--aegis-radius-full);
+  --aegis-switch-min-target-size: var(--aegis-space-5);
+  --aegis-switch-reset-padding: var(--aegis-space-0);
+  --aegis-switch-reset-border-width: var(--aegis-border-width-none);
+  --aegis-switch-thumb-offset-rest: var(--aegis-space-0);
+  --aegis-switch-focus-ring-width: var(--aegis-focus-ring-width);
+  --aegis-switch-focus-ring-offset: var(--aegis-focus-ring-offset);
+  --aegis-switch-transition-duration: var(--aegis-motion-duration-fast);
+  --aegis-switch-transition-easing: var(--aegis-motion-easing-standard);
+
+  /* --- Color (riel capa 2) --- */
+  --aegis-switch-track-bg: var(--aegis-color-surface-sunken);
+  --aegis-switch-track-bg-checked: var(--aegis-color-accent-solid);
+  --aegis-switch-track-border-color: var(--aegis-color-border-strong);
+  --aegis-switch-track-border-color-hover: var(--aegis-color-accent-border);
+  --aegis-switch-thumb-bg: var(--aegis-color-border-strong);
+  --aegis-switch-thumb-bg-checked: var(--aegis-color-accent-on-solid);
+  --aegis-switch-focus-ring-color: var(--aegis-color-accent-ring);
+
+  /* --- Consumo ---
+   * El objetivo táctil (2.5.8) es el <button>, no la pista pintada: en `sm` la
+   * pista mide menos de 24px y es el min-*-size de aquí lo que garantiza el
+   * suelo. El gate target-size mide el bounding box de este elemento. */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-inline-size: var(--aegis-switch-min-target-size);
+  min-block-size: var(--aegis-switch-min-target-size);
+  padding: var(--aegis-switch-reset-padding);
+  border: var(--aegis-switch-reset-border-width) solid transparent;
+  background: none;
+  cursor: pointer;
+}
+
+.aegis-switch__track {
+  display: inline-flex;
+  align-items: center;
+  inline-size: var(--aegis-switch-track-inline-size);
+  block-size: var(--aegis-switch-track-block-size);
+  padding: var(--aegis-switch-thumb-inset);
+  border: var(--aegis-switch-track-border-width) solid var(--aegis-switch-track-border-color);
+  border-radius: var(--aegis-switch-track-radius);
+  background: var(--aegis-switch-track-bg);
+  transition: background-color var(--aegis-switch-transition-duration)
+    var(--aegis-switch-transition-easing);
+}
+
+.aegis-switch__thumb {
+  flex: none;
+  inline-size: var(--aegis-switch-thumb-size);
+  block-size: var(--aegis-switch-thumb-size);
+  border-radius: var(--aegis-switch-thumb-radius);
+  background: var(--aegis-switch-thumb-bg);
+  /* Propiedad lógica: en RTL el pulgar viaja de derecha a izquierda solo. */
+  margin-inline-start: var(--aegis-switch-thumb-offset-rest);
+  transition:
+    margin-inline-start var(--aegis-switch-transition-duration)
+      var(--aegis-switch-transition-easing),
+    background-color var(--aegis-switch-transition-duration) var(--aegis-switch-transition-easing);
+}
+
+/* --- Estado ON ---
+ * El recorrido del pulgar es `inline - block` (la pista menos el alto), que sale
+ * exacto en los tres tamaños precisamente porque el pulgar se deriva de la caja
+ * de contenido de la pista. Sin literales. */
+.aegis-switch[aria-checked='true'] .aegis-switch__track {
+  border-color: var(--aegis-switch-track-bg-checked);
+  background: var(--aegis-switch-track-bg-checked);
+}
+
+.aegis-switch[aria-checked='true'] .aegis-switch__thumb {
+  margin-inline-start: calc(
+    var(--aegis-switch-track-inline-size) - var(--aegis-switch-track-block-size)
+  );
+  background: var(--aegis-switch-thumb-bg-checked);
+}
+
+/* --- Hover: refuerzo, nunca única señal --- */
+.aegis-switch:hover:not(:disabled) .aegis-switch__track {
+  border-color: var(--aegis-switch-track-border-color-hover);
+}
+
+/* --- Foco: anillo sobre el <button>, nunca `outline: none` huérfano --- */
+.aegis-switch:focus-visible {
+  outline: var(--aegis-switch-focus-ring-width) solid var(--aegis-switch-focus-ring-color);
+  outline-offset: var(--aegis-switch-focus-ring-offset);
+}
+
+/* --- Deshabilitado: exento de contraste; el borde pasa a decorativo (ADR-018) --- */
+.aegis-switch:disabled {
+  --aegis-switch-track-border-color: var(--aegis-color-border-separator);
+  --aegis-switch-thumb-bg: var(--aegis-color-text-muted);
+  --aegis-switch-thumb-bg-checked: var(--aegis-color-text-muted);
+
+  cursor: not-allowed;
+}
+
+.aegis-switch:disabled .aegis-switch__thumb {
+  background: var(--aegis-switch-thumb-bg);
+}
+
+/* --- Tamaños (geometría elegida para caer en la escala space existente) ---
+ * sm 32x16 (pulgar 6) · md 48x24 (pulgar 14) · lg 64x32 (pulgar 22), ratio 2:1.
+ * Solo se fija la PISTA: el pulgar se deriva de ella (ver arriba). */
+.aegis-switch--sm {
+  --aegis-switch-track-inline-size: var(--aegis-space-6);
+  --aegis-switch-track-block-size: var(--aegis-space-4);
+}
+
+.aegis-switch--lg {
+  --aegis-switch-track-inline-size: var(--aegis-space-8);
+  --aegis-switch-track-block-size: var(--aegis-space-6);
+}
+
+.aegis-switch__label {
+  color: var(--aegis-switch-label-color);
+  font-size: var(--aegis-switch-label-font-size);
+  font-weight: var(--aegis-switch-label-font-weight);
+  line-height: var(--aegis-switch-label-line-height);
+  cursor: pointer;
+
+  --aegis-switch-label-line-height: var(--aegis-font-leading-normal);
+  --aegis-switch-label-color: var(--aegis-color-text-strong);
+  --aegis-switch-label-font-size: var(--aegis-font-size-base);
+  --aegis-switch-label-font-weight: var(--aegis-font-weight-medium);
+}
+
+:host(:has(.aegis-switch--sm)) .aegis-switch__label {
+  --aegis-switch-label-font-size: var(--aegis-font-size-sm);
+}
+
+:host(:has(.aegis-switch:disabled)) .aegis-switch__label {
+  --aegis-switch-label-color: var(--aegis-color-text-muted);
+
+  cursor: not-allowed;
+}
+
+/* --- Reduced motion: el pulgar SALTA a su posición, no se anima (mismo estado final) --- */
+@media (prefers-reduced-motion: reduce) {
+  .aegis-switch__track,
+  .aegis-switch__thumb {
+    transition: none;
+  }
+}

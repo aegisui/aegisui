@@ -13,6 +13,7 @@ import { ButtonGalleryComponent } from './button-gallery.component';
 import { ButtonA11yManualComponent } from './button-a11y-manual.component';
 import { InputGalleryComponent } from './input-gallery.component';
 import { InputA11yManualComponent } from './input-a11y-manual.component';
+import { SwitchGalleryComponent } from './switch-gallery.component';
 
 type Theme = 'light' | 'dark';
 
@@ -46,6 +47,7 @@ interface Preset {
     ButtonA11yManualComponent,
     InputGalleryComponent,
     InputA11yManualComponent,
+    SwitchGalleryComponent,
   ],
   styleUrl: './app.component.css',
   template: `
@@ -184,6 +186,17 @@ interface Preset {
           existe para resolver y que ningún gate automático puede confirmar.
         </p>
         <aegis-input-a11y-manual />
+      </section>
+
+      <section class="panel" aria-labelledby="switch-title">
+        <h2 id="switch-title">Switch (Fase 4)</h2>
+        <p class="muted">
+          Tercer componente del set mínimo. El pulgar es bicolor y la pista apagada lleva borde
+          obligatorio: las dos cosas salieron de verificar contraste, no de estilo. La galería
+          incluye los cuatro cruces de checked × disabled precisamente para que el gate
+          <code>contrast</code> mida el pulgar contra su pista en los dos estados.
+        </p>
+        <aegis-switch-gallery />
       </section>
     </main>
   `,
