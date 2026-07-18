@@ -244,6 +244,33 @@ Un solo comando: `nx build tokens`.
 El contrato vive en `docs/contracts/<component>.md` y es la fuente de la que se
 derivan: implementación, tests, story y documentación.
 
+### Ciclo de vida del contrato (ADR-020)
+
+El contrato se aprueba **en un PR aparte, antes de escribir código** — ese es el
+motivo de existir de esta sección: revisar API y accesibilidad **antes** de que
+haya implementación que defender.
+
+Eso significa que **todo contrato nace huérfano** (existe sin su componente), y
+el gate `contracts` lo contempla explícitamente. Las dos direcciones de la
+reconciliación **no son simétricas**:
+
+| Estado | Veredicto del gate |
+|---|---|
+| Componente **sin** contrato | ❌ Siempre falla. Es deuda: código que se adelantó a su revisión. |
+| Contrato **sin** componente, declarado pendiente | ✅ Pasa. Es trabajo en curso, el estado normal entre los dos PR. |
+| Contrato **sin** componente, **sin** declarar | ❌ Falla. Contrato muerto o marcador olvidado. |
+| Contrato pendiente cuyo componente **ya existe** | ❌ Falla. El marcador caduca solo: implementar obliga a retirarlo. |
+
+**PR 1 — contrato.** El contrato incluye, cerca del principio, la línea:
+
+```markdown
+**Estado:** implementación pendiente
+```
+
+**PR 2 — implementación.** Retirar esa línea es **parte del checklist**: si se
+queda, CI falla. Así la excepción no puede pudrirse en el repo y el raíl sigue
+bloqueando (nunca avisando — ver CLAUDE.md).
+
 ### Plantilla
 
 ```markdown

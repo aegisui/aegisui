@@ -31,9 +31,22 @@ export function walk(dir, test) {
 }
 
 /**
+ * Marca que un contrato aprobado declara, de forma legible por máquina, que su
+ * implementación aún no existe. Es el estado NORMAL entre el PR del contrato y
+ * el PR de la implementación (SPEC §6: el contrato se aprueba ANTES de escribir
+ * código, así que todo contrato nace huérfano).
+ *
+ * No es un "warn" encubierto: declararlo es obligatorio para que el huérfano
+ * pase, y el propio marcador se vuelve una violación en cuanto el componente
+ * existe (`stalePending`). No puede pudrirse en el repo.
+ */
+export const PENDING_MARKER = /^\s*>?\s*\*\*Estado:\*\*\s*implementación pendiente\s*$/im;
+
+/**
  * Reconcilia los componentes `aegis-*` de `uiSrc` con los contratos `.md` de
- * `contractsDir`. Devuelve los nombres y los desajustes en las dos direcciones.
- * No decide política (vacío = fallo): eso lo hace cada llamante.
+ * `contractsDir`. Devuelve los nombres y los desajustes en las dos direcciones,
+ * más la clasificación de los huérfanos según declaren o no estado pendiente.
+ * No decide política: eso lo hace `violations()`.
  */
 export function reconcile(uiSrc, contractsDir) {
   const componentNames = new Set();
@@ -47,24 +60,80 @@ export function reconcile(uiSrc, contractsDir) {
   }
 
   const contractNames = new Set();
+  const pendingContracts = new Set();
   if (existsSync(contractsDir)) {
     for (const entry of readdirSync(contractsDir)) {
       if (entry.endsWith('.md')) {
-        contractNames.add(entry.replace(/\.md$/, ''));
+        const name = entry.replace(/\.md$/, '');
+        contractNames.add(name);
+        if (PENDING_MARKER.test(readFileSync(join(contractsDir, entry), 'utf8'))) {
+          pendingContracts.add(name);
+        }
       }
     }
   }
 
   const missingContract = [...componentNames].filter((n) => !contractNames.has(n)).sort();
   const orphanContract = [...contractNames].filter((n) => !componentNames.has(n)).sort();
-  return { componentNames, contractNames, missingContract, orphanContract };
+  // Huérfano SIN declarar estado pendiente: contrato muerto o marcador olvidado.
+  const orphanUndeclared = orphanContract.filter((n) => !pendingContracts.has(n));
+  // El marcador sobrevivió a su propia implementación: hay que retirarlo.
+  const stalePending = [...pendingContracts].filter((n) => componentNames.has(n)).sort();
+
+  return {
+    componentNames,
+    contractNames,
+    pendingContracts,
+    missingContract,
+    orphanContract,
+    orphanUndeclared,
+    stalePending,
+  };
+}
+
+/**
+ * POLÍTICA ÚNICA del gate `contracts`, compartida por sus tres llamantes
+ * (`check-contracts.mjs` como CLI, el gate sobre `packages/ui`, y el canario de
+ * fixtures good/bad). Una sola función para que no puedan divergir.
+ *
+ * Las dos direcciones NO son simétricas, y esa asimetría es la decisión de
+ * ADR-020:
+ *
+ *  - **componente sin contrato** -> SIEMPRE violación. Es lo que protege el
+ *    invariante de SPEC §6 ("ningún componente se implementa sin contrato
+ *    aprobado"): código que se adelantó a su contrato. Es DEUDA.
+ *  - **contrato sin componente** -> violación SALVO que el contrato declare
+ *    `**Estado:** implementación pendiente`. Es TRABAJO EN CURSO: el estado
+ *    normal y transitorio entre el PR del contrato y el de la implementación.
+ *  - **marcador obsoleto** (contrato pendiente cuyo componente YA existe) ->
+ *    SIEMPRE violación. Es lo que impide que la excepción se pudra: implementar
+ *    obliga a retirar el marcador, así que ningún contrato puede quedarse
+ *    "pendiente" para siempre y silenciar el raíl.
+ *
+ * Sigue siendo un raíl que BLOQUEA, no un aviso (CLAUDE.md): declarar el estado
+ * es obligatorio y verificado, y la declaración caduca sola.
+ */
+export function violations({ prefix = '', ...r }) {
+  const p = prefix ? `${prefix} ` : '';
+  return [
+    ...r.missingContract.map((n) => `${p}componente sin contrato: ${n}`),
+    ...r.orphanUndeclared.map(
+      (n) =>
+        `${p}contrato sin componente: ${n} (si la implementación está pendiente, ` +
+        `declara "**Estado:** implementación pendiente" en el contrato; si el ` +
+        `componente ya no existe, borra el contrato)`,
+    ),
+    ...r.stalePending.map(
+      (n) =>
+        `${p}contrato ${n} sigue declarando "**Estado:** implementación pendiente" ` +
+        `pero su componente YA existe: retira el marcador`,
+    ),
+  ];
 }
 
 function main() {
-  const { componentNames, contractNames, missingContract, orphanContract } = reconcile(
-    'packages/ui/src',
-    'docs/contracts',
-  );
+  const result = reconcile('packages/ui/src', 'docs/contracts');
+  const { componentNames, contractNames, pendingContracts } = result;
 
   if (componentNames.size === 0 && contractNames.size === 0) {
     console.error(
@@ -76,20 +145,18 @@ function main() {
     process.exit(1);
   }
 
-  if (missingContract.length > 0 || orphanContract.length > 0) {
-    if (missingContract.length > 0) {
-      console.error(
-        `❌ contracts: componentes sin contrato (docs/contracts/<name>.md): ${missingContract.join(', ')}`,
-      );
-    }
-    if (orphanContract.length > 0) {
-      console.error(`❌ contracts: contratos sin componente: ${orphanContract.join(', ')}`);
+  const found = violations(result);
+  if (found.length > 0) {
+    console.error('❌ contracts: reconciliación contrato<->componente rota:');
+    for (const v of found) {
+      console.error(`   - ${v}`);
     }
     process.exit(1);
   }
 
+  const pending = pendingContracts.size > 0 ? ` (${pendingContracts.size} pendiente(s))` : '';
   console.log(
-    `✅ contracts: ${componentNames.size} componentes <-> ${contractNames.size} contratos, consistentes.`,
+    `✅ contracts: ${componentNames.size} componentes <-> ${contractNames.size} contratos, consistentes${pending}.`,
   );
 }
 
