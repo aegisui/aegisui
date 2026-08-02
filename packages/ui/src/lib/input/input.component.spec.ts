@@ -3,7 +3,13 @@ import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
 import { render, screen } from '@testing-library/angular';
 import userEvent from '@testing-library/user-event';
 import axe from 'axe-core';
-import { AegisInputComponent, type AegisInputSize, type AegisInputType } from './input.component';
+import {
+  AegisInputComponent,
+  type AegisInputLabelFloatStyle,
+  type AegisInputLabelMode,
+  type AegisInputSize,
+  type AegisInputType,
+} from './input.component';
 
 /** Host de pruebas: el consumidor controla todos los inputs vía signals. */
 @Component({
@@ -22,6 +28,8 @@ import { AegisInputComponent, type AegisInputSize, type AegisInputType } from '.
     [errorMessage]="errorMessage()"
     [helpText]="helpText()"
     [size]="size()"
+    [labelMode]="labelMode()"
+    [labelFloatStyle]="labelFloatStyle()"
   />`,
 })
 class HostComponent {
@@ -36,6 +44,8 @@ class HostComponent {
   readonly errorMessage = signal<string | undefined>(undefined);
   readonly helpText = signal<string | undefined>(undefined);
   readonly size = signal<AegisInputSize>('md');
+  readonly labelMode = signal<AegisInputLabelMode>('stacked');
+  readonly labelFloatStyle = signal<AegisInputLabelFloatStyle>('inset');
 }
 
 async function setup() {
@@ -296,5 +306,136 @@ describe('AegisInputComponent', () => {
     expect(input().getAttribute('aria-invalid')).toBe('true');
     expect(input().disabled).toBe(true);
     expect(await axeViolations(container)).toEqual([]);
+  });
+
+  // --- Floating label (labelMode / labelFloatStyle) ----------------------------
+  // Los tests de jsdom no verifican posición visual (sin layout engine), pero
+  // sí verifican: clases CSS correctas, DOM esperado, invariantes de a11y y la
+  // relación label/input idéntica a stacked.
+
+  it('[AC-F1] labelMode=stacked (default): comportamiento inalterado — label encima, sin clases floating', async () => {
+    const { container, input } = await setup();
+    expect(input()).not.toHaveClass('aegis-input--floating');
+    const label = container.querySelector('label');
+    // En stacked, el label es hermano anterior del input (no hay wrapper)
+    expect(label?.nextElementSibling?.tagName).toBe('INPUT');
+  });
+
+  it('[AC-F2] labelMode=floating: el input tiene las clases aegis-input--floating y aegis-input--float-inset', async () => {
+    const { host, flush, input } = await setup();
+    host.labelMode.set('floating');
+    flush();
+    expect(input()).toHaveClass('aegis-input--floating');
+    expect(input()).toHaveClass('aegis-input--float-inset');
+  });
+
+  it('[AC-F3] labelMode=floating: el input va ANTES que el label (hermanos dentro de float-wrapper)', async () => {
+    const { host, flush, container } = await setup();
+    host.labelMode.set('floating');
+    flush();
+    const wrapper = container.querySelector('.aegis-input__float-wrapper');
+    expect(wrapper).not.toBeNull();
+    const children = Array.from(wrapper!.children);
+    const inputIdx = children.findIndex((el) => el.tagName === 'INPUT');
+    const labelIdx = children.findIndex((el) => el.tagName === 'LABEL');
+    expect(inputIdx).toBeGreaterThanOrEqual(0);
+    expect(labelIdx).toBeGreaterThan(inputIdx);
+  });
+
+  it('[AC-F4] labelMode=floating: la relación <label for>/id del input es idéntica a stacked — el AT no percibe diferencia', async () => {
+    const { host, flush, input, container } = await setup();
+
+    // stacked: el label apunta al id del input
+    const labelStacked = container.querySelector('label');
+    expect(labelStacked?.getAttribute('for')).toBe(input().id);
+
+    // floating: mismo label for → mismo id del input (solo cambia la posición visual)
+    host.labelMode.set('floating');
+    flush();
+    const labelFloat = container.querySelector('.aegis-input__label--float');
+    expect(labelFloat?.getAttribute('for')).toBe(input().id);
+  });
+
+  it('[AC-F5] labelMode=floating: nombre accesible del input sigue siendo el texto de label', async () => {
+    const { host, flush, input } = await setup();
+    host.labelMode.set('floating');
+    flush();
+    expect(input()).toHaveAccessibleName('Correo');
+  });
+
+  it('[AC-F6] labelMode=floating con labelFloatStyle=notched: el input tiene la clase aegis-input--float-notched', async () => {
+    const { host, flush, input } = await setup();
+    host.labelMode.set('floating');
+    host.labelFloatStyle.set('notched');
+    flush();
+    expect(input()).toHaveClass('aegis-input--floating');
+    expect(input()).toHaveClass('aegis-input--float-notched');
+  });
+
+  it('[AC-F7] labelMode=floating: 0 violaciones axe en cada labelFloatStyle (inset y notched)', async () => {
+    const { host, flush, container } = await setup();
+    host.labelMode.set('floating');
+    flush();
+    expect(await axeViolations(container), 'floating inset').toEqual([]);
+
+    host.labelFloatStyle.set('notched');
+    flush();
+    expect(await axeViolations(container), 'floating notched').toEqual([]);
+  });
+
+  it('[AC-F8] labelMode=floating: 0 violaciones axe en los 3 tamaños', async () => {
+    const { host, flush, container } = await setup();
+    host.labelMode.set('floating');
+    for (const s of ['sm', 'md', 'lg'] as const) {
+      host.size.set(s);
+      flush();
+      expect(await axeViolations(container), `floating ${s}`).toEqual([]);
+    }
+  });
+
+  it('[AC-F9] labelMode=floating: 0 violaciones axe en disabled, readonly e invalid', async () => {
+    const { host, flush, container } = await setup();
+    host.labelMode.set('floating');
+    flush();
+
+    host.disabled.set(true);
+    flush();
+    expect(await axeViolations(container), 'floating disabled').toEqual([]);
+    host.disabled.set(false);
+
+    host.readonly.set(true);
+    flush();
+    expect(await axeViolations(container), 'floating readonly').toEqual([]);
+    host.readonly.set(false);
+
+    host.invalid.set(true);
+    host.errorMessage.set('Error de formato');
+    flush();
+    expect(await axeViolations(container), 'floating invalid').toEqual([]);
+  });
+
+  it('[AC-F10] labelMode=floating: el placeholder real pasa al input; sin placeholder, se pasa un espacio (habilita :placeholder-shown)', async () => {
+    const { host, flush, input } = await setup();
+    host.labelMode.set('floating');
+    flush();
+    // Sin placeholder del consumidor: espacio para detectar campo vacío
+    expect(input().placeholder).toBe(' ');
+
+    host.placeholder.set('tu@empresa.com');
+    flush();
+    expect(input().placeholder).toBe('tu@empresa.com');
+  });
+
+  it('[AC-F11] labelMode=stacked (default): el span de error y aria-describedby siguen estables (sin regresión)', async () => {
+    const { host, flush, input, container } = await setup();
+    // Asegura que el modo stacked por defecto no rompe ningún AC existente
+    expect(input().getAttribute('aria-describedby')).not.toBeNull();
+    expect(container.querySelector('.aegis-input__error')).not.toBeNull();
+
+    host.invalid.set(true);
+    host.errorMessage.set('Formato incorrecto');
+    flush();
+    expect(input().getAttribute('aria-invalid')).toBe('true');
+    expect(container.querySelector('[role="alert"]')).toBeNull();
   });
 });

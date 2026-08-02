@@ -11,6 +11,8 @@ import { AegisInput } from '@aegisui/cdk';
 
 export type AegisInputType = 'text' | 'email' | 'password' | 'search' | 'tel' | 'url' | 'number';
 export type AegisInputSize = 'sm' | 'md' | 'lg';
+export type AegisInputLabelMode = 'stacked' | 'floating';
+export type AegisInputLabelFloatStyle = 'inset' | 'notched';
 
 let nextId = 0;
 
@@ -18,21 +20,18 @@ let nextId = 0;
  * `<aegis-input>` — piel estilada sobre el brain `AegisInput` de `@aegisui/cdk`
  * (ADR-002, brain/skin). API signals-only, OnPush, standalone.
  *
- * Renderiza un `<label>` **y** un `<input>` nativos reales (contrato
- * §Selector). El componente POSEE la relación `for`/`id` entre ambos — no la
- * delega al consumidor — precisamente para que sea verificable en CI (contrato
- * §Accesibilidad, «el corazón de la a11y de un input»): el consumidor solo
- * aporta el *texto* de la etiqueta.
+ * Renderiza un `<label>` **y** un `<input>` nativos reales (contrato §Selector).
+ * El componente POSEE la relación `for`/`id` entre ambos — no la delega al
+ * consumidor — para que sea verificable en CI: el consumidor solo aporta el
+ * *texto* de la etiqueta.
  *
- * El mensaje de error se anuncia con **`aria-describedby` + `aria-invalid` y
- * nada más** (ADR-019): un único `<span>` visible, siempre presente (vacío
- * cuando no hay error), enlazado por `aria-describedby`. SIN `role="alert"`,
- * SIN `aria-live`. NVDA/JAWS reannuncian nativamente el texto de la descripción
- * de un campo enfocado cuando cambia; añadir una región live lo duplica en
- * NVDA/JAWS y rompe la relación `aria-describedby` en VoiceOver (cuatro fuentes
- * convergen: GOV.UK, Adrian Roselli, David MacDonald, React Aria — ver
- * ADR-019). Verificación manual con lector obligatoria antes de release (SPEC
- * §8.5): visible al aparecer, una lectura, reanuncio actualizado al reenfocar.
+ * Error: solo `aria-describedby` + `aria-invalid`, sin región live (ADR-019).
+ * NVDA/JAWS reannuncian nativamente la descripción del campo enfocado; añadir
+ * aria-live lo duplica en NVDA/JAWS y rompe describedby en VoiceOver.
+ *
+ * `labelMode='floating'`: etiqueta dentro del campo en reposo, elevada al
+ * enfocar / rellenar / autocompletar, exclusivamente por CSS (contrato §Autofill).
+ * La relación label/input no cambia entre modos — el AT no percibe diferencia.
  */
 @Component({
   selector: 'aegis-input',
@@ -41,32 +40,59 @@ let nextId = 0;
   // El `id` del host se anula: el que importa es el del `<input>` interno (que
   // el `<label for>` referencia). Sin esto, un `id` estático en `<aegis-input
   // id="...">` quedaría duplicado en el DOM (host + input interno).
-  host: {
-    '[attr.id]': 'null',
-  },
+  host: { '[attr.id]': 'null' },
   template: `
-    <label [for]="resolvedId()" class="aegis-input__label">
-      {{ label() }}
-      @if (required()) {
-        <span class="aegis-input__required" aria-hidden="true">*</span>
-      }
-    </label>
-    <input
-      aegisInput
-      #brain="aegisInput"
-      [class]="classes()"
-      [attr.type]="type()"
-      [attr.placeholder]="placeholder()"
-      [id]="resolvedId()"
-      [disabled]="disabled()"
-      [readonly]="readonly()"
-      [required]="required()"
-      [invalid]="invalid()"
-      [helpId]="helpId()"
-      [errorId]="errorId()"
-      [value]="value()"
-      (input)="onInput($event)"
-    />
+    @if (labelMode() === 'stacked') {
+      <!-- STACKED (default): estructura original inalterada — label encima del input -->
+      <label [for]="resolvedId()" class="aegis-input__label">
+        {{ label() }}
+        @if (required()) {
+          <span class="aegis-input__required" aria-hidden="true">*</span>
+        }
+      </label>
+      <input
+        aegisInput
+        [class]="classes()"
+        [attr.type]="type()"
+        [attr.placeholder]="placeholder()"
+        [id]="resolvedId()"
+        [disabled]="disabled()"
+        [readonly]="readonly()"
+        [required]="required()"
+        [invalid]="invalid()"
+        [helpId]="helpId()"
+        [errorId]="errorId()"
+        [value]="value()"
+        (input)="onInput($event)"
+      />
+    } @else {
+      <!-- FLOATING: wrapper provee position:relative y :focus-within.
+           El input va ANTES que la etiqueta como hermano para que los selectores
+           CSS sibling (~) puedan apuntar al label desde el estado del input. -->
+      <div class="aegis-input__float-wrapper">
+        <input
+          aegisInput
+          [class]="classes()"
+          [attr.type]="type()"
+          [attr.placeholder]="floatPlaceholder()"
+          [id]="resolvedId()"
+          [disabled]="disabled()"
+          [readonly]="readonly()"
+          [required]="required()"
+          [invalid]="invalid()"
+          [helpId]="helpId()"
+          [errorId]="errorId()"
+          [value]="value()"
+          (input)="onInput($event)"
+        />
+        <label [for]="resolvedId()" class="aegis-input__label aegis-input__label--float">
+          {{ label() }}
+          @if (required()) {
+            <span class="aegis-input__required" aria-hidden="true">*</span>
+          }
+        </label>
+      </div>
+    }
     @if (helpText()) {
       <span class="aegis-input__help" [id]="helpId()">{{ helpText() }}</span>
     }
@@ -102,10 +128,41 @@ export class AegisInputComponent {
 
   readonly size = input<AegisInputSize>('md');
 
-  /** `id` propio del campo; si no se aporta, se autogenera (ver `resolvedId`). */
+  /**
+   * Modo de presentación de la etiqueta. `'stacked'` (default) = etiqueta encima
+   * del campo. `'floating'` = etiqueta dentro del campo en reposo, elevada al
+   * enfocar / rellenar / autocompletar. Retrocompatible: ningún consumidor
+   * existente cambia de comportamiento.
+   */
+  readonly labelMode = input<AegisInputLabelMode>('stacked');
+
+  /**
+   * Solo con `labelMode='floating'`. `'inset'` (default) = la etiqueta flotada
+   * permanece dentro del borde. `'notched'` = la etiqueta flota sobre el borde
+   * superior, cortándolo visualmente (estilo Material).
+   */
+  readonly labelFloatStyle = input<AegisInputLabelFloatStyle>('inset');
+
+  /** `id` propio del campo; si no se aporta, se autogenera. */
   readonly id = input<string | undefined>(undefined);
 
-  protected readonly classes = computed(() => `aegis-input aegis-input--${this.size()}`);
+  protected readonly classes = computed(() => {
+    const base = `aegis-input aegis-input--${this.size()}`;
+    if (this.labelMode() !== 'floating') {
+      return base;
+    }
+    return `${base} aegis-input--floating aegis-input--float-${this.labelFloatStyle()}`;
+  });
+
+  /**
+   * Placeholder que llega al `<input>` en modo floating: si el consumidor pasó
+   * uno propio, se usa. Si no, se pasa un espacio para habilitar
+   * `:placeholder-shown` como detector de campo vacío (sin espacio, el selector
+   * no podría distinguir vacío de relleno cuando no hay placeholder visible).
+   */
+  protected readonly floatPlaceholder = computed(
+    () => this.placeholder() ?? ' ',
+  );
 
   /** Id estable por instancia, usado solo si el consumidor no aporta el suyo. */
   private readonly autoId = `aegis-input-${nextId++}`;
@@ -121,9 +178,9 @@ export class AegisInputComponent {
   protected readonly errorId = computed(() => `${this.resolvedId()}-error`);
 
   /** Texto del `<span>` de error: el mensaje cuando `invalid`, o `''`.
-   * Interpolación plana en el template (no `@if` alrededor del texto): muta el
-   * nodo de texto in situ en vez de recrearlo — más limpio y sin sorpresas de
-   * reannuncio si algún AT trata la descripción como región viva. */
+   * Interpolación plana (no `@if` alrededor): muta el nodo in situ en vez de
+   * recrearlo — sin sorpresas de reannuncio si algún AT trata la descripción
+   * como región viva. */
   protected readonly errorText = computed(() =>
     this.invalid() && this.errorMessage() ? this.errorMessage()! : '',
   );

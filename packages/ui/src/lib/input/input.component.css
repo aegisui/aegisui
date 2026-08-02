@@ -106,7 +106,7 @@
   --aegis-input-bg: var(--aegis-color-surface-sunken);
 }
 
-/* --- Etiqueta --- */
+/* --- Etiqueta (stacked) --- */
 .aegis-input__label {
   --aegis-input-label-color: var(--aegis-color-text-strong);
   --aegis-input-label-font-size: var(--aegis-font-size-sm);
@@ -163,5 +163,132 @@
 @media (prefers-reduced-motion: reduce) {
   .aegis-input {
     transition: none;
+  }
+}
+
+/* ================================================================
+   FLOATING LABEL
+   El input va ANTES que el label en el DOM dentro de
+   .aegis-input__float-wrapper, lo que habilita los selectores
+   CSS sibling (~) para mover el label desde el estado del input.
+   ================================================================ */
+
+/* --- Tokens flotantes (capa 3, nuevos) --- */
+.aegis-input--floating {
+  --aegis-input-label-float-color: var(--aegis-color-text-strong);
+  --aegis-input-label-float-font-size: var(--aegis-font-size-xs);
+  --aegis-input-label-float-font-weight: var(--aegis-font-weight-medium);
+  --aegis-input-float-padding-block-start: var(--aegis-space-5);
+  --aegis-input-label-notch-bg: var(--aegis-color-surface-canvas);
+  --aegis-input-label-notch-padding-inline: var(--aegis-space-1);
+
+  /* Espacio extra en la parte superior para alojar la etiqueta flotada (inset).
+     space-5 = 24px; garantiza WCAG 1.4.12 con font-size-xs × leading 1.5. */
+  padding-block-start: var(--aegis-input-float-padding-block-start);
+}
+
+/* El wrapper provee el contexto de posicionamiento y `:focus-within` */
+.aegis-input__float-wrapper {
+  position: relative;
+}
+
+/* --- Etiqueta flotante: posición de REPOSO (centrada dentro del campo) --- */
+.aegis-input__label--float {
+  position: absolute;
+  /* Centrar verticalmente dentro del campo completo (incluyendo padding extra) */
+  inset-block-start: 50%;
+  inset-inline-start: var(--aegis-input-padding-inline);
+  transform: translateY(-50%);
+
+  font-size: var(--aegis-input-label-font-size);
+  font-weight: var(--aegis-input-label-font-weight);
+  color: var(--aegis-input-label-color);
+  line-height: var(--aegis-input-line-height);
+  pointer-events: none;
+  white-space: nowrap;
+  overflow: hidden;
+  max-inline-size: calc(100% - 2 * var(--aegis-input-padding-inline));
+  margin-block-end: 0; /* anula el margen de la clase stacked si coexiste */
+
+  transition:
+    inset-block-start var(--aegis-input-transition-duration)
+      var(--aegis-input-transition-easing),
+    font-size var(--aegis-input-transition-duration) var(--aegis-input-transition-easing),
+    color var(--aegis-input-transition-duration) var(--aegis-input-transition-easing),
+    transform var(--aegis-input-transition-duration) var(--aegis-input-transition-easing);
+}
+
+/* --- Etiqueta flotante: estado ACTIVO (compartido entre inset y notched) ---
+ * Se activa cuando:
+ *   1. El campo tiene foco (:focus-within en el wrapper)
+ *   2. El campo tiene valor (:not(:placeholder-shown) en el input sibling)
+ *   3. El navegador autocompletó (:autofill / :-webkit-autofill en el input)
+ *
+ * Selectores sibling (~): el input precede al label en el DOM.
+ * Los dos selectores de focus-within (general y notched) son necesarios por
+ * separado porque `:focus-within` va en el CONTENEDOR (no en el input).
+ */
+
+/* INSET activo (default) — la etiqueta se mueve a la esquina superior interna */
+.aegis-input__float-wrapper:focus-within .aegis-input__label--float,
+.aegis-input--floating:not(:placeholder-shown) ~ .aegis-input__label--float,
+.aegis-input--floating:autofill ~ .aegis-input__label--float,
+.aegis-input--floating:-webkit-autofill ~ .aegis-input__label--float {
+  inset-block-start: calc(var(--aegis-input-border-width) + var(--aegis-space-1));
+  transform: none;
+  font-size: var(--aegis-input-label-float-font-size);
+  font-weight: var(--aegis-input-label-float-font-weight);
+  color: var(--aegis-input-label-float-color);
+}
+
+/* NOTCHED activo — sobreescribe posición y añade el chip de fondo.
+ * Especificidad mayor que la regla inset de arriba: incluye la clase adicional
+ * .aegis-input--float-notched. El chip NO aparece en reposo, solo al activarse. */
+.aegis-input__float-wrapper:focus-within
+  .aegis-input--float-notched
+  ~ .aegis-input__label--float,
+.aegis-input--float-notched:not(:placeholder-shown) ~ .aegis-input__label--float,
+.aegis-input--float-notched:autofill ~ .aegis-input__label--float,
+.aegis-input--float-notched:-webkit-autofill ~ .aegis-input__label--float {
+  /* La etiqueta queda centrada sobre el borde superior (mitad dentro, mitad fuera) */
+  inset-block-start: 0;
+  transform: translateY(-50%);
+  background-color: var(--aegis-input-label-notch-bg);
+  padding-inline: var(--aegis-input-label-notch-padding-inline);
+  border-radius: calc(var(--aegis-input-radius) / 2);
+}
+
+/* --- Placeholder en modo floating ---
+ * En reposo, el placeholder está oculto visualmente (la etiqueta ocupa ese
+ * espacio). Solo se vuelve visible cuando el campo tiene foco (estado activo).
+ * El atributo placeholder HTML permanece en el DOM — los gestores de
+ * contraseñas lo usan para identificar el campo. */
+.aegis-input--floating:not(:focus)::placeholder {
+  color: transparent;
+}
+
+/* --- Reduced motion: la etiqueta flotante salta sin animación ---
+ * (WCAG prefers-reduced-motion: reduce — contrato §Accesibilidad) */
+@media (prefers-reduced-motion: reduce) {
+  .aegis-input__label--float {
+    transition: none;
+  }
+}
+
+/* --- Forced colors (Windows High Contrast / Contrast Themes) ---
+ * En forced-colors los tokens --aegis-input-* quedan anulados.
+ * La etiqueta flotante necesita fondo opaco explícito para no quedar
+ * ilegible sobre el borde del sistema (especialmente en modo notched).
+ * Se aplica SOLO a la etiqueta flotante: las sustituciones del sistema
+ * sobre el campo (Field, FieldText, ButtonBorder) son deseables.
+ *
+ * Limitación conocida: forced-color-adjust no está soportado en Safari/WebKit
+ * (a 2026-08-02). En macOS con Contrast Themes el fondo Canvas puede no
+ * preservarse. Documentado como limitación de plataforma. */
+@media (forced-colors: active) {
+  .aegis-input__label--float {
+    background-color: Canvas;
+    color: CanvasText;
+    forced-color-adjust: none;
   }
 }
