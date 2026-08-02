@@ -187,16 +187,53 @@
   padding-block-start: var(--aegis-input-float-padding-block-start);
 }
 
-/* El wrapper provee el contexto de posicionamiento y `:focus-within` */
+/* El wrapper provee el contexto de posicionamiento y `:focus-within`.
+ * Los custom properties CSS solo se propagan de PADRE a HIJO, no entre siblings.
+ * El label es hermano del input (no hijo), por lo que no puede heredar variables
+ * declaradas en .aegis-input. Declarándolas aquí quedan disponibles para ambos.
+ * Se duplican TODOS los tokens que el label consume (estructura + color + motion). */
 .aegis-input__float-wrapper {
   position: relative;
+
+  /* Estructura (espejo de .aegis-input para los tokens que el label lee) */
+  --aegis-input-border-width: var(--aegis-border-width-hairline);
+  --aegis-input-radius: var(--aegis-radius-md);
+  --aegis-input-line-height: var(--aegis-font-leading-normal);
+  --aegis-input-float-padding-block-start: var(--aegis-space-5);
+  --aegis-input-padding-block: var(--aegis-space-2);
+  --aegis-input-padding-inline: var(--aegis-space-4);  /* md default */
+
+  /* Motion */
+  --aegis-input-transition-duration: var(--aegis-motion-duration-fast);
+  --aegis-input-transition-easing: var(--aegis-motion-easing-standard);
+
+  /* Tokens de etiqueta flotante (anteriormente solo en .aegis-input--floating) */
+  --aegis-input-label-float-color: var(--aegis-color-text-strong);
+  --aegis-input-label-float-font-size: var(--aegis-font-size-xs);
+  --aegis-input-label-float-font-weight: var(--aegis-font-weight-medium);
+  --aegis-input-label-notch-bg: var(--aegis-color-surface-canvas);
+  --aegis-input-label-notch-padding-inline: var(--aegis-space-1);
+}
+/* Variantes de tamaño: :has() detecta la clase del input hijo y redefine
+ * los tokens para que el label reciba los valores correctos por tamaño. */
+.aegis-input__float-wrapper:has(.aegis-input--sm) {
+  --aegis-input-padding-inline: var(--aegis-space-3);
+}
+.aegis-input__float-wrapper:has(.aegis-input--lg) {
+  --aegis-input-padding-inline: var(--aegis-space-5);
+  --aegis-input-padding-block: var(--aegis-space-3);
 }
 
-/* --- Etiqueta flotante: posición de REPOSO (centrada dentro del campo) --- */
+/* --- Etiqueta flotante: posición de REPOSO (en la zona de escritura) --- */
 .aegis-input__label--float {
   position: absolute;
-  /* Centrar verticalmente dentro del campo completo (incluyendo padding extra) */
-  inset-block-start: 50%;
+  /* Centrar en la ZONA DE TEXTO (abajo del padding flotante), no en el centro
+   * geométrico del campo completo. El centro de la zona de texto está a:
+   *   float-padding-block-start + padding-block
+   * Eso sitúa el label en el mismo lugar donde aparecerá el texto escrito. */
+  inset-block-start: calc(
+    var(--aegis-input-float-padding-block-start) + var(--aegis-input-padding-block)
+  );
   inset-inline-start: var(--aegis-input-padding-inline);
   transform: translateY(-50%);
 
@@ -242,11 +279,16 @@
 }
 
 /* NOTCHED activo — sobreescribe posición y añade el chip de fondo.
- * Especificidad mayor que la regla inset de arriba: incluye la clase adicional
- * .aegis-input--float-notched. El chip NO aparece en reposo, solo al activarse. */
-.aegis-input__float-wrapper:focus-within
-  .aegis-input--float-notched
-  ~ .aegis-input__label--float,
+ * Especificidad igual a inset (3 clases/pseudo-clases), pero posterior → gana.
+ * El chip NO aparece en reposo, solo al activarse.
+ *
+ * NO se usa `.aegis-input__float-wrapper:focus-within .aegis-input--float-notched ~`
+ * porque Angular's emulated encapsulation inserta un espacio espurio antes del
+ * atributo _ngcontent en selectores de 3 partes (A B ~ C), lo que convierte el
+ * compuesto en un combinador descendant y rompe la regla. En su lugar se usa
+ * `:focus-within` directamente en el `<input>`: un elemento con foco también
+ * satisface `:focus-within` por spec (self-or-descendant). */
+.aegis-input--float-notched:focus-within ~ .aegis-input__label--float,
 .aegis-input--float-notched:not(:placeholder-shown) ~ .aegis-input__label--float,
 .aegis-input--float-notched:autofill ~ .aegis-input__label--float,
 .aegis-input--float-notched:-webkit-autofill ~ .aegis-input__label--float {

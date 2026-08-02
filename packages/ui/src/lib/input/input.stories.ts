@@ -38,6 +38,7 @@ const meta: Meta<AegisInputComponent> = {
     readonly: false,
     required: false,
     invalid: false,
+    value: '',
   },
   render: (args) => ({
     props: args,
@@ -54,6 +55,7 @@ const meta: Meta<AegisInputComponent> = {
       [invalid]="invalid"
       [helpText]="helpText"
       [errorMessage]="errorMessage"
+      [(value)]="value"
     />`,
   }),
 };
