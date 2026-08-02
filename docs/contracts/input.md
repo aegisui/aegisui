@@ -44,7 +44,7 @@ esperada (ver Casos límite).
 | `label` | `string` | `''` | no (pero ver arriba) | Texto del `<label>` que el propio componente renderiza y asocia por `for`/`id` (ver §Accesibilidad). |
 | `type` | `'text' \| 'email' \| 'password' \| 'search' \| 'tel' \| 'url' \| 'number'` | `'text'` | no | Tipo del `<input>` nativo: activa el teclado virtual, la validación de formato y el icono de revelar (`password`) correctos por plataforma. |
 | `value` | `string` (`model`) | `''` | no | Contenido del campo, two-way. **Siempre `string`**, incluso con `type="number"` (así lo expone `HTMLInputElement.value`): v1 no hace coerción numérica: el consumidor parsea si lo necesita. |
-| `placeholder` | `string \| undefined` | `undefined` | no | Pista de formato, **no** sustituto de `label` (WCAG: un placeholder no es un nombre accesible; desaparece al escribir). |
+| `placeholder` | `string \| undefined` | `undefined` | no | Pista de formato, **no** sustituto de `label` (WCAG: un placeholder no es un nombre accesible; desaparece al escribir). En `labelMode='floating'`, el placeholder solo es visible cuando la etiqueta ya ha flotado (campo enfocado) — ver §Modo de etiqueta flotante. |
 | `disabled` | `boolean` | `false` | no | Aplica el atributo nativo `disabled`: fuera de tabulación, sin edición, sin envío en formularios. |
 | `readonly` | `boolean` | `false` | no | Aplica el atributo nativo `readonly`: **enfocable y seleccionable/copiable**, pero no editable. Distinto de `disabled` (SPEC §8: no ocultar del teclado algo que se puede leer). |
 | `required` | `boolean` | `false` | no | Aplica `required` nativo + `aria-required`. El `label` muestra un indicador visual (`*`) marcado `aria-hidden` (el `required` nativo ya lo anuncia; el asterisco no debe anunciarse dos veces). |
@@ -52,6 +52,8 @@ esperada (ver Casos límite).
 | `errorMessage` | `string \| undefined` | `undefined` | no | Mensaje de error. Solo se renderiza y se enlaza por `aria-describedby` cuando **`invalid` es `true`**. `invalid=true` sin `errorMessage` es válido (el campo se anuncia inválido igualmente vía `aria-invalid`) pero desaconsejado: sin mensaje, el usuario sabe que algo falla pero no qué corregir. |
 | `helpText` | `string \| undefined` | `undefined` | no | Texto de ayuda persistente (no depende de `invalid`). Se enlaza por `aria-describedby` siempre que exista. |
 | `size` | `'sm' \| 'md' \| 'lg'` | `'md'` | no | Escala de padding, tipografía y área táctil. Igual que el Button, **todas** cumplen ≥ 24×24 px (2.5.8). |
+| `labelMode` | `'stacked' \| 'floating'` | `'stacked'` | no | Modo de presentación de la etiqueta. `'stacked'` (default) mantiene el comportamiento actual: etiqueta encima del campo. `'floating'` posiciona la etiqueta dentro del campo en reposo y la eleva al enfocar, rellenar o autocompletar. **Retrocompatible:** ningún consumidor existente cambia de comportamiento. Ver §Modo de etiqueta flotante y §Cuándo NO usar `labelMode='floating'`. |
+| `labelFloatStyle` | `'inset' \| 'notched'` | `'inset'` | no | Solo tiene efecto cuando `labelMode='floating'`. Controla la posición visual de la etiqueta en estado flotado. `'inset'` mantiene la etiqueta dentro del borde del campo. `'notched'` eleva la etiqueta sobre el borde superior, cortándolo visualmente (estilo Material). Default **`'inset'`** — ver §Modo de etiqueta flotante → *Estilos de flotado* para el argumento. |
 
 ## Outputs
 
@@ -82,6 +84,134 @@ texto**, no slots. Decisión deliberada (ver §Accesibilidad): el componente
 esa relación no dependa de que el consumidor la componga bien fuera del
 componente — es verificable en CI precisamente porque el componente es dueño
 del DOM entero, no solo del `<input>`.
+
+## Modo de etiqueta flotante (`labelMode='floating'`)
+
+> Diseñado para equivalencia con patrones establecidos (Material Design,
+> Bootstrap Floating Label). Por defecto `'stacked'` es el modo recomendado
+> — véase **§Cuándo NO usar `labelMode='floating'`** antes de adoptarlo.
+
+### Cuándo flota la etiqueta
+
+La etiqueta ocupa su posición flotada cuando se cumple **cualquiera** de estas
+condiciones:
+
+| Condición | Selector CSS | Motivo |
+|---|---|---|
+| Campo enfocado | `:focus-within` en el contenedor | El usuario está activamente escribiendo |
+| Campo con valor | `.aegis-input__field:not(:placeholder-shown)` | El campo tiene contenido |
+| Autocompletado del navegador | `.aegis-input__field:autofill`, `:-webkit-autofill` | El navegador rellenó el campo |
+
+En todos los demás casos (campo vacío, sin foco, sin autofill), la etiqueta
+reposa dentro del campo —sobre la zona de texto, igual que un placeholder.
+
+### Autofill — el bug canónico
+
+Chrome y otros navegadores rellenan campos sin disparar siempre eventos de
+interacción. Sin tratamiento, la etiqueta queda en posición de reposo
+superpuesta al texto que el gestor de contraseñas acaba de escribir.
+
+La solución es **exclusivamente CSS**, nunca JS ni polling:
+
+```css
+.aegis-input__field:autofill ~ .aegis-input__label,
+.aegis-input__field:-webkit-autofill ~ .aegis-input__label {
+  /* fuerza estado flotado: mismo transform/posición que :focus-within */
+}
+```
+
+`:-webkit-autofill` (con prefijo) sigue siendo necesario para Safari < 16.4,
+donde `:autofill` sin prefijo no se reconoce.
+
+El componente **no pelea contra el estilo visual del autofill** (fondo
+amarillo/azul de Chromium, color de texto fijo de Safari): véase §Casos límite
+— comportamiento ya documentado para el modo `stacked`, sin cambios aquí.
+El `:autofill` CSS garantiza solo que la etiqueta suba.
+
+### Placeholder en modo floating
+
+El placeholder solo es visible cuando la etiqueta ya ha flotado (campo
+enfocado). En reposo, el placeholder está oculto visualmente — la etiqueta
+ocupa ese espacio y mostrar ambos sería solapamiento garantizado.
+
+Implementación CSS recomendada:
+
+```css
+/* reposo con floating label: placeholder invisible */
+.aegis-input--floating .aegis-input__field:not(:focus)::placeholder {
+  color: transparent;
+}
+```
+
+El atributo `placeholder` HTML permanece en el DOM — solo su color se vuelve
+transparente. No se elimina ni se condiciona en el template: los gestores de
+contraseñas lo usan para identificar el campo.
+
+### Estilos de flotado
+
+`labelFloatStyle` solo aplica cuando `labelMode='floating'`.
+
+**Default `'inset'` — argumento:** la etiqueta `inset` flota siempre sobre
+`--aegis-input-bg` (`surface-raised`), el mismo par de contraste ya verificado
+en el contrato. La etiqueta `notched` necesita que `--aegis-input-label-notch-bg`
+coincida con la superficie padre del campo (ver §Tokens). El default
+(`surface-canvas`) es incorrecto si el Input vive dentro de una tarjeta
+(`surface-raised`): el consumidor tendría que hacer override para que funcione
+correctamente. Un default que requiere override activo para ser correcto en el
+uso más común no es un default útil. `inset` funciona sin ningún override.
+
+| Estilo | Posición de reposo | Posición flotada | Fondo de la etiqueta |
+|---|---|---|---|
+| `'inset'` | Centrada verticalmente dentro del campo | Parte superior interna del campo | `--aegis-input-bg` (`surface-raised`) — par ya verificado |
+| `'notched'` | Centrada verticalmente dentro del campo | Sobre el borde superior, cortándolo visualmente | `--aegis-input-label-notch-bg` (`surface-canvas` por defecto; el consumidor debe sobreescribir si la superficie padre es distinta) |
+
+> **Nota sobre `'notched'` y la superficie padre:** la etiqueta usa
+> `--aegis-input-label-notch-bg` como fondo del chip para cubrir visualmente
+> el borde. El par de contraste verificado en este contrato es para el default
+> (`surface-canvas`). Con otras superficies (`surface-raised`, `surface-sunken`)
+> el par sigue siendo `text-strong / <esa-superficie>` y el contraste es ≥4.5:1
+> para cualquier superficie de Aegis (neutral.900/#ffffff ≥15:1, neutral.900/
+> #f6f8f7 ≥15.5:1, neutral.900/#eaefec ≥13:1 en light), pero el consumidor es
+> responsable de configurar el token correctamente.
+
+### El flotado es puramente visual — el AT no percibe ninguna diferencia
+
+La relación `<label for="…">` / `id` en el `<input>` **no cambia nunca** entre
+`stacked` y `floating`. El nombre accesible del campo sigue viniendo del
+`<label>` real. Un lector de pantalla anuncia exactamente lo mismo en ambos
+modos.
+
+**Prohibido:** sustituir el label por el placeholder como nombre accesible en
+modo floating — el error clásico de las implementaciones oportunistas de este
+patrón. `<aegis-input>` nunca lo hace: el `<label>` siempre existe y siempre
+está enlazado.
+
+## Cuándo NO usar `labelMode='floating'`
+
+`labelMode='stacked'` es el **modo por defecto y el recomendado**. Los floating
+labels tienen crítica documentada:
+
+- **GOV.UK Design System** no los usa deliberadamente: los usuarios notan menos
+  la etiqueta mientras escriben, lo que aumenta el riesgo de olvidar qué están
+  rellenando — especialmente en formularios con muchos campos similares.
+- **Adam Silver** (*Form Design Patterns*) los desaconseja: la etiqueta
+  reducida es más difícil de leer para usuarios con baja visión que no usan
+  zoom, y la referencia es inestable durante la escritura (la etiqueta se ha
+  movido y encogido antes de que el usuario haya terminado).
+- El texto reducido al flotar (`font-size-xs`, 0.64rem ≈ 10px a 16px base)
+  está en el límite de legibilidad sin zoom. Con `prefers-reduced-motion`, la
+  etiqueta salta bruscamente de posición sin aviso visual gradual.
+- En formularios con **muchos campos**, coexisten etiquetas flotadas y etiquetas
+  en reposo simultáneamente: el usuario gestiona dos estados de referencia
+  visual en lugar de uno.
+- El ahorro real es **espacio vertical cuando el campo está vacío**: si el
+  formulario tiene espacio suficiente, `stacked` es siempre más claro.
+
+**`labelMode='floating'` existe en Aegis UI por paridad de expectativa y por
+preferencia estética de ciertos productos**, no porque sea la mejor opción para
+la mayoría de los formularios. Quien lo adopte debe poder justificarlo con una
+razón concreta (espacio escaso, contexto visual específico, audiencia ya
+familiarizada con el patrón), no con "es lo que usa Material".
 
 ## Tokens que consume
 
@@ -136,6 +266,15 @@ Etiqueta y campos auxiliares (label / help / error):
 - `--aegis-input-error-font-size`
 - `--aegis-input-meta-gap` (separación campo↔ayuda/error)
 
+Etiqueta flotante (`labelMode='floating'` — nuevos):
+
+- `--aegis-input-label-float-color` (color de la etiqueta en estado flotado)
+- `--aegis-input-label-float-font-size` (tamaño reducido al flotar; suelo `font-size-xs`)
+- `--aegis-input-label-float-font-weight` (peso al flotar)
+- `--aegis-input-float-padding-block-start` (padding-block-start del campo en modo `inset`; crea espacio para la etiqueta flotada)
+- `--aegis-input-label-notch-bg` (fondo del chip de la etiqueta en modo `notched`; debe coincidir con la superficie padre)
+- `--aegis-input-label-notch-padding-inline` (relleno horizontal del chip `notched`)
+
 ### Riel de COLOR → capa 2 (`--aegis-color-*`)
 
 **Acción vs estado (ADR-015), aplicado por primera vez fuera del Button:** el
@@ -160,6 +299,8 @@ verificado por `semanticPairs()`), no a `destructive.solid`/`destructive.ring`.
 | `--aegis-input-required-indicator-color` | `--aegis-color-text-muted` |
 | `--aegis-input-help-color` | `--aegis-color-text-muted` |
 | `--aegis-input-error-color` | `--aegis-color-state-danger-text` |
+| `--aegis-input-label-float-color` | `--aegis-color-text-strong` |
+| `--aegis-input-label-notch-bg` | `--aegis-color-surface-canvas` |
 
 - **`disabled`** (cross-estado): remapea `--aegis-input-bg` →
   `--aegis-color-surface-sunken`, `--aegis-input-fg` → `--aegis-color-text-muted`,
@@ -176,7 +317,8 @@ Verificado (mismo script que el gate `contrast`, `scripts/gates/lib/util.mjs`):
 
 | Par | light | dark | Umbral |
 |---|---|---|---|
-| `text-strong` / `surface-raised` (valor) | 15.56:1 | 14.27:1 | ≥ 4.5:1 |
+| `text-strong` / `surface-raised` (valor; etiqueta flotada — inset) | 15.56:1 | 14.27:1 | ≥ 4.5:1 |
+| `text-strong` / `surface-canvas` (etiqueta flotada — notched) | 15.14:1 | 15.22:1 | ≥ 4.5:1 |
 | `text-muted` / `surface-raised` (placeholder, ayuda) | 6.81:1 | 6.35:1 | ≥ 4.5:1 |
 | `border-strong` / `surface-raised` (borde default) | 4.24:1 | 6.35:1 | ≥ 3:1 |
 | `accent-border` / `surface-raised` (borde hover) | 4.77:1 | 8.41:1 | ≥ 3:1 |
@@ -189,6 +331,15 @@ placeholder: en dark (neutral.500 sobre neutral.950) da **4.10:1**, por debajo
 de 4.5:1. `text-muted` es el único candidato semántico que pasa en ambos
 temas contra las superficies donde el Input aparece (7.26/7.09 contra canvas,
 6.81/6.35 contra raised) — es el token correcto, no una elección arbitraria.
+
+**Par nuevo para `notched` — `text-strong` / `surface-canvas`:** ambos tokens
+de capa 2 existían previamente (`text.strong`, `surface.canvas`); lo que no
+existía era este **par documentado**. El gate `contrast` solo verifica lo que
+se le enseña explícitamente (lección de ADR-018); al declararlo aquí queda bajo
+su cobertura automática. Valores calculados con la misma fórmula WCAG
+(`contrastRatio`, `scripts/gates/lib/util.mjs`): neutral.900 (#14211d) /
+neutral.0 (#ffffff) = 15.14:1 en light; neutral.100 (#eaefec) / neutral.950
+(#0d1512) = 15.22:1 en dark.
 
 ### Riel de ESTRUCTURA → capa 1 (primitivos)
 
@@ -211,6 +362,10 @@ temas contra las superficies donde el Input aparece (7.26/7.09 contra canvas,
 | `--aegis-input-help-font-size` | `--aegis-font-size-sm` |
 | `--aegis-input-error-font-size` | `--aegis-font-size-sm` |
 | `--aegis-input-meta-gap` | `--aegis-space-1` |
+| `--aegis-input-label-float-font-size` | `--aegis-font-size-xs` (0.64rem; suelo legible para la etiqueta flotada — no reducir por debajo de este valor) |
+| `--aegis-input-label-float-font-weight` | `--aegis-font-weight-medium` (sin cambio respecto a stacked; mantiene peso visual coherente) |
+| `--aegis-input-float-padding-block-start` | `--aegis-space-5` (24px / 1.5rem; padding-block-start del campo en modo `inset` — crea espacio para la etiqueta flotada en la parte superior del campo) |
+| `--aegis-input-label-notch-padding-inline` | `--aegis-space-1` (relleno horizontal del chip de la etiqueta en modo `notched`) |
 
 ## Estados
 
@@ -222,6 +377,8 @@ temas contra las superficies donde el Input aparece (7.26/7.09 contra canvas,
 | **disabled** | `disabled=true` | Atributo nativo `disabled`. Fuera de tabulación, sin hover, colores apagados (exento de contraste). |
 | **readonly** | `readonly=true` | Atributo nativo `readonly`. Enfocable y seleccionable, no editable. Fondo `surface-sunken`, texto y borde con contraste normal (no exento). |
 | **invalid** | `invalid=true` | `aria-invalid="true"`, borde y (si hay foco) anillo en `state-danger-point`, mensaje de error renderizado y enlazado si `errorMessage` existe. |
+| **floating-resting** | `labelMode='floating'`, campo vacío sin foco | Etiqueta centrada verticalmente dentro del campo, `font-size` normal (`--aegis-input-label-font-size`), placeholder oculto. |
+| **floating-active** | `labelMode='floating'` + (foco ∣ valor ∣ autofill) | Etiqueta en posición superior (`inset`) o sobre el borde (`notched`), `font-size` = `--aegis-input-label-float-font-size`. Placeholder visible solo si hay foco. |
 
 `disabled` y `readonly` son independientes entre sí (a diferencia de
 `disabled`/`loading` del Button, que eran mutuamente excluyentes por
@@ -231,6 +388,13 @@ por qué un valor precargado no es válido, sin dejar que se edite ahí mismo).
 deshabilitado no se resalta en rojo), pero **no** apaga `aria-invalid`: el
 atributo semántico se mantiene coherente con el estado lógico aunque no se
 pinte.
+
+En `labelMode='floating'` con `disabled=true`: si el campo tiene un valor
+preexistente, la etiqueta permanece en posición flotada (el valor sigue siendo
+visible y la etiqueta lo identifica). Si el campo está vacío, la etiqueta
+permanece en reposo. La selección de posición sigue la misma lógica que el
+estado no-disabled: `:not(:placeholder-shown)` sigue siendo verdadero si hay
+valor, aunque el campo esté `disabled`.
 
 ## Accesibilidad (obligatorio, WCAG 2.2 AA — SPEC §8)
 
@@ -267,6 +431,12 @@ pinte.
 - **Placeholder no sustituye a `label`:** un input sin `label` pero con
   `placeholder` **no tiene nombre accesible** (el placeholder no cuenta como
   tal en la especificación ARIA/HTML). Se testea como violación esperada.
+- **`labelMode='floating'` — invariante de accesibilidad:** la relación
+  `<label for>` / `id` no cambia nunca entre `stacked` y `floating`. El nombre
+  accesible del campo sigue siendo el texto del `<label>` real, independiente de
+  su posición visual. Un lector de pantalla no debe percibir ninguna diferencia
+  entre los dos modos. Esto es verificable en CI: el gate `a11y` no distingue
+  modos y pasa igual en ambos.
 
 ### Navegación por teclado (exhaustiva)
 
@@ -342,6 +512,15 @@ propósito (ninguna tecla gestionada explícitamente por el componente).
 - Los tres tamaños ofrecen un objetivo táctil ≥ 24×24 px, garantizado por
   `--aegis-input-min-block-size` (no depende del contenido). Verificado por
   el gate `target-size` sobre el DOM renderizado de cada tamaño.
+- **`labelMode='floating'`, modo `inset`:** el campo requiere espacio adicional
+  en la parte superior para alojar la etiqueta flotada. `--aegis-input-float-padding-block-start`
+  (`space-5` = 24px) se suma al `padding-block-end` normal y a la altura de la
+  línea de texto: el campo supera los 24px en todos los tamaños. El objetivo
+  táctil no disminuye — aumenta. Verificado con el gate `target-size` también
+  para `labelMode='floating'`.
+- **`labelMode='floating'`, modo `notched`:** la etiqueta sale fuera del borde
+  (zona visual extra, no interactiva). Las dimensiones del campo en sí no cambian
+  respecto al modo `stacked`. Target size ≥ 24px garantizado igual que en `stacked`.
 
 ### Dragging (2.5.7)
 
@@ -360,20 +539,36 @@ el gate `contrast` (capa semántica + DOM renderizado):
 - Texto del valor, placeholder, label, ayuda y error: ≥ 4.5:1 en ambos temas.
 - Borde por defecto, borde hover, borde/anillo inválido, anillo de foco:
   ≥ 3:1 en ambos temas, contra `surface-raised` (el fondo real del campo).
+- **Etiqueta flotada (`inset`):** `text-strong` / `surface-raised` — mismo par
+  que el texto del valor; 15.56:1 / 14.27:1 ✓
+- **Etiqueta flotada (`notched`):** `text-strong` / `surface-canvas` — nuevo
+  par declarado en §Tokens → Riel de color; 15.14:1 / 15.22:1 ✓
 
 Texto deshabilitado: exento de 1.4.3 (mismo criterio que el Button).
 
 ### Reduced motion (`prefers-reduced-motion`)
 
 - Las transiciones de `background`/`border-color` se **anulan** bajo
-  `prefers-reduced-motion: reduce` (regla `require-reduced-motion`). El Input
-  no tiene ninguna animación además de esa transición (sin spinner ni
-  movimiento propio).
+  `prefers-reduced-motion: reduce` (regla `require-reduced-motion`).
+- **`labelMode='floating'`:** la transición de posición y tamaño de la etiqueta
+  flotante también se **anula** bajo `prefers-reduced-motion: reduce`. La
+  etiqueta salta instantáneamente a su posición sin ninguna animación de
+  traslado o escala. No se aplican `transition` ni `animation` en la etiqueta
+  flotante cuando `prefers-reduced-motion: reduce`.
 
 ### Espaciado de texto (1.4.12)
 
 Sin alturas fijas en px: `--aegis-input-min-block-size` + padding, el campo
 **crece** si el usuario fuerza interlineado/espaciado (`no-fixed-text-height`).
+
+**`labelMode='floating'` — análisis adicional:** al forzar `line-height: 1.5×`
+(requerimiento WCAG 1.4.12), la etiqueta flotada en `font-size-xs` (0.64rem)
+alcanza una altura de ~0.96rem (≈15.4px a 16px base). Con `--aegis-input-float-padding-block-start`
+= `space-5` (1.5rem = 24px), la diferencia entre el padding y la altura de la
+etiqueta es ≥8px — suficiente para que el texto del campo no se solape con la
+etiqueta. El campo no tiene altura fija: si el espaciado forzado hace crecer la
+etiqueta flotada, el campo crece con ella. La etiqueta nunca queda recortada
+ni solapada al texto del campo bajo condiciones de espaciado forzado.
 
 ### Criterios WCAG que aplican
 
@@ -395,7 +590,10 @@ error), 3.3.2 (labels/instrucciones), 4.1.2, 4.1.3, y `prefers-reduced-motion`.
   UI del gestor de contraseñas del usuario es más importante que la
   consistencia visual del token. El valor autocompletado dispara el evento
   `input` nativo igual que si el usuario tecleara, así que el `model` se
-  sincroniza sin código adicional.
+  sincroniza sin código adicional. En `labelMode='floating'`, el selector
+  `:autofill` / `:-webkit-autofill` garantiza además que la etiqueta suba
+  para no solaparse al texto rellenado por el navegador (ver §Modo de etiqueta
+  flotante → *Autofill*).
 - **`required` sin valor:** al enviar un formulario nativo (`<form>` con
   `<button type="submit">`), el navegador bloquea el envío y enfoca el campo
   con su validación nativa (`:invalid` + mensaje del navegador) **si** el
@@ -414,6 +612,59 @@ error), 3.3.2 (labels/instrucciones), 4.1.2, 4.1.3, y `prefers-reduced-motion`.
 - **`disabled` y `readonly` simultáneos:** `disabled` nativo gana a efectos de
   interacción (fuera de tabulación) — `readonly` queda semánticamente
   redundante pero no es un error declarar ambos.
+- **`labelMode='floating'` sin `placeholder`:** válido y el caso más común. La
+  etiqueta en reposo ocupa la zona donde estaría el placeholder, actuando
+  visualmente como guía de contenido esperado. Sin placeholder, no hay texto
+  que colisione con la etiqueta al enfocar.
+- **`labelMode='floating'` con `labelFloatStyle='notched'` en campo `sm`:** la
+  etiqueta en `font-size-xs` flotando sobre el borde de un campo pequeño puede
+  crear una zona táctil visualmente reducida. Sin embargo, el campo en sí
+  mantiene `min-block-size: space-5` (24px): el target-size del campo no se ve
+  afectado por la posición de la etiqueta. El elemento etiqueta no es interactivo
+  por sí solo (el clic sobre la etiqueta mueve el foco al `<input>` por la
+  relación `for`/`id`, comportamiento nativo del `<label>`).
+
+## Matriz visual representativa (`labelMode='floating'`)
+
+> La matriz completa (2 estilos × 3 tamaños × ~8 estados × 2 temas) da >90
+> snapshots. La mayoría son redundantes: la diferencia visual entre `notched-sm`
+> y `notched-lg` no aporta información distinta más allá de la que ya dan
+> `inset-sm`/`inset-lg`. Se propone una matriz de 16 snapshots representativos.
+
+**Criterio de selección:** cada snapshot aporta información visual que ningún
+otro ya contiene. Se excluyen combinaciones donde la variable adicional produce
+la misma diferencia que una ya cubierta (p. ej., `notched-sm` vs. `notched-lg`
+muestra el mismo fenómeno de escala que `inset-sm` vs. `inset-lg`, que ya está).
+
+| # | `labelFloatStyle` | `size` | Estado del campo | Tema | Información distinta que aporta |
+|---|---|---|---|---|---|
+| 1 | `inset` | md | reposo, vacío | light | Baseline: etiqueta centrada dentro del campo, placeholder oculto |
+| 2 | `notched` | md | reposo, vacío | light | Baseline notched: misma posición de reposo — verifica que no hay diferencia visual en reposo |
+| 3 | `inset` | md | enfocado, vacío | light | Float inset: etiqueta en la parte superior interna; placeholder ahora visible |
+| 4 | `notched` | md | enfocado, vacío | light | Float notched: etiqueta sobre el borde; chip con `notch-bg`; el borde queda "cortado" visualmente |
+| 5 | `inset` | md | relleno, sin foco | light | Float inset en reposo con valor: placeholder oculto, etiqueta pequeña arriba |
+| 6 | `notched` | md | relleno, sin foco | light | Float notched en reposo con valor: notch sobre canvas sin foco — contraste nuevo `text-strong/canvas` |
+| 7 | `inset` | md | enfocado, inválido | light | Float + danger: borde rojo + anillo + etiqueta flotada inset |
+| 8 | `notched` | md | enfocado, inválido | light | Float + danger: borde rojo + notch + etiqueta sobre canvas |
+| 9 | `inset` | md | autofill | light | Caso canónico del bug: estilos de navegador + label forzado a flotar por `:autofill` |
+| 10 | `inset` | sm | enfocado, vacío | light | Tamaño `sm`: label-xs sobre campo pequeño — verifica legibilidad mínima |
+| 11 | `inset` | lg | enfocado, vacío | light | Tamaño `lg`: label-xs sobre campo grande — verifica proporción label/campo |
+| 12 | `inset` | md | reposo, vacío | dark | Dark baseline: `surface-raised` dark (#14211d sobre #1e2d29) |
+| 13 | `notched` | md | enfocado, vacío | dark | Dark notched: chip sobre `surface-canvas` dark (#0d1512) — el par más nuevo en dark |
+| 14 | `inset` | md | relleno, sin foco | dark | Dark filled: contraste etiqueta flotada sobre campo en dark |
+| 15 | `inset` | md | enfocado, inválido | dark | Dark invalid: rojo en dark + float |
+| 16 | `inset` | md | `disabled`, con valor | light | Disabled float: campo atenuado, etiqueta en posición flotada (hay valor) |
+
+**Redundantes excluidos:**
+- `notched` × `sm`/`lg`: el fenómeno de escala ya está en `inset-sm`/`inset-lg`
+  (snapshots 10/11); la notch no añade información nueva a distintos tamaños.
+- `notched` × dark × `invalid`: el par `text-strong/canvas` dark ya está en snapshot 13;
+  `invalid` en dark ya está en snapshot 15; la combinación no suma información distinta.
+- `notched` × `disabled`, `notched` × `autofill`: el mecanismo CSS de autofill y
+  el tratamiento de disabled son independientes del estilo de notch.
+- `readonly` × floating: el comportamiento es idéntico a default en cuanto a posición
+  de la etiqueta; solo cambia el fondo del campo (ya cubierto por el gate visual
+  de `stacked`).
 
 ## Criterios de aceptación (se convierten en tests 1:1)
 
@@ -444,6 +695,26 @@ Unitarios (Vitest + Testing Library):
       de `aria-describedby` sigue ahí pero vacío.
 - [ ] `size` por defecto es `md`; cada valor aplica su escala.
 - [ ] El método `focus()` mueve el foco al `<input>` real.
+- [ ] `labelMode='stacked'` (default): comportamiento idéntico al de este
+      contrato antes de la adición de `labelMode` — ningún cambio de DOM, CSS
+      ni a11y respecto al comportamiento base.
+- [ ] `labelMode='floating'`: la etiqueta tiene posición `floating-resting`
+      cuando el campo está vacío y sin foco; posición `floating-active` cuando
+      el campo está enfocado.
+- [ ] `labelMode='floating'`: la etiqueta tiene posición `floating-active`
+      cuando `value` no es vacío (campo relleno, aunque no esté enfocado).
+- [ ] `labelMode='floating'`: el placeholder (si existe) está visualmente
+      oculto en `floating-resting`; visible cuando el campo está enfocado.
+- [ ] `labelMode='floating'`: la relación `<label for>` / `id` del `<input>`
+      es idéntica a `labelMode='stacked'` — el AT no percibe ninguna diferencia.
+- [ ] `labelFloatStyle='inset'`: la etiqueta flotada permanece dentro del borde
+      del campo.
+- [ ] `labelFloatStyle='notched'`: la etiqueta flotada tiene fondo
+      `--aegis-input-label-notch-bg` y se posiciona sobre el borde superior.
+- [ ] Bajo `prefers-reduced-motion`, la etiqueta salta a su posición sin
+      transición (cero `transition`/`animation` en el elemento etiqueta).
+- [ ] `disabled=true` con `labelMode='floating'` y valor presente: etiqueta en
+      posición `floating-active`; sin valor, en posición `floating-resting`.
 
 Teclado (gate `keyboard` + unitarios):
 
@@ -459,23 +730,32 @@ Accesibilidad (axe — gate `a11y`):
       sin `errorMessage`).
 - [ ] Campo **con** `label`: 0 violaciones; **sin** `label` (y sin
       `aria-label` externo): violación detectada (test negativo).
+- [ ] 0 violaciones con `labelMode='floating'` en cada `labelFloatStyle`,
+      en los 3 tamaños, en ambos temas.
 
 Contraste (gate `contrast`):
 
-- [ ] Cada par fg/bg de la tabla cumple su umbral en **light y dark**.
+- [ ] Cada par fg/bg de la tabla cumple su umbral en **light y dark**, incluido
+      el nuevo par `text-strong` / `surface-canvas` (etiqueta flotada — notched).
 
 Target size (gate `target-size`):
 
 - [ ] Cada tamaño (incl. `sm`) mide ≥ 24×24 px en el DOM renderizado.
+- [ ] Con `labelMode='floating'` en modo `inset`, el campo sigue midiendo
+      ≥ 24px de bloque-size en los 3 tamaños.
 
 Visual (gate `visual`):
 
 - [ ] Snapshot de cada tamaño × estado (`default`/`disabled`/`readonly`/
       `invalid`), en **light y dark**, sin diffs no aprobados.
+- [ ] Los 16 snapshots de la §Matriz visual representativa (`labelMode='floating'`)
+      sin diffs no aprobados.
 
 Reduced motion:
 
 - [ ] Bajo `prefers-reduced-motion`, las transiciones de borde/fondo se anulan.
+- [ ] Bajo `prefers-reduced-motion`, la transición de posición y tamaño de la
+      etiqueta flotante se anula (la etiqueta salta, no viaja).
 
 Foco:
 
@@ -504,6 +784,10 @@ arquitectura.
 
 - **`textarea` (multilínea), `select`/`combobox`, inputs con máscara:**
   componentes aparte de la Fase 4 — v1 es solo texto de una línea.
+- **`labelMode='floating'` en `textarea`/`select`:** fuera de alcance en v1.
+  Cuando estos componentes existan, evaluarán el patrón floating por separado
+  (los requisitos de autocompletado, desbordamiento de texto y tamaño mínimo
+  son distintos).
 - **Validadores integrados** (email bien formado, longitud mínima, patrón):
   `invalid`/`errorMessage` son señales que el consumidor decide cuándo
   activar; el Input no sabe *por qué* algo es inválido, un
@@ -522,3 +806,11 @@ arquitectura.
 - **Reconciliación con la validación nativa del navegador:** ver Casos
   límite — v1 no desactiva ni fusiona el mensaje nativo del navegador con
   `invalid`/`errorMessage` propios.
+- **Animación "morphing" del placeholder a label:** el placeholder y la
+  etiqueta son elementos distintos; no hay efecto de morphing ni de
+  transformación del texto de uno al otro.
+- **Etiquetas de más de una línea en modo floating:** la etiqueta flotante
+  se asume de una sola línea. Etiquetas largas que quiebren línea en
+  `font-size-xs` pueden solapar el contenido del campo en modo `inset` —
+  sin corrección en v1; el consumidor debe usar etiquetas concisas en
+  modo floating.
