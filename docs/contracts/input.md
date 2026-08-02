@@ -120,8 +120,13 @@ La solución es **exclusivamente CSS**, nunca JS ni polling:
 }
 ```
 
-`:-webkit-autofill` (con prefijo) sigue siendo necesario para Safari < 16.4,
-donde `:autofill` sin prefijo no se reconoce.
+`:-webkit-autofill` (con prefijo) es necesario para todos los motores Blink
+y WebKit — Chrome, Edge, Opera, Samsung Browser y Safari en todas las versiones
+actuales. No es específico de "Safari viejo": el prefijo `-webkit-` es el que
+utilizan tanto WebKit (Safari) como Blink (Chromium). `:autofill` sin prefijo
+es la forma estándar (disponible en Chrome ≥ 103, Firefox ≥ 86, Safari ≥ 15.4),
+pero usar ambos selectores garantiza cobertura universal sin dependencias de
+versión concreta.
 
 El componente **no pelea contra el estilo visual del autofill** (fondo
 amarillo/azul de Chromium, color de texto fijo de Safari): véase §Casos límite
@@ -367,6 +372,19 @@ neutral.0 (#ffffff) = 15.14:1 en light; neutral.100 (#eaefec) / neutral.950
 | `--aegis-input-float-padding-block-start` | `--aegis-space-5` (24px / 1.5rem; padding-block-start del campo en modo `inset` — crea espacio para la etiqueta flotada en la parte superior del campo) |
 | `--aegis-input-label-notch-padding-inline` | `--aegis-space-1` (relleno horizontal del chip de la etiqueta en modo `notched`) |
 
+> **Nota sobre `--aegis-input-float-padding-block-start` y el tamaño `sm`:**
+> `space-5` (24 px) es el mismo valor que `--aegis-input-min-block-size`. En
+> `size='sm'` con `labelMode='floating'` e `inset`, el solo padding superior
+> ya iguala la altura mínima de un campo `sm` en modo `stacked`: el campo
+> floating-inset `sm` resultante tiene aproximadamente el doble de altura
+> que un `sm` stacked (~50 px vs ~36 px). **Esta es una consecuencia consciente,
+> no un error.** El motivo: `space-4` (16 px) es insuficiente bajo WCAG 1.4.12
+> con espaciado forzado (`font-size-xs × leading 1.5 ≈ 15.4 px`, dejando < 1 px
+> de margen). `space-5` es el mínimo seguro. En modo `floating`, `sm` deja de
+> ser pequeño en altura — mantiene su compacidad solo en el eje horizontal
+> (padding-inline, font-size). Si se necesita un campo compacto en ambos ejes,
+> el modo `stacked` es la elección correcta.
+
 ## Estados
 
 | Estado | Disparador | Tratamiento |
@@ -556,6 +574,67 @@ Texto deshabilitado: exento de 1.4.3 (mismo criterio que el Button).
   traslado o escala. No se aplican `transition` ni `animation` en la etiqueta
   flotante cuando `prefers-reduced-motion: reduce`.
 
+### Alto contraste forzado (`forced-colors: active`)
+
+Bajo `@media (forced-colors: active)` (Windows High Contrast Mode, macOS
+Contrast Themes y equivalentes), el navegador sustituye los colores del
+documento por los del sistema. Los tokens `--aegis-input-*` quedan anulados.
+
+**`labelMode='stacked'`:** el campo y la etiqueta reciben colores de sistema
+automáticamente (`Field`/`FieldText`, `ButtonBorder`). Sin tratamiento especial
+necesario — el resultado es accesible por defecto.
+
+**`labelMode='floating'`:** la etiqueta flotante necesita tratamiento explícito
+en ambos estilos.
+
+- **`labelFloatStyle='inset'`:** si la implementación posiciona la etiqueta de
+  modo que su área coincida visualmente con el borde superior del campo (p. ej.,
+  `top: 0; transform: translateY(-50%)`), el borde del sistema puede atravesar
+  visualmente el texto de la etiqueta. En forced-colors, `background-color`
+  queda suprimido salvo que se declare explícitamente con `forced-color-adjust:
+  none`.
+
+- **`labelFloatStyle='notched'`:** el chip de la etiqueta depende del token
+  `--aegis-input-label-notch-bg` para cubrir visualmente el borde. En
+  forced-colors ese token queda anulado — el borde del sistema atraviesa la
+  zona del chip. Este es el caso más crítico: sin tratamiento, la etiqueta
+  flotada en `notched` queda ilegible sobre el borde.
+
+Regla CSS de referencia para la implementación (obligatoria en `floating`):
+
+```css
+@media (forced-colors: active) {
+  .aegis-input--floating .aegis-input__label {
+    background-color: Canvas;
+    color: CanvasText;
+    forced-color-adjust: none;
+  }
+}
+```
+
+`Canvas` es el fondo de la página en el esquema de colores del sistema del
+usuario; `CanvasText` es el color de texto correspondiente. Juntos garantizan
+que la etiqueta flotante tenga fondo opaco y texto legible en cualquier tema de
+contraste forzado.
+
+> `forced-color-adjust: none` impide que el UA anule estas declaraciones. Se
+> aplica **solo al elemento de la etiqueta flotante**, no al campo ni al
+> contenedor: las sustituciones del sistema sobre el campo (`Field`,
+> `FieldText`, `ButtonBorder`) son deseables y no deben interferirse.
+>
+> **Limitación en Safari:** `forced-color-adjust` no está soportado en Safari
+> (no está implementado en WebKit a 2026-08-02). En macOS con Contrast Themes
+> activo, la etiqueta flotada puede no mantener el fondo `Canvas` declarado.
+> Documentado como limitación de plataforma, no como defecto de la librería.
+
+**Verificación manual** (añadir al banco `aegis-input-a11y-manual`): activar
+Windows High Contrast Mode (o Forced Colors en DevTools → Rendering → Emulate
+CSS media feature `forced-colors: active`) y comprobar los tres modos
+(`stacked`, `floating-inset`, `floating-notched`) en reposo y enfocado.
+Criterio: etiqueta legible, borde del campo visible, anillo de foco visible.
+Esta verificación se añade a la lista del pase manual obligatorio de §8.4
+junto con el pase de lectores de pantalla (NVDA+Firefox, VoiceOver+Safari).
+
 ### Espaciado de texto (1.4.12)
 
 Sin alturas fijas en px: `--aegis-input-min-block-size` + padding, el campo
@@ -574,7 +653,8 @@ ni solapada al texto del campo bajo condiciones de espaciado forzado.
 
 1.3.1 (relación label/campo por `for`/`id` programática), 1.4.3, 1.4.10,
 1.4.11, 1.4.12, 2.1.1, 2.1.2, 2.4.7, 2.4.11, 2.5.8, 3.3.1 (identificación de
-error), 3.3.2 (labels/instrucciones), 4.1.2, 4.1.3, y `prefers-reduced-motion`.
+error), 3.3.2 (labels/instrucciones), 4.1.2, 4.1.3, `prefers-reduced-motion`,
+y `forced-colors` (Windows High Contrast / Contrast Themes).
 
 ## Casos límite
 
@@ -779,6 +859,12 @@ arquitectura.
       reanuncio con el texto ACTUALIZADO al reenfocar. Los dos lectores, no
       uno — la lección de todo el historial es que un pase con un solo lector
       no certifica el patrón.
+- [ ] **Pendiente** — forced-colors (Windows High Contrast Mode o Forced Colors
+      vía DevTools). Casos: `stacked`, `floating-inset` y `floating-notched`,
+      en reposo y enfocado. Criterio: etiqueta legible, borde del campo visible,
+      anillo de foco visible. Solo aplica cuando `labelMode='floating'` esté
+      implementado. Limitación conocida: el fondo `Canvas` de la etiqueta puede
+      no preservarse en Safari/WebKit (ver §Alto contraste forzado).
 
 ## Fuera de alcance
 
