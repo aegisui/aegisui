@@ -160,9 +160,7 @@ export class AegisInputComponent {
    * `:placeholder-shown` como detector de campo vacío (sin espacio, el selector
    * no podría distinguir vacío de relleno cuando no hay placeholder visible).
    */
-  protected readonly floatPlaceholder = computed(
-    () => this.placeholder() ?? ' ',
-  );
+  protected readonly floatPlaceholder = computed(() => this.placeholder() ?? ' ');
 
   /** Id estable por instancia, usado solo si el consumidor no aporta el suyo. */
   private readonly autoId = `aegis-input-${nextId++}`;
