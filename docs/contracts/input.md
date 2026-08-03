@@ -733,24 +733,24 @@ otro ya contiene. Se excluyen combinaciones donde la variable adicional produce
 la misma diferencia que una ya cubierta (p. ej., `notched-sm` vs. `notched-lg`
 muestra el mismo fenómeno de escala que `inset-sm` vs. `inset-lg`, que ya está).
 
-| # | `labelFloatStyle` | `size` | Estado del campo | Tema | Información distinta que aporta |
-|---|---|---|---|---|---|
-| 1 | `inset` | md | reposo, vacío | light | Baseline: etiqueta centrada dentro del campo, placeholder oculto |
-| 2 | `notched` | md | reposo, vacío | light | Baseline notched: misma posición de reposo — verifica que no hay diferencia visual en reposo |
-| 3 | `inset` | md | enfocado, vacío | light | Float inset: etiqueta en la parte superior interna; placeholder ahora visible |
-| 4 | `notched` | md | enfocado, vacío | light | Float notched: etiqueta sobre el borde; chip con `notch-bg`; el borde queda "cortado" visualmente |
-| 5 | `inset` | md | relleno, sin foco | light | Float inset en reposo con valor: placeholder oculto, etiqueta pequeña arriba |
-| 6 | `notched` | md | relleno, sin foco | light | Float notched en reposo con valor: notch sobre canvas sin foco — contraste nuevo `text-strong/canvas` |
-| 7 | `inset` | md | enfocado, inválido | light | Float + danger: borde rojo + anillo + etiqueta flotada inset |
-| 8 | `notched` | md | enfocado, inválido | light | Float + danger: borde rojo + notch + etiqueta sobre canvas |
-| 9 | `inset` | md | autofill | light | Caso canónico del bug: estilos de navegador + label forzado a flotar por `:autofill` |
-| 10 | `inset` | sm | enfocado, vacío | light | Tamaño `sm`: label-xs sobre campo pequeño — verifica legibilidad mínima |
-| 11 | `inset` | lg | enfocado, vacío | light | Tamaño `lg`: label-xs sobre campo grande — verifica proporción label/campo |
-| 12 | `inset` | md | reposo, vacío | dark | Dark baseline: `surface-raised` dark (#14211d sobre #1e2d29) |
-| 13 | `notched` | md | enfocado, vacío | dark | Dark notched: chip sobre `surface-canvas` dark (#0d1512) — el par más nuevo en dark |
-| 14 | `inset` | md | relleno, sin foco | dark | Dark filled: contraste etiqueta flotada sobre campo en dark |
-| 15 | `inset` | md | enfocado, inválido | dark | Dark invalid: rojo en dark + float |
-| 16 | `inset` | md | `disabled`, con valor | light | Disabled float: campo atenuado, etiqueta en posición flotada (hay valor) |
+| # | `labelFloatStyle` | `size` | Estado del campo | Historia | Tema | Información distinta que aporta |
+|---|---|---|---|---|---|---|
+| 1 | `inset` | md | reposo, vacío | `componentes-input--floating-inset` (pendiente) | light | Baseline: etiqueta centrada dentro del campo, placeholder oculto |
+| 2 | `notched` | md | reposo, vacío | `componentes-input--floating-notched` (pendiente) | light | Baseline notched: misma posición de reposo — verifica que no hay diferencia visual en reposo |
+| 3 | `inset` | md | enfocado, vacío | `componentes-input--floating-inset` (pendiente) | light | Float inset: etiqueta en la parte superior interna; placeholder ahora visible |
+| 4 | `notched` | md | enfocado, vacío | `componentes-input--floating-notched` (pendiente) | light | Float notched: etiqueta sobre el borde; chip con `notch-bg`; el borde queda "cortado" visualmente |
+| 5 | `inset` | md | relleno, sin foco | `componentes-input--floating-relleno` (pendiente) | light | Float inset en reposo con valor: placeholder oculto, etiqueta pequeña arriba |
+| 6 | `notched` | md | relleno, sin foco | `componentes-input--floating-notched-relleno` (pendiente) | light | Float notched en reposo con valor: notch sobre canvas sin foco — contraste nuevo `text-strong/canvas` |
+| 7 | `inset` | md | enfocado, inválido | `componentes-input--floating-invalido` (pendiente) | light | Float + danger: borde rojo + anillo + etiqueta flotada inset |
+| 8 | `notched` | md | enfocado, inválido | `componentes-input--floating-notched-invalido` (pendiente) | light | Float + danger: borde rojo + notch + etiqueta sobre canvas |
+| 9 | `inset` | md | autofill | `componentes-input--floating-autofill` (pendiente) | light | Caso canónico del bug: estilos de navegador + label forzado a flotar por `:autofill` |
+| 10 | `inset` | sm | enfocado, vacío | `componentes-input--floating-tamanos` (pendiente) | light | Tamaño `sm`: label-xs sobre campo pequeño — verifica legibilidad mínima |
+| 11 | `inset` | lg | enfocado, vacío | `componentes-input--floating-tamanos` (pendiente) | light | Tamaño `lg`: label-xs sobre campo grande — verifica proporción label/campo |
+| 12 | `inset` | md | reposo, vacío | `componentes-input--floating-inset` (pendiente) | dark | Dark baseline: `surface-raised` dark (#14211d sobre #1e2d29) |
+| 13 | `notched` | md | enfocado, vacío | `componentes-input--floating-notched` (pendiente) | dark | Dark notched: chip sobre `surface-canvas` dark (#0d1512) — el par más nuevo en dark |
+| 14 | `inset` | md | relleno, sin foco | `componentes-input--floating-relleno` (pendiente) | dark | Dark filled: contraste etiqueta flotada sobre campo en dark |
+| 15 | `inset` | md | enfocado, inválido | `componentes-input--floating-invalido` (pendiente) | dark | Dark invalid: rojo en dark + float |
+| 16 | `inset` | md | `disabled`, con valor | `componentes-input--floating-deshabilitado-con-valor` (pendiente) | light | Disabled float: campo atenuado, etiqueta en posición flotada (hay valor) |
 
 **Redundantes excluidos:**
 - `notched` × `sm`/`lg`: el fenómeno de escala ya está en `inset-sm`/`inset-lg`
