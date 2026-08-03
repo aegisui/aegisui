@@ -111,6 +111,39 @@ Repetir en **claro y oscuro** (toggle del sandbox):
       interruptor **salta** a su posición final en vez de deslizarse. El estado
       final es idéntico.
 
+## 8 · Alto contraste forzado (`forced-colors`) — Windows real
+
+**Por qué sigue siendo manual.** El gate `forced-colors`
+(`apps/sandbox/e2e/gate-forced-colors.spec.ts`) caza la REGRESIÓN: comprueba que
+el CSS responde, que los colores de marca ceden a los del sistema, que ningún
+texto queda invisible y que el anillo de foco sobrevive. Lo que **no** puede
+comprobar es que el resultado se VEA BIEN: Chromium bajo `emulateMedia` aplica un
+juego de colores por defecto, no los temas reales de Windows —que el usuario
+personaliza y que incluyen combinaciones muy distintas entre sí. El emulador de
+DevTools tiene la misma limitación.
+
+Con un tema de contraste **real** de Windows (Configuración → Accesibilidad →
+Temas de contraste; probar al menos *Aquático* y *Desierto*):
+
+- [ ] Los 5 componentes siguen siendo distinguibles entre sí: el borde de un
+      campo, el límite de un botón y el de una tarjeta no se funden con el fondo.
+- [ ] El `Switch` comunica encendido/apagado **sin depender del color**: en
+      forzado, el relleno de acento desaparece y la posición del pulgar debe
+      seguir diciendo el estado.
+- [ ] El `Badge` sigue distinguiendo variantes por su texto, no solo por el
+      tinte (que en forzado se pierde).
+- [ ] El anillo de foco es visible sobre **todos** los fondos del tema, y no
+      queda recortado por el `overflow` de la Card.
+- [ ] El estado inválido del `Input` sigue siendo perceptible sin el rojo.
+- [ ] `disabled` sigue leyéndose como inactivo (`GrayText`), no como habilitado.
+
+> Cuando llegue `labelMode='floating'`: comprobar además que la etiqueta flotada
+> del estilo `notched` no queda ilegible sobre el borde. Es el punto de mayor
+> riesgo del componente, porque su chip lleva `forced-color-adjust: none`.
+> Anotado también que `forced-color-adjust` **no** está soportado en WebKit, así
+> que en macOS con Contrast Themes el fondo `Canvas` puede no preservarse: es
+> limitación de plataforma, no un defecto del componente.
+
 ---
 
 ## Registro del pase
@@ -119,6 +152,7 @@ Repetir en **claro y oscuro** (toggle del sandbox):
 |---|---|---|---|
 | | NVDA + Firefox | | |
 | | VoiceOver + Safari | | |
+| | Windows High Contrast (temas reales) | **pendiente** | §8; el gate de regresión ya corre en CI |
 
 **Un fallo aquí no es un "detalle a pulir": es un defecto de accesibilidad** y se
 trata como tal (SPEC §8: no es opcional ni se retrofitea). Si aparece algo que un

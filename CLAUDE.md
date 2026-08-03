@@ -25,9 +25,15 @@ Node ≥ 22.22.3 (ver `.nvmrc`) y pnpm vía corepack (versión pineada en `packa
 | Storybook (build estático) | `pnpm nx run tokens:build && pnpm storybook:build` |
 | Changeset | `pnpm changeset` |
 | Demostrar que los raíles bloquean | `pnpm exec eslint --config tools/fixtures/eslint.fixtures.config.js 'tools/fixtures/bad/**/*.{ts,css}' 'tools/fixtures/bad-tokens/**/*.css'` |
-| Correr un gate DOM de §9.2 (dos direcciones vs fixtures) | `node scripts/gates/run.mjs <gate>` (`a11y`, `contrast`, `keyboard`, `target-size`, `visual`, `contracts`) |
+| Correr un gate DOM de §9.2 (dos direcciones vs fixtures) | `node scripts/gates/run.mjs <gate>` (`a11y`, `contrast`, `keyboard`, `target-size`, `visual`, `contracts`, `coverage`) |
 
-**CI** (`.github/workflows/ci.yml`): un job por gate de §9.2, con `name:` estable (es lo que se fija como *required* en la protección de rama; **no renombrar**). Los 6 gates DOM —`a11y`, `contrast`, `keyboard`, `target-size`, `visual`, `contracts`— corren contra los fixtures `good`/`bad` **en las dos direcciones** vía `scripts/gates/run.mjs <gate>` (ADR-013): pasan sobre `good/`, fallan sobre `bad/`. Cuando lleguen componentes reales, los analizarán **además** de los fixtures, sin tocar el `name:` del job. Los 13 checks van en verde. **Anti-verde-falso sigue vivo:** si un gate deja de cazar la violación de `bad/`, su job se pone rojo.
+**CI** (`.github/workflows/ci.yml`): un job por gate de §9.2, con `name:` estable (es lo que se fija como *required* en la protección de rama; **no renombrar**). Los 7 gates DOM —`a11y`, `contrast`, `keyboard`, `target-size`, `visual`, `contracts`, `coverage`— corren contra los fixtures `good`/`bad` **en las dos direcciones** vía `scripts/gates/run.mjs <gate>` (ADR-013): pasan sobre `good/`, fallan sobre `bad/`. **Anti-verde-falso sigue vivo:** si un gate deja de cazar la violación de `bad/`, su job se pone rojo.
+
+Los componentes REALES se verifican **además**, en el mismo job y sin renombrarlo, con los specs de `apps/sandbox/e2e/gate-*.spec.ts` (axe, contraste, target-size y snapshots de estilos computados sobre los 5 componentes en Chromium, ambos temas). Cada job de `a11y`/`contrast`/`target-size`/`visual` corre las dos mitades: el canario de fixtures y el componente real.
+
+`coverage` es el meta-check y no tiene mitad e2e: comprueba que cada variante declarada en la `## Matriz visual representativa` de un contrato nombre una historia que exista. **Está rojo a propósito** hasta que aterricen las matrices de `badge`/`button`/`card`/`switch` y los ids de historia en `input.md`: un contrato sin matriz no es cobertura cero, es cobertura DESCONOCIDA.
+
+`forced-colors` es solo e2e y solo de **regresión**: comprueba que el CSS responde a `forced-colors: active`. **No** valida que se vea bien en Windows High Contrast real —Chromium emula un juego de colores por defecto, no los temas del SO— y eso sigue siendo pase manual (`docs/pase-manual-set-minimo.md` §8). Los dos, no uno.
 
 ## Reglas innegociables (todas verificadas en CI)
 
@@ -47,7 +53,8 @@ Node ≥ 22.22.3 (ver `.nvmrc`) y pnpm vía corepack (versión pineada en `packa
 - `.storybook/` → runtime de Storybook (`@storybook/angular-vite`, ADR-017): documentación viva de los componentes de `packages/ui` (stories junto al componente, `*.stories.ts`).
 - `tools/eslint-rules` → las **11 reglas propias** (JS ESM) + sus tests RuleTester. **Son el producto** (SPEC §7, §15).
 - `tools/fixtures/{good,bad,bad-tokens}` → **test de regresión permanente de los raíles**: demuestran que cada gate pasa sobre `good/` y falla sobre `bad/` (ADR-009, ADR-013). Incluye los `fixture-*.rendered.{light,dark}.html` (objetivo de los gates DOM) y el `## Teclado` del contrato (objetivo de `keyboard`).
-- `scripts/gates/` → los 6 gates DOM de §9.2 (analizadores propios, cero deps) + `run.mjs` (las dos direcciones; es el comando de cada job de CI). ADR-013.
+- `scripts/gates/` → los 7 gates DOM de §9.2 (analizadores propios, cero deps) + `run.mjs` (las dos direcciones; es el comando de cada job de CI). ADR-013.
+- `apps/sandbox/e2e/gate-*.spec.ts` → la mitad de cada gate que mira el **componente real** en Chromium. Vive aquí, no en `scripts/gates/`: necesita navegador y las galerías del sandbox.
 - `scripts/check-peer-floor.mjs` → gate `peer-floor`.
 - `scripts/check-contracts.mjs` → reconciliación contrato↔componente (la usa el gate `contracts` sobre fixtures y sobre `packages/ui` en Fase 3).
 - `docs/{SPEC,CONTRIBUTING}.md`, `docs/adr/`, `docs/contracts/` (uno por componente).

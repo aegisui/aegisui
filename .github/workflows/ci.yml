@@ -104,6 +104,19 @@ jobs:
       - uses: ./.github/actions/setup
       - run: node scripts/gates/run.mjs contracts
 
+  # `coverage` es el meta-check: cada variante declarada en la matriz visual de un
+  # contrato debe nombrar la historia que la cubre, y esa historia debe existir.
+  # Cierra el hueco que ni los fixtures ni los specs e2e ven: una variante que el
+  # contrato promete y que nadie implementó. Estático (deriva los ids del fuente
+  # de los *.stories.ts), así que no necesita navegador ni Storybook.
+  coverage:
+    name: coverage
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - run: node scripts/gates/run.mjs coverage
+
   # Los gates DOM que necesitan render REAL corren en dos partes, sin renombrar el
   # job: (1) el canario estático de fixtures good/bad (ADR-013, anti-verde-falso de
   # los raíles) y (2) el Button real en Chromium vía Playwright contra el sandbox
@@ -168,6 +181,23 @@ jobs:
       - name: visual del Button real (estilos computados, Chromium)
         working-directory: apps/sandbox
         run: pnpm exec playwright test gate-visual
+
+  # `forced-colors` es gate de REGRESIÓN, no validación de Windows High Contrast
+  # real: Chromium aplica un juego de colores por defecto bajo emulateMedia, no
+  # los temas del SO. Comprueba que el CSS RESPONDE (los colores de marca ceden,
+  # ningún texto queda invisible, el anillo de foco sobrevive). La validación de
+  # que se VE bien en HCM real sigue siendo pase manual: docs/pase-manual-set-minimo.md §8.
+  forced-colors:
+    name: forced-colors
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - run: pnpm nx run tokens:build
+      - run: pnpm exec playwright install --with-deps chromium
+      - name: forced-colors sobre los componentes reales (Chromium)
+        working-directory: apps/sandbox
+        run: pnpm exec playwright test gate-forced-colors
 
   # Informativo, NO required (ver comentario de cabecera y ADR-017). Solo
   # construye: cero deps runtime, cero superficie de corrección que no cubran

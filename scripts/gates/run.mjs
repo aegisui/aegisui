@@ -19,7 +19,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
 const here = dirname(fileURLToPath(import.meta.url));
-const GATES = ['a11y', 'contrast', 'target-size', 'keyboard', 'visual', 'contracts'];
+const GATES = ['a11y', 'contrast', 'target-size', 'keyboard', 'visual', 'contracts', 'coverage'];
 
 async function run(id) {
   if (!GATES.includes(id)) {
