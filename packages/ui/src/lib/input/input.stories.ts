@@ -3,9 +3,12 @@ import { AegisInputComponent } from './input.component';
 
 /**
  * Documentación viva del Input. Cubre los 3 tamaños × estados (default/disabled/
- * readonly/invalid), la etiqueta propia del componente y el mensaje de error con
- * `role="alert"`. El tema (claro/oscuro) lo conmuta el toolbar de Storybook sobre
- * `[data-theme]`; el dark vive en los tokens (capa 2).
+ * readonly/invalid), la etiqueta propia del componente y el mensaje de error.
+ * El tema (claro/oscuro) lo conmuta el toolbar de Storybook sobre `[data-theme]`;
+ * el dark vive en los tokens (capa 2).
+ *
+ * `labelMode='floating'` está documentado en §EtiquetaFlotante y las variantes
+ * de la §Matriz visual representativa del contrato.
  */
 const meta: Meta<AegisInputComponent> = {
   title: 'Componentes/Input',
@@ -17,6 +20,8 @@ const meta: Meta<AegisInputComponent> = {
       options: ['text', 'email', 'password', 'search', 'tel', 'url', 'number'],
     },
     size: { control: 'inline-radio', options: ['sm', 'md', 'lg'] },
+    labelMode: { control: 'inline-radio', options: ['stacked', 'floating'] },
+    labelFloatStyle: { control: 'inline-radio', options: ['inset', 'notched'] },
     disabled: { control: 'boolean' },
     readonly: { control: 'boolean' },
     required: { control: 'boolean' },
@@ -27,10 +32,13 @@ const meta: Meta<AegisInputComponent> = {
     type: 'email',
     size: 'md',
     placeholder: 'tu@empresa.com',
+    labelMode: 'stacked',
+    labelFloatStyle: 'inset',
     disabled: false,
     readonly: false,
     required: false,
     invalid: false,
+    value: '',
   },
   render: (args) => ({
     props: args,
@@ -39,12 +47,15 @@ const meta: Meta<AegisInputComponent> = {
       [type]="type"
       [size]="size"
       [placeholder]="placeholder"
+      [labelMode]="labelMode"
+      [labelFloatStyle]="labelFloatStyle"
       [disabled]="disabled"
       [readonly]="readonly"
       [required]="required"
       [invalid]="invalid"
       [helpText]="helpText"
       [errorMessage]="errorMessage"
+      [(value)]="value"
     />`,
   }),
 };
@@ -90,4 +101,67 @@ export const Tamanos: Story = {
       </div>
     `,
   }),
+};
+
+// ── Floating label ────────────────────────────────────────────────────────────
+
+/** Inset: etiqueta dentro del borde en posición flotada (default). */
+export const FloatingInset: Story = {
+  name: 'Floating · Inset (default)',
+  args: {
+    labelMode: 'floating',
+    labelFloatStyle: 'inset',
+    placeholder: 'tu@empresa.com',
+  },
+};
+
+/** Notched: etiqueta sobre el borde superior (estilo Material). */
+export const FloatingNotched: Story = {
+  name: 'Floating · Notched',
+  args: {
+    labelMode: 'floating',
+    labelFloatStyle: 'notched',
+    placeholder: 'tu@empresa.com',
+  },
+};
+
+/** Los 3 tamaños con etiqueta flotante inset. */
+export const FloatingTamanos: Story = {
+  name: 'Floating · Tamaños',
+  render: () => ({
+    template: `
+      <div style="display:flex; flex-direction:column; gap:1.5rem; max-inline-size: 20rem;">
+        @for (s of ['sm','md','lg']; track s) {
+          <aegis-input
+            [label]="'Tamaño ' + s"
+            [size]="s"
+            labelMode="floating"
+            placeholder="Escribe aquí"
+          />
+        }
+      </div>
+    `,
+  }),
+};
+
+/** Estado inválido con etiqueta flotante inset. */
+export const FloatingInvalido: Story = {
+  name: 'Floating · Inválido',
+  args: {
+    labelMode: 'floating',
+    labelFloatStyle: 'inset',
+    invalid: true,
+    value: 'no-es-un-correo',
+    errorMessage: 'Introduce un correo con formato válido (nombre@dominio.com).',
+  },
+};
+
+/** Disabled con valor: la etiqueta permanece en posición flotada. */
+export const FloatingDeshabilitadoConValor: Story = {
+  name: 'Floating · Deshabilitado con valor',
+  args: {
+    labelMode: 'floating',
+    disabled: true,
+    value: 'precargado@empresa.com',
+  },
 };

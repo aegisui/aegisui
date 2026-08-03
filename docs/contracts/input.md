@@ -158,26 +158,43 @@ contraseñas lo usan para identificar el campo.
 
 **Default `'inset'` — argumento:** la etiqueta `inset` flota siempre sobre
 `--aegis-input-bg` (`surface-raised`), el mismo par de contraste ya verificado
-en el contrato. La etiqueta `notched` necesita que `--aegis-input-label-notch-bg`
-coincida con la superficie padre del campo (ver §Tokens). El default
-(`surface-canvas`) es incorrecto si el Input vive dentro de una tarjeta
-(`surface-raised`): el consumidor tendría que hacer override para que funcione
-correctamente. Un default que requiere override activo para ser correcto en el
-uso más común no es un default útil. `inset` funciona sin ningún override.
+en el contrato, y no depende de qué haya detrás del campo. `notched` sí depende:
+su chip cubre el borde, y el borde separa dos superficies distintas (ver la nota
+de abajo). `inset` funciona sin ningún override; `notched` necesita que la
+superficie padre sea `surface-canvas` o que el consumidor ajuste un token.
 
 | Estilo | Posición de reposo | Posición flotada | Fondo de la etiqueta |
 |---|---|---|---|
 | `'inset'` | Centrada verticalmente dentro del campo | Parte superior interna del campo | `--aegis-input-bg` (`surface-raised`) — par ya verificado |
-| `'notched'` | Centrada verticalmente dentro del campo | Sobre el borde superior, cortándolo visualmente | `--aegis-input-label-notch-bg` (`surface-canvas` por defecto; el consumidor debe sobreescribir si la superficie padre es distinta) |
+| `'notched'` | Centrada verticalmente dentro del campo | Sobre el borde superior, cortándolo visualmente | Degradado de DOS paradas: `--aegis-input-label-notch-bg-outer` / `-inner` |
 
-> **Nota sobre `'notched'` y la superficie padre:** la etiqueta usa
-> `--aegis-input-label-notch-bg` como fondo del chip para cubrir visualmente
-> el borde. El par de contraste verificado en este contrato es para el default
-> (`surface-canvas`). Con otras superficies (`surface-raised`, `surface-sunken`)
-> el par sigue siendo `text-strong / <esa-superficie>` y el contraste es ≥4.5:1
-> para cualquier superficie de Aegis (neutral.900/#ffffff ≥15:1, neutral.900/
-> #f6f8f7 ≥15.5:1, neutral.900/#eaefec ≥13:1 en light), pero el consumidor es
-> responsable de configurar el token correctamente.
+> **Nota sobre `'notched'`: el chip CABALGA el borde, y por eso no lleva un
+> color, lleva dos.** Medido sobre el render real: la etiqueta flotada se
+> posiciona con `inset-block-start: 0` y `translateY(-50%)`, así que **la mitad
+> exacta de su alto queda por encima de la arista del campo y la otra mitad por
+> debajo**. Detrás no hay una superficie, hay dos:
+>
+> - mitad **exterior** → el fondo de la página (`surface-canvas`)
+> - mitad **interior** → el relleno del campo (`surface-raised`)
+>
+> Un color plano no puede ser invisible sobre las dos. Pintarlo todo de
+> `surface-canvas` —como se hizo primero— deja la mitad inferior desentonando
+> sobre el campo: el efecto "pegatina". La solución es un degradado de dos
+> paradas al 50%, que no interpola porque ambas caen en el mismo punto.
+>
+> **El punto de corte es estructural, no un número mágico:** el 50% del chip
+> coincide con el centro de su caja, que `translateY(-50%)` sitúa exactamente en
+> la arista EXTERIOR del borde. Verificado con desvío `0` en `sm`, `md` y `lg`.
+> La franja de 1px del borde queda pintada con `-inner`, que es lo correcto:
+> debajo del borde hay campo. Partir a mitad del borde dejaría medio píxel en
+> `canvas` y **ahí sí se vería una franja de color equivocado**.
+>
+> Los dos tokens son **alias de capa 2**, no tintes nuevos: no introducen ningún
+> par de contraste que validar. El par de texto sigue siendo
+> `text-strong / <superficie>`, ≥4.5:1 para cualquier superficie de Aegis.
+>
+> Si la superficie padre no es `surface-canvas` (p. ej. el Input dentro de una
+> Card), el consumidor debe ajustar `--aegis-input-label-notch-bg-outer`.
 
 ### El flotado es puramente visual — el AT no percibe ninguna diferencia
 
@@ -277,7 +294,8 @@ Etiqueta flotante (`labelMode='floating'` — nuevos):
 - `--aegis-input-label-float-font-size` (tamaño reducido al flotar; suelo `font-size-xs`)
 - `--aegis-input-label-float-font-weight` (peso al flotar)
 - `--aegis-input-float-padding-block-start` (padding-block-start del campo en modo `inset`; crea espacio para la etiqueta flotada)
-- `--aegis-input-label-notch-bg` (fondo del chip de la etiqueta en modo `notched`; debe coincidir con la superficie padre)
+- `--aegis-input-label-notch-bg-outer` (mitad EXTERIOR del chip `notched`, la que queda sobre el fondo de la página; alias de `surface-canvas`)
+- `--aegis-input-label-notch-bg-inner` (mitad INTERIOR del chip `notched`, la que queda sobre el relleno del campo; alias de `surface-raised`)
 - `--aegis-input-label-notch-padding-inline` (relleno horizontal del chip `notched`)
 
 ### Riel de COLOR → capa 2 (`--aegis-color-*`)
@@ -305,7 +323,8 @@ verificado por `semanticPairs()`), no a `destructive.solid`/`destructive.ring`.
 | `--aegis-input-help-color` | `--aegis-color-text-muted` |
 | `--aegis-input-error-color` | `--aegis-color-state-danger-text` |
 | `--aegis-input-label-float-color` | `--aegis-color-text-strong` |
-| `--aegis-input-label-notch-bg` | `--aegis-color-surface-canvas` |
+| `--aegis-input-label-notch-bg-outer` | `--aegis-color-surface-canvas` |
+| `--aegis-input-label-notch-bg-inner` | `--aegis-color-surface-raised` |
 
 - **`disabled`** (cross-estado): remapea `--aegis-input-bg` →
   `--aegis-color-surface-sunken`, `--aegis-input-fg` → `--aegis-color-text-muted`,
@@ -611,20 +630,27 @@ en ambos estilos.
   queda suprimido salvo que se declare explícitamente con `forced-color-adjust:
   none`.
 
-- **`labelFloatStyle='notched'`:** el chip de la etiqueta depende del token
-  `--aegis-input-label-notch-bg` para cubrir visualmente el borde. En
-  forced-colors ese token queda anulado — el borde del sistema atraviesa la
-  zona del chip. Este es el caso más crítico: sin tratamiento, la etiqueta
-  flotada en `notched` queda ilegible sobre el borde.
+- **`labelFloatStyle='notched'`:** el chip depende de sus dos tokens de fondo
+  para cubrir el borde, y en forced-colors quedan anulados — el borde del
+  sistema atravesaría la etiqueta. Es el caso más crítico del componente.
+  **Trampa verificada:** el chip pinta un `background-image` (el degradado de
+  dos paradas), y una imagen de fondo se dibuja POR ENCIMA del
+  `background-color`. Declarar solo `background-color: Canvas` NO basta: el
+  degradado de marca seguiría tapando el color del sistema. Hay que anular
+  también `background-image`. Es el mismo fallo que descarta `border-image` y
+  el trazo SVG para un corte real de borde: pintura que el sistema no
+  recolorea. Con `background-image: none` + `background-color: Canvas` +
+  `color: CanvasText`, **no hace falta `forced-color-adjust: none`** — y por
+  tanto la limitación de WebKit descrita arriba deja de aplicar a la etiqueta.
 
 Regla CSS de referencia para la implementación (obligatoria en `floating`):
 
 ```css
 @media (forced-colors: active) {
-  .aegis-input--floating .aegis-input__label {
+  .aegis-input__label--float {
+    background-image: none;
     background-color: Canvas;
     color: CanvasText;
-    forced-color-adjust: none;
   }
 }
 ```
@@ -634,15 +660,26 @@ usuario; `CanvasText` es el color de texto correspondiente. Juntos garantizan
 que la etiqueta flotante tenga fondo opaco y texto legible en cualquier tema de
 contraste forzado.
 
-> `forced-color-adjust: none` impide que el UA anule estas declaraciones. Se
-> aplica **solo al elemento de la etiqueta flotante**, no al campo ni al
-> contenedor: las sustituciones del sistema sobre el campo (`Field`,
-> `FieldText`, `ButtonBorder`) son deseables y no deben interferirse.
+> **`background-image: none` no es opcional.** El chip del `notched` pinta un
+> degradado de dos paradas, y una imagen de fondo se dibuja POR ENCIMA del
+> `background-color`. Sin anularla, el degradado de MARCA seguiría tapando el
+> `Canvas` del sistema — verificado con `emulateMedia`: resolvía a
+> `linear-gradient(rgb(255,255,255) 50%, rgb(246,248,247) 50%)` en pleno
+> forced-colors. Es el mismo fallo que descarta `border-image` y el trazo SVG
+> para un corte real de borde: pintura que el sistema no recolorea.
+
+> **La limitación de Safari YA NO APLICA a la etiqueta.** Versiones anteriores
+> de este contrato declaraban `forced-color-adjust: none` sobre la etiqueta
+> flotante, y advertían de que WebKit no lo soporta (no implementado a
+> 2026-08-02), así que en macOS con Contrast Themes el fondo `Canvas` podía no
+> preservarse.
 >
-> **Limitación en Safari:** `forced-color-adjust` no está soportado en Safari
-> (no está implementado en WebKit a 2026-08-02). En macOS con Contrast Themes
-> activo, la etiqueta flotada puede no mantener el fondo `Canvas` declarado.
-> Documentado como limitación de plataforma, no como defecto de la librería.
+> **Esa advertencia queda retirada.** Con `background-image: none` añadido, las
+> sustituciones del sistema hacen el trabajo por sí solas y `forced-color-adjust`
+> sobra: la etiqueta se quedó en `auto`. Al no depender ya de una propiedad que
+> WebKit no implementa, **no hay limitación de plataforma que documentar**.
+> Se deja escrito porque una limitación que desaparece es una corrección, no un
+> silencio: quien lea el contrato viejo en el historial debe saber que se cerró.
 
 **Verificación manual** (añadir al banco `aegis-input-a11y-manual`): activar
 Windows High Contrast Mode (o Forced Colors en DevTools → Rendering → Emulate
@@ -735,22 +772,22 @@ muestra el mismo fenómeno de escala que `inset-sm` vs. `inset-lg`, que ya está
 
 | # | `labelFloatStyle` | `size` | Estado del campo | Historia | Tema | Información distinta que aporta |
 |---|---|---|---|---|---|---|
-| 1 | `inset` | md | reposo, vacío | `componentes-input--floating-inset` (pendiente) | light | Baseline: etiqueta centrada dentro del campo, placeholder oculto |
-| 2 | `notched` | md | reposo, vacío | `componentes-input--floating-notched` (pendiente) | light | Baseline notched: misma posición de reposo — verifica que no hay diferencia visual en reposo |
-| 3 | `inset` | md | enfocado, vacío | `componentes-input--floating-inset` (pendiente) | light | Float inset: etiqueta en la parte superior interna; placeholder ahora visible |
-| 4 | `notched` | md | enfocado, vacío | `componentes-input--floating-notched` (pendiente) | light | Float notched: etiqueta sobre el borde; chip con `notch-bg`; el borde queda "cortado" visualmente |
+| 1 | `inset` | md | reposo, vacío | `componentes-input--floating-inset` | light | Baseline: etiqueta centrada dentro del campo, placeholder oculto |
+| 2 | `notched` | md | reposo, vacío | `componentes-input--floating-notched` | light | Baseline notched: misma posición de reposo — verifica que no hay diferencia visual en reposo |
+| 3 | `inset` | md | enfocado, vacío | `componentes-input--floating-inset` | light | Float inset: etiqueta en la parte superior interna; placeholder ahora visible |
+| 4 | `notched` | md | enfocado, vacío | `componentes-input--floating-notched` | light | Float notched: etiqueta sobre el borde; chip de dos paradas sin costura; el borde queda "cortado" visualmente |
 | 5 | `inset` | md | relleno, sin foco | `componentes-input--floating-relleno` (pendiente) | light | Float inset en reposo con valor: placeholder oculto, etiqueta pequeña arriba |
 | 6 | `notched` | md | relleno, sin foco | `componentes-input--floating-notched-relleno` (pendiente) | light | Float notched en reposo con valor: notch sobre canvas sin foco — contraste nuevo `text-strong/canvas` |
-| 7 | `inset` | md | enfocado, inválido | `componentes-input--floating-invalido` (pendiente) | light | Float + danger: borde rojo + anillo + etiqueta flotada inset |
+| 7 | `inset` | md | enfocado, inválido | `componentes-input--floating-invalido` | light | Float + danger: borde rojo + anillo + etiqueta flotada inset |
 | 8 | `notched` | md | enfocado, inválido | `componentes-input--floating-notched-invalido` (pendiente) | light | Float + danger: borde rojo + notch + etiqueta sobre canvas |
 | 9 | `inset` | md | autofill | `componentes-input--floating-autofill` (pendiente) | light | Caso canónico del bug: estilos de navegador + label forzado a flotar por `:autofill` |
-| 10 | `inset` | sm | enfocado, vacío | `componentes-input--floating-tamanos` (pendiente) | light | Tamaño `sm`: label-xs sobre campo pequeño — verifica legibilidad mínima |
-| 11 | `inset` | lg | enfocado, vacío | `componentes-input--floating-tamanos` (pendiente) | light | Tamaño `lg`: label-xs sobre campo grande — verifica proporción label/campo |
-| 12 | `inset` | md | reposo, vacío | `componentes-input--floating-inset` (pendiente) | dark | Dark baseline: `surface-raised` dark (#14211d sobre #1e2d29) |
-| 13 | `notched` | md | enfocado, vacío | `componentes-input--floating-notched` (pendiente) | dark | Dark notched: chip sobre `surface-canvas` dark (#0d1512) — el par más nuevo en dark |
+| 10 | `inset` | sm | enfocado, vacío | `componentes-input--floating-tamanos` | light | Tamaño `sm`: label-xs sobre campo pequeño — verifica legibilidad mínima |
+| 11 | `inset` | lg | enfocado, vacío | `componentes-input--floating-tamanos` | light | Tamaño `lg`: label-xs sobre campo grande — verifica proporción label/campo |
+| 12 | `inset` | md | reposo, vacío | `componentes-input--floating-inset` | dark | Dark baseline: `surface-raised` dark (#14211d sobre #1e2d29) |
+| 13 | `notched` | md | enfocado, vacío | `componentes-input--floating-notched` | dark | Dark notched: chip sobre `surface-canvas` dark (#0d1512) — el par más nuevo en dark |
 | 14 | `inset` | md | relleno, sin foco | `componentes-input--floating-relleno` (pendiente) | dark | Dark filled: contraste etiqueta flotada sobre campo en dark |
-| 15 | `inset` | md | enfocado, inválido | `componentes-input--floating-invalido` (pendiente) | dark | Dark invalid: rojo en dark + float |
-| 16 | `inset` | md | `disabled`, con valor | `componentes-input--floating-deshabilitado-con-valor` (pendiente) | light | Disabled float: campo atenuado, etiqueta en posición flotada (hay valor) |
+| 15 | `inset` | md | enfocado, inválido | `componentes-input--floating-invalido` | dark | Dark invalid: rojo en dark + float |
+| 16 | `inset` | md | `disabled`, con valor | `componentes-input--floating-deshabilitado-con-valor` | light | Disabled float: campo atenuado, etiqueta en posición flotada (hay valor) |
 
 **Redundantes excluidos:**
 - `notched` × `sm`/`lg`: el fenómeno de escala ya está en `inset-sm`/`inset-lg`
@@ -806,8 +843,10 @@ Unitarios (Vitest + Testing Library):
       es idéntica a `labelMode='stacked'` — el AT no percibe ninguna diferencia.
 - [ ] `labelFloatStyle='inset'`: la etiqueta flotada permanece dentro del borde
       del campo.
-- [ ] `labelFloatStyle='notched'`: la etiqueta flotada tiene fondo
-      `--aegis-input-label-notch-bg` y se posiciona sobre el borde superior.
+- [ ] `labelFloatStyle='notched'`: la etiqueta flotada se posiciona sobre el
+      borde superior con un fondo de DOS paradas al 50%
+      (`--aegis-input-label-notch-bg-outer` / `-inner`), cuyo punto de corte
+      cae en la arista exterior del borde en los tres tamaños.
 - [ ] Bajo `prefers-reduced-motion`, la etiqueta salta a su posición sin
       transición (cero `transition`/`animation` en el elemento etiqueta).
 - [ ] `disabled=true` con `labelMode='floating'` y valor presente: etiqueta en
