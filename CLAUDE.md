@@ -31,7 +31,7 @@ Node ≥ 22.22.3 (ver `.nvmrc`) y pnpm vía corepack (versión pineada en `packa
 
 Los componentes REALES se verifican **además**, en el mismo job y sin renombrarlo, con los specs de `apps/sandbox/e2e/gate-*.spec.ts` (axe, contraste, target-size y snapshots de estilos computados sobre los 5 componentes en Chromium, ambos temas). Cada job de `a11y`/`contrast`/`target-size`/`visual` corre las dos mitades: el canario de fixtures y el componente real.
 
-`coverage` es el meta-check y no tiene mitad e2e: comprueba que cada variante declarada en la `## Matriz visual representativa` de un contrato nombre una historia que exista. **Está rojo a propósito** hasta que aterricen las matrices de `badge`/`button`/`card`/`switch` y los ids de historia en `input.md`: un contrato sin matriz no es cobertura cero, es cobertura DESCONOCIDA.
+`coverage` es el meta-check y no tiene mitad e2e: comprueba que cada variante declarada en la `## Matriz visual representativa` de un contrato nombre una historia que exista. Un contrato sin matriz no es cobertura cero, es cobertura **DESCONOCIDA**, y por eso falla. Los contratos de primitivos **headless** de `cdk` se eximen **declarándolo** (`**Sin matriz visual:** primitivo headless, no renderiza`, ADR-023), nunca por omisión: si el sujeto renderiza de verdad, la exención es violación. **Está verde y debe seguir verde** — si lo ves rojo, hay cobertura que falta, no una excepción tolerada.
 
 `forced-colors` es solo e2e y solo de **regresión**: comprueba que el CSS responde a `forced-colors: active`. **No** valida que se vea bien en Windows High Contrast real —Chromium emula un juego de colores por defecto, no los temas del SO— y eso sigue siendo pase manual (`docs/pase-manual-set-minimo.md` §8). Los dos, no uno.
 

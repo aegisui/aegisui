@@ -389,6 +389,60 @@ Corrección, obligatoria y **acoplada al PR de implementación**:
 Los presupuestos actuales (15 kB cdk / 10 kB ui) **no se tocan**: siguen midiendo
 nuestro código, que es lo que miden bien.
 
+### El presupuesto de `ui` y el combobox — decidido EN FRÍO, antes de chocar
+
+`@aegisui/ui` está hoy en **9.53 kB de 10 kB**: quedan 469 bytes. El combobox es
+el siguiente que toca `ui` y trae dos pieles (`select` y `combobox`), así que va a
+romper ese límite con holgura. Se decide ahora, no cuando el gate se ponga rojo:
+**subir un presupuesto bajo la presión de un PR que no pasa es aflojar el raíl.**
+
+Medido (brotli, que es lo que mide `size-limit`):
+
+| | brotli |
+|---|---|
+| `ui` antes del floating label (`51bc6bda`, build real) | 8 578 B |
+| `ui` hoy | 9 531 B |
+| **coste del floating label** | **+953 B (+11 %)** |
+
+El CSS del Input pasó de 6 129 a 16 254 bytes en fuente (**2.65×**). No es grasa:
+son 44 reglas de `float`/`notch` que implementan una variante real. El CSS
+inlineado es el **47.8 %** del FESM de `ui`, y no se puede deduplicar entre
+componentes sin romper ADR-016 (la capa 3 es **local** al componente, a
+propósito).
+
+**Y al medirlo apareció algo más grande que el presupuesto.** Empaquetando el
+`ui` construido con esbuild, importar **solo** `AegisBadgeComponent` cuesta
+5 301 B y importar **los cinco** cuesta 5 336 B: 35 bytes de diferencia. Con
+resolución de paquete real y `sideEffects: false` aplicado. El FESM no lleva
+ninguna anotación `/*#__PURE__*/` y el paquete tiene un único entry point.
+
+> **Cautela deliberada sobre ese dato:** la medición usa esbuild sobre *partial
+> declarations*, que **no** es como construye un consumidor Angular — su build
+> pasa el linker antes. Es un indicio fuerte de que `ui` no se sacude por
+> componente, **no** una demostración. Se confirma o se descarta con una app
+> Angular real que importe un solo componente.
+
+**Decisión:**
+
+1. **El límite de `ui` NO se sube ahora.** Se queda en 10 kB.
+2. **Antes de que el combobox toque `ui`** se resuelve la pregunta del
+   tree-shaking con una app Angular real (con linker), no con esbuild. Ese
+   experimento va junto con la entrada de coste-de-consumidor de §6, porque es la
+   misma pregunta: *¿qué paga de verdad quien nos instala?*
+3. **La regla de decisión queda escrita AHORA**, para que el resultado no se
+   negocie bajo presión:
+   - **Si `ui` SÍ se sacude por componente** → el presupuesto agregado es un mal
+     proxy (crece con el catálogo y nadie lo paga entero). Se **sustituye** por
+     presupuestos **por componente** más la entrada de coste-de-consumidor. El
+     número agregado pasa a informativo.
+   - **Si NO se sacude** → el agregado sí mide lo que todos pagan, y entonces
+     subirlo significa que quien solo quiere un Badge paga también el Combobox.
+     En ese caso el combobox entra con el límite subido **y** con un issue
+     abierto para arreglar el tree-shaking (entry points secundarios), porque
+     "todos pagan todo" contradice la promesa de la librería.
+
+Lo que **no** es una opción: subir el número en silencio en el PR del combobox.
+
 **Discrepancia de unidades detectada al medir, registrada para no repetirla:** las
 entradas de `.size-limit.json` se llaman `"… (fesm2022, gzip)"` pero `size-limit`
 reporta `brotlied` — es su compresión por defecto, y la configuración nunca pidió
