@@ -647,10 +647,10 @@ Regla CSS de referencia para la implementación (obligatoria en `floating`):
 
 ```css
 @media (forced-colors: active) {
-  .aegis-input--floating .aegis-input__label {
+  .aegis-input__label--float {
+    background-image: none;
     background-color: Canvas;
     color: CanvasText;
-    forced-color-adjust: none;
   }
 }
 ```
@@ -660,15 +660,26 @@ usuario; `CanvasText` es el color de texto correspondiente. Juntos garantizan
 que la etiqueta flotante tenga fondo opaco y texto legible en cualquier tema de
 contraste forzado.
 
-> `forced-color-adjust: none` impide que el UA anule estas declaraciones. Se
-> aplica **solo al elemento de la etiqueta flotante**, no al campo ni al
-> contenedor: las sustituciones del sistema sobre el campo (`Field`,
-> `FieldText`, `ButtonBorder`) son deseables y no deben interferirse.
+> **`background-image: none` no es opcional.** El chip del `notched` pinta un
+> degradado de dos paradas, y una imagen de fondo se dibuja POR ENCIMA del
+> `background-color`. Sin anularla, el degradado de MARCA seguiría tapando el
+> `Canvas` del sistema — verificado con `emulateMedia`: resolvía a
+> `linear-gradient(rgb(255,255,255) 50%, rgb(246,248,247) 50%)` en pleno
+> forced-colors. Es el mismo fallo que descarta `border-image` y el trazo SVG
+> para un corte real de borde: pintura que el sistema no recolorea.
+
+> **La limitación de Safari YA NO APLICA a la etiqueta.** Versiones anteriores
+> de este contrato declaraban `forced-color-adjust: none` sobre la etiqueta
+> flotante, y advertían de que WebKit no lo soporta (no implementado a
+> 2026-08-02), así que en macOS con Contrast Themes el fondo `Canvas` podía no
+> preservarse.
 >
-> **Limitación en Safari:** `forced-color-adjust` no está soportado en Safari
-> (no está implementado en WebKit a 2026-08-02). En macOS con Contrast Themes
-> activo, la etiqueta flotada puede no mantener el fondo `Canvas` declarado.
-> Documentado como limitación de plataforma, no como defecto de la librería.
+> **Esa advertencia queda retirada.** Con `background-image: none` añadido, las
+> sustituciones del sistema hacen el trabajo por sí solas y `forced-color-adjust`
+> sobra: la etiqueta se quedó en `auto`. Al no depender ya de una propiedad que
+> WebKit no implementa, **no hay limitación de plataforma que documentar**.
+> Se deja escrito porque una limitación que desaparece es una corrección, no un
+> silencio: quien lea el contrato viejo en el historial debe saber que se cerró.
 
 **Verificación manual** (añadir al banco `aegis-input-a11y-manual`): activar
 Windows High Contrast Mode (o Forced Colors en DevTools → Rendering → Emulate

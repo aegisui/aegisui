@@ -28,3 +28,22 @@
 .row aegis-input {
   min-inline-size: 14rem;
 }
+
+/* --- Etiqueta flotante `notched`: las dos superficies posibles ---
+ * El chip cabalga el borde, así que su mitad exterior se pinta sobre la
+ * superficie PADRE. Estas dos reglas son los dos caminos del contrato.
+ */
+
+/* 1. El default asume `surface-canvas` detrás. Esta fila lo provee. */
+.row.surface-canvas {
+  background: var(--aegis-color-surface-canvas);
+  padding: var(--aegis-space-3);
+  border-radius: var(--aegis-radius-md);
+}
+
+/* 2. Sobre una superficie elevada, el consumidor DEBE ajustar la mitad
+ *    exterior. Sin esto la etiqueta se ve como una pegatina sobre el panel.
+ *    Es la forma soportada de usar `notched` fuera del lienzo. */
+.notch-on-raised {
+  --aegis-input-label-notch-bg-outer: var(--aegis-color-surface-raised);
+}

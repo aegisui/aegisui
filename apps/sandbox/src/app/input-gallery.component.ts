@@ -7,6 +7,25 @@ import { AegisInputComponent, type AegisInputSize } from '@aegisui/ui';
  * renderiza en Chromium y toma la verdad de `getComputedStyle`/bounding box.
  *
  * Cada campo lleva `data-cell="<size>-<state>"` para localizarlo.
+ *
+ * ## Etiqueta flotante
+ *
+ * Los campos flotantes llevan valor para que la etiqueta esté en posición
+ * FLOTADA sin depender del foco: los gates e2e miden el estado activo, y un
+ * campo vacío mostraría el de reposo.
+ *
+ * El chip del `notched` CABALGA el borde: su mitad exterior se pinta sobre la
+ * superficie PADRE y la interior sobre el relleno del campo. Por eso hay dos
+ * filas, y las dos importan:
+ *
+ *   1. sobre `surface-canvas` → el default funciona sin tocar nada.
+ *   2. sobre `surface-raised` → el consumidor DEBE ajustar
+ *      `--aegis-input-label-notch-bg-outer`, o la mitad exterior desentona
+ *      (el efecto "pegatina").
+ *
+ * Esta galería vive dentro de `section.panel`, que es `surface-raised`: sin el
+ * override del caso 2, el defecto se vería aquí mismo. Los cubre
+ * `apps/sandbox/e2e/gate-notch-alignment.spec.ts`.
  */
 @Component({
   selector: 'aegis-input-gallery',
@@ -55,6 +74,41 @@ import { AegisInputComponent, type AegisInputSize } from '@aegisui/ui';
             label="Con ayuda"
             helpText="Nunca compartimos tu correo."
             data-cell="md-help"
+          />
+        </div>
+      </div>
+
+      <!-- Etiqueta flotante: ver el comentario del componente, arriba. -->
+      <div class="group" data-variant="floating">
+        <h3>etiqueta flotante</h3>
+
+        <div class="row surface-canvas">
+          <aegis-input
+            label="Inset"
+            labelMode="floating"
+            value="flotado@empresa.com"
+            data-cell="md-float-inset"
+          />
+          @for (size of sizes; track size) {
+            <aegis-input
+              [label]="'Notched ' + size"
+              [size]="size"
+              labelMode="floating"
+              labelFloatStyle="notched"
+              value="flotado@empresa.com"
+              [attr.data-cell]="size + '-float-notched'"
+            />
+          }
+        </div>
+
+        <div class="row">
+          <aegis-input
+            label="Notched sobre superficie elevada"
+            labelMode="floating"
+            labelFloatStyle="notched"
+            value="flotado@empresa.com"
+            class="notch-on-raised"
+            data-cell="md-float-notched-raised"
           />
         </div>
       </div>
