@@ -310,6 +310,18 @@ Verificado por el gate `contrast` sobre el DOM renderizado, en ambos temas:
 Texto deshabilitado: exento de 1.4.3, pero se mantiene legible (remapeo a tono
 apagado, no solo `opacity`).
 
+#### Valor a vigilar (criterio de regresión)
+
+**`primary` · texto sobre sólido = 5.09:1** (`#ffffff` sobre `#0a7d63`, light),
+medido sobre el render real. El mínimo de 1.4.3 es 4.5:1, así que el margen es de
+**0.59 puntos** — el más estrecho de todo el set mínimo.
+
+**Si un cambio de token deja este par por debajo de 4.5:1, es una REGRESIÓN**, no
+un ajuste: se corrige el token, nunca el umbral. Cualquier PR que toque
+`accent.solid` o `accent.on-solid` tiene que volver a medirlo. Lo verifican el
+gate `contrast` (capa semántica) y `apps/sandbox/e2e/gate-contrast.spec.ts`
+(render real).
+
 > **Corrección (ADR-018):** `--aegis-color-border-strong` no pasaba 3:1 hasta la
 > corrección de ADR-018 (era 1.82:1 light / 1.76:1 dark); el gate `contrast` no lo
 > cazaba porque no comprobaba ningún par de borde neutro. Ambos se corrigieron
@@ -355,6 +367,37 @@ fuerza interlineado/espaciado (regla `no-fixed-text-height`).
 - **`disabled` durante `loading`:** gana `disabled` (nativo, sin spinner).
 - **Doble activación / clic rápido:** en `loading` no se emiten más `click`
   (el `cdk` los detiene); protege contra envíos duplicados.
+
+## Matriz visual representativa
+
+Variantes que DEBEN tener objetivo en los gates DOM. Cada fila **nombra la
+historia concreta** que la cubre, y esa historia tiene que existir: es lo que
+verifica el gate `coverage`. Contar filas contra historias no valdría — 9 filas y
+9 historias daría verde aunque cubrieran otras variantes.
+
+**Criterio de selección:** cada fila aporta información visual que ninguna otra
+ya contiene. Se declaran **solo variantes que existen hoy como historia**;
+declarar una fila sin historia sería el mismo agujero al revés.
+
+| # | Variante | Estado | Historia | Tema | Información distinta que aporta |
+|---|---|---|---|---|---|
+| 1 | primary | default | `componentes-button--primary` | light | Baseline sólido de acento: el par `accent.on-solid`/`accent.solid`, el más ajustado del componente |
+| 2 | primary | default | `componentes-button--primary` | dark | El mismo par en dark, donde el sólido cambia de tono |
+| 3 | secondary | default | `componentes-button--secondary` | light | Superficie elevada + **borde** funcional: el único par de 1.4.11 del componente |
+| 4 | ghost | default | `componentes-button--ghost` | light | Sin relleno ni borde: texto sobre el lienzo, el caso donde el fondo lo pone la página |
+| 5 | danger | default | `componentes-button--danger` | light | Rol de ACCIÓN destructiva (`destructive.*`, ADR-015), no de estado — distinto de `danger` del Badge |
+| 6 | danger | default | `componentes-button--danger` | dark | El sólido destructivo en dark, par nuevo respecto a la fila 5 |
+| 7 | primary | `loading` | `componentes-button--loading` | light | Spinner + `aria-busy`: el track del spinner usa `border-separator` (decorativo), no `border-strong` |
+| 8 | primary | `disabled` | `componentes-button--disabled` | light | Remapeo a tono apagado (no `opacity`), exento de 1.4.3 pero legible |
+| 9 | 4 × 3 | default | `componentes-button--matriz` | light | Escala: variante × tamaño de un vistazo; verifica que `sm` no baja de 24×24 |
+| 10 | secondary `sm` | icono solo | `componentes-button--icono-solo` | light | Nombre accesible por `aria-label` reenviado, y el objetivo táctil más pequeño del componente |
+
+**Redundantes excluidos:**
+- `secondary`/`ghost` × dark: su par es `text-strong` sobre superficie, ya cubierto
+  por el mismo token en otros componentes; el fenómeno de tema ya está en 2 y 6.
+- `loading`/`disabled` × las otras 3 variantes: el mecanismo de spinner y el
+  remapeo de deshabilitado son independientes de la variante.
+- `playground`: es el banco de controles, no una variante con información propia.
 
 ## Criterios de aceptación (se convierten en tests 1:1)
 

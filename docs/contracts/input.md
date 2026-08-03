@@ -564,6 +564,23 @@ el gate `contrast` (capa semántica + DOM renderizado):
 
 Texto deshabilitado: exento de 1.4.3 (mismo criterio que el Button).
 
+#### Valor a vigilar (criterio de regresión)
+
+**`readonly` · borde sobre superficie hundida = 3.89:1** (`#6a7a73` sobre
+`#eaefec`, light), medido sobre el render real de
+`componentes-input--solo-lectura`. El mínimo de 1.4.11 es 3:1, así que el margen
+es de **0.89 puntos** — el borde más ajustado del set mínimo.
+
+Es el par más estrecho porque `readonly` es el único estado que pinta
+`border-strong` sobre `surface.sunken` en vez de sobre `surface.raised`: el fondo
+se acerca al borde y el contraste cae. `disabled` no cuenta aquí (exento, control
+inactivo).
+
+**Si un cambio de token deja este par por debajo de 3:1, es una REGRESIÓN**, no
+un ajuste: se corrige `border.strong` o `surface.sunken`, nunca el umbral.
+Cualquier PR que toque esos dos tokens tiene que volver a medirlo — y ojo, es
+justo el token que ADR-018 ya tuvo que corregir una vez.
+
 ### Reduced motion (`prefers-reduced-motion`)
 
 - Las transiciones de `background`/`border-color` se **anulan** bajo

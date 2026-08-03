@@ -355,6 +355,22 @@ específico de este componente**.
   no el de la pista — y ese es el criterio correcto de 2.5.8 (objetivo, no
   ornamento). Se testea explícitamente en `sm`, que es donde podría romperse.
 
+#### Valor a vigilar (criterio de regresión)
+
+**`sm` mide 42×26 px** sobre el render real (`componentes-switch--tamanos`). El
+mínimo de 2.5.8 es 24×24, así que el margen en el eje corto es de **2 px** — el
+objetivo más pequeño de todo el set mínimo.
+
+**Si un cambio de token deja el `<button>` de `sm` por debajo de 24 px, es una
+REGRESIÓN**, no un ajuste: se corrige `--aegis-switch-min-target-size` o el
+padding, nunca el umbral del gate. Los tokens que mueven este número son el
+propio `min-target-size` y la escala de espaciado que alimenta el padding.
+
+Ojo con el error fácil al mirarlo: la **pista pintada de `sm` es más baja que
+24 px y eso es correcto**. Lo que tiene que cumplir 2.5.8 es el `<button>`. Un
+"arreglo" que agrandara la pista para que se viera ≥24 px estaría respondiendo a
+la medida equivocada.
+
 ### Dragging (2.5.7)
 
 **Aplica, y por eso v1 no implementa arrastre.** Un switch que solo se pudiera
@@ -413,6 +429,35 @@ del color: la posición del pulgar lo redunda), 1.4.3, 1.4.11, 1.4.12, 2.1.1,
   **no** se anuncia si el control no tiene foco — correcto: un cambio que el
   usuario no provocó y que no está mirando no debe interrumpir su lectura
   (ADR-019, por qué no hay live region).
+
+## Matriz visual representativa
+
+Variantes que DEBEN tener objetivo en los gates DOM. Cada fila **nombra la
+historia concreta** que la cubre, y esa historia tiene que existir: es lo que
+verifica el gate `coverage`. Contar filas contra historias no valdría.
+
+**Criterio de selección:** cada fila aporta información visual que ninguna otra
+ya contiene. Se declaran **solo variantes que existen hoy como historia**.
+
+El eje que manda aquí es `checked`, porque el estado se comunica por **posición y
+color del pulgar** y ambos tienen requisito de 1.4.11 (§Contraste): el pulgar no
+es decoración.
+
+| # | Estado | Tamaño | Historia | Tema | Información distinta que aporta |
+|---|---|---|---|---|---|
+| 1 | apagado | md | `componentes-switch--default` | light | Baseline apagado: pista con **borde obligatorio**, porque su relleno da 1.16:1 contra el lienzo |
+| 2 | encendido | md | `componentes-switch--encendido` | light | Pista de acento + pulgar en `accent.on-solid`: el par que comunica "on" |
+| 3 | encendido | md | `componentes-switch--encendido` | dark | El sólido de acento en dark, donde el par pulgar/pista cambia de tono |
+| 4 | encendido | sm + md + lg | `componentes-switch--tamanos` | light | Escala, y el **valor a vigilar** de §Target size: `sm` = 42×26 px con la pista más baja que el objetivo |
+| 5 | apagado + encendido | md | `componentes-switch--pulgar-bicolor` | light | Los dos pulgares uno al lado del otro: verifica que off (`border-strong`, 3.89:1) y on (`accent.on-solid`, 5.09:1) son colores DISTINTOS y ambos pasan 3:1 |
+| 6 | apagado + encendido, `disabled` | md | `componentes-switch--deshabilitado` | light | `disabled` es ortogonal a `checked`: la posición del pulgar sigue diciendo el estado aunque el color se apague |
+
+**Redundantes excluidos:**
+- `default`/`tamanos`/`deshabilitado` × dark: el cambio de tema sobre el par de
+  acento ya está en la fila 3, que es donde el color hace trabajo semántico.
+- `sm`/`lg` × `apagado`: el fenómeno de escala ya está en la fila 4; el tamaño no
+  interactúa con el estado.
+- `disabled` × `sm`/`lg`: el remapeo de deshabilitado es independiente del tamaño.
 
 ## Criterios de aceptación (se convierten en tests 1:1)
 

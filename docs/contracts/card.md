@@ -229,6 +229,22 @@ aporta padding hacia fuera.
 - **Borde:** decorativo, exento de 3:1 (ver §Riel de color, con el argumento
   completo).
 
+#### Valor a vigilar (criterio de regresión)
+
+**Anillo de foco de un control DENTRO de la Card = 4.77:1** (`#0a7d63` sobre
+`#f6f8f7`, light), medido sobre el render real de
+`componentes-card--con-contenido-interactivo`. El mínimo de 1.4.11 es 3:1.
+
+Este par es propio de la Card aunque el anillo lo pinte el control: la Card
+**cambia la superficie de fondo** de `canvas` a `raised`, así que el anillo se
+evalúa contra `surface.raised`, no contra el lienzo. Un cambio en
+`--aegis-color-surface-raised` o en `accent.ring` mueve este número.
+
+**Si baja de 3:1, es una REGRESIÓN.** Y va acompañado de su otra mitad: el anillo
+**no debe recortarse** — la Card no aplica `overflow: hidden`, y eso lo verifica
+`focus-no-recortado` en `apps/sandbox/e2e/gate-contrast.spec.ts`. Las dos cosas,
+porque un anillo con contraste perfecto pero recortado es igual de inservible.
+
 ### Reduced motion (`prefers-reduced-motion`)
 
 La Card **no tiene ninguna animación ni transición** en v1: nada que anular. La
@@ -269,6 +285,35 @@ recortar el anillo de foco del contenido). **No aplican:** 2.1.1, 2.1.2, 2.4.7,
 - **RTL:** propiedades lógicas (`padding-inline`/`padding-block`). El
   `border-radius` es uniforme, así que RTL no le afecta. Sin `left`/`right`
   físicos.
+
+## Matriz visual representativa
+
+Variantes que DEBEN tener objetivo en los gates DOM. Cada fila **nombra la
+historia concreta** que la cubre, y esa historia tiene que existir: es lo que
+verifica el gate `coverage`. Contar filas contra historias no valdría.
+
+**Criterio de selección:** cada fila aporta información visual que ninguna otra
+ya contiene. Se declaran **solo variantes que existen hoy como historia**.
+
+La Card no es interactiva ni enfocable (§Fuera de alcance): sus ejes visuales son
+el **padding** (4 pasos), la **elevación** (2) y el hecho de cambiar la superficie
+de fondo del contenido, que es lo que arrastra los pares de contraste ajenos.
+
+| # | Padding | Elevación | Historia | Tema | Información distinta que aporta |
+|---|---|---|---|---|---|
+| 1 | md | `flat` | `componentes-card--default` | light | Baseline: `surface.raised` sobre el lienzo, con borde decorativo |
+| 2 | md | `flat` | `componentes-card--default` | dark | El par superficie/lienzo en dark, donde la separación es de tono y no de sombra |
+| 3 | md | `raised` | `componentes-card--elevada` | light | La sombra como única diferencia: verifica que `raised` no cambia el par de color |
+| 4 | none/sm/md/lg | `flat` | `componentes-card--padding` | light | Los 4 pasos de escala, incluido `none` (contenido a sangre, el espaciado pasa al consumidor) |
+| 5 | md | `flat` | `componentes-card--semantica-del-consumidor` | light | Encabezado del consumidor DENTRO de la Card: verifica que no se introduce landmark ni nivel de encabezado propio |
+| 6 | md | `raised` | `componentes-card--con-contenido-interactivo` | light | El anillo de foco de un control interno sobre `surface.raised` — el valor a vigilar de §Contraste, y que no queda recortado |
+
+**Redundantes excluidos:**
+- `padding` × dark: el padding es geometría pura, no cambia con el tema.
+- `raised` × dark: la fila 2 ya cubre el cambio de tema de la superficie, y la 3
+  aísla que `raised` solo añade sombra.
+- `elevation` × cada `padding`: los dos ejes son independientes; su cruce no
+  produce información visual nueva.
 
 ## Criterios de aceptación (se convierten en tests 1:1)
 
