@@ -179,7 +179,10 @@
   --aegis-input-label-float-font-size: var(--aegis-font-size-xs);
   --aegis-input-label-float-font-weight: var(--aegis-font-weight-medium);
   --aegis-input-float-padding-block-start: var(--aegis-space-5);
-  --aegis-input-label-notch-bg: var(--aegis-color-surface-canvas);
+  /* El chip cabalga el borde: su mitad EXTERIOR se pinta sobre el fondo de la
+   * página y la INTERIOR sobre el relleno del campo. Dos tokens, no uno. */
+  --aegis-input-label-notch-bg-outer: var(--aegis-color-surface-canvas);
+  --aegis-input-label-notch-bg-inner: var(--aegis-color-surface-raised);
   --aegis-input-label-notch-padding-inline: var(--aegis-space-1);
 
   /* Espacio extra en la parte superior para alojar la etiqueta flotada (inset).
@@ -201,7 +204,7 @@
   --aegis-input-line-height: var(--aegis-font-leading-normal);
   --aegis-input-float-padding-block-start: var(--aegis-space-5);
   --aegis-input-padding-block: var(--aegis-space-2);
-  --aegis-input-padding-inline: var(--aegis-space-4);  /* md default */
+  --aegis-input-padding-inline: var(--aegis-space-4); /* md default */
 
   /* Motion */
   --aegis-input-transition-duration: var(--aegis-motion-duration-fast);
@@ -211,7 +214,10 @@
   --aegis-input-label-float-color: var(--aegis-color-text-strong);
   --aegis-input-label-float-font-size: var(--aegis-font-size-xs);
   --aegis-input-label-float-font-weight: var(--aegis-font-weight-medium);
-  --aegis-input-label-notch-bg: var(--aegis-color-surface-canvas);
+  /* El chip cabalga el borde: su mitad EXTERIOR se pinta sobre el fondo de la
+   * página y la INTERIOR sobre el relleno del campo. Dos tokens, no uno. */
+  --aegis-input-label-notch-bg-outer: var(--aegis-color-surface-canvas);
+  --aegis-input-label-notch-bg-inner: var(--aegis-color-surface-raised);
   --aegis-input-label-notch-padding-inline: var(--aegis-space-1);
 }
 /* Variantes de tamaño: :has() detecta la clase del input hijo y redefine
@@ -248,8 +254,7 @@
   margin-block-end: 0; /* anula el margen de la clase stacked si coexiste */
 
   transition:
-    inset-block-start var(--aegis-input-transition-duration)
-      var(--aegis-input-transition-easing),
+    inset-block-start var(--aegis-input-transition-duration) var(--aegis-input-transition-easing),
     font-size var(--aegis-input-transition-duration) var(--aegis-input-transition-easing),
     color var(--aegis-input-transition-duration) var(--aegis-input-transition-easing),
     transform var(--aegis-input-transition-duration) var(--aegis-input-transition-easing);
@@ -295,7 +300,23 @@
   /* La etiqueta queda centrada sobre el borde superior (mitad dentro, mitad fuera) */
   inset-block-start: 0;
   transform: translateY(-50%);
-  background-color: var(--aegis-input-label-notch-bg);
+
+  /* El chip CABALGA el borde: medido sobre el render real, exactamente la mitad
+   * de su alto queda por encima del borde del campo y la otra mitad por debajo.
+   * Detrás no hay UNA superficie, hay dos:
+   *   mitad superior -> el fondo de la página   (surface-canvas)
+   *   mitad inferior -> el relleno del campo    (surface-raised)
+   * Por eso un color plano no puede ser invisible: pintarlo todo de `canvas`
+   * (lo que hacía antes) deja la mitad de abajo desentonando sobre el campo —
+   * el efecto "pegatina". Dos paradas al 50% hacen que cada mitad coincida
+   * exactamente con lo que tiene detrás; el degradado no interpola porque las
+   * dos paradas caen en el mismo punto.
+   * Ambos tokens son los que ya declara el contrato para este componente. */
+  background-image: linear-gradient(
+    to bottom,
+    var(--aegis-input-label-notch-bg-outer) 50%,
+    var(--aegis-input-label-notch-bg-inner) 50%
+  );
   padding-inline: var(--aegis-input-label-notch-padding-inline);
   border-radius: calc(var(--aegis-input-radius) / 2);
 }
@@ -329,8 +350,15 @@
  * preservarse. Documentado como limitación de plataforma. */
 @media (forced-colors: active) {
   .aegis-input__label--float {
+    /* `background-image: none` NO es opcional: el chip del notched pinta un
+     * degradado de dos paradas, y una imagen de fondo se dibuja POR ENCIMA del
+     * `background-color`. Sin anularla, el degradado de MARCA seguiría tapando
+     * el `Canvas` del sistema — comprobado con emulateMedia, resolvía a
+     * `linear-gradient(rgb(255,255,255) 50%, rgb(246,248,247) 50%)` en pleno
+     * forced-colors. Es el mismo fallo que descarta `border-image` y el trazo
+     * SVG para el corte real: pintura que el sistema no recolorea. */
+    background-image: none;
     background-color: Canvas;
     color: CanvasText;
-    forced-color-adjust: none;
   }
 }
