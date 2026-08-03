@@ -33,6 +33,8 @@ Los componentes REALES se verifican **además**, en el mismo job y sin renombrar
 
 `coverage` es el meta-check y no tiene mitad e2e: comprueba que cada variante declarada en la `## Matriz visual representativa` de un contrato nombre una historia que exista. **Está rojo a propósito** hasta que aterricen las matrices de `badge`/`button`/`card`/`switch` y los ids de historia en `input.md`: un contrato sin matriz no es cobertura cero, es cobertura DESCONOCIDA.
 
+`forced-colors` es solo e2e y solo de **regresión**: comprueba que el CSS responde a `forced-colors: active`. **No** valida que se vea bien en Windows High Contrast real —Chromium emula un juego de colores por defecto, no los temas del SO— y eso sigue siendo pase manual (`docs/pase-manual-set-minimo.md` §8). Los dos, no uno.
+
 ## Reglas innegociables (todas verificadas en CI)
 
 - **Angular 22, standalone** — prohibido `@NgModule` — y **zoneless** (nada de `zone.js`). `ChangeDetectionStrategy.OnPush` siempre.

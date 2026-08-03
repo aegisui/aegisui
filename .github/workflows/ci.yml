@@ -182,6 +182,23 @@ jobs:
         working-directory: apps/sandbox
         run: pnpm exec playwright test gate-visual
 
+  # `forced-colors` es gate de REGRESIÓN, no validación de Windows High Contrast
+  # real: Chromium aplica un juego de colores por defecto bajo emulateMedia, no
+  # los temas del SO. Comprueba que el CSS RESPONDE (los colores de marca ceden,
+  # ningún texto queda invisible, el anillo de foco sobrevive). La validación de
+  # que se VE bien en HCM real sigue siendo pase manual: docs/pase-manual-set-minimo.md §8.
+  forced-colors:
+    name: forced-colors
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - run: pnpm nx run tokens:build
+      - run: pnpm exec playwright install --with-deps chromium
+      - name: forced-colors sobre los componentes reales (Chromium)
+        working-directory: apps/sandbox
+        run: pnpm exec playwright test gate-forced-colors
+
   # Informativo, NO required (ver comentario de cabecera y ADR-017). Solo
   # construye: cero deps runtime, cero superficie de corrección que no cubran
   # ya los gates de arriba. `continue-on-error` para que un rojo se vea como
