@@ -32,8 +32,29 @@ import { join } from 'node:path';
 import { read, REPO_ROOT, FIXTURES } from './lib/util.mjs';
 
 const CONTRACTS_DIR = join(REPO_ROOT, 'docs', 'contracts');
+const CDK_CONTRACTS_DIR = join(CONTRACTS_DIR, 'cdk');
 const UI_LIB = join(REPO_ROOT, 'packages', 'ui', 'src', 'lib');
 const MATRIX_HEADING = /^##\s+Matriz visual representativa/;
+
+/**
+ * Exención de matriz visual para un primitivo HEADLESS (ADR-023).
+ *
+ * Un primitivo de `cdk` no renderiza nada: exigirle una matriz visual sería
+ * exigirle historias de algo que no tiene apariencia. Pero la exención se
+ * **DECLARA**, no se tolera por ausencia — y la diferencia es la misma lección
+ * de ADR-020 con `**Estado:** implementación pendiente`:
+ *
+ *   - contrato que AFIRMA ser headless          -> exento (si de verdad no renderiza)
+ *   - contrato que simplemente NO declara matriz -> violación (puede ser un olvido)
+ *
+ * Si la exención fuera por omisión —"no tiene matriz, será headless"— cualquier
+ * componente futuro que se OLVIDE su matriz se colaría diciéndose headless sin
+ * decir nada. El silencio no puede ser una decisión.
+ *
+ * Forma exacta, como todos los marcadores del repo: prosa parecida no cuela.
+ */
+const HEADLESS_EXEMPTION =
+  /^\s*>?\s*\*\*Sin matriz visual:\*\*\s*primitivo headless, no renderiza\s*$/im;
 
 /**
  * Id de historia entre backticks, con el marcador de deuda OPCIONAL pegado a él:
@@ -83,6 +104,34 @@ export function declaredStoryIds() {
     }
   }
   return ids;
+}
+
+/**
+ * ¿El sujeto de este contrato RENDERIZA algo? Es el cierre de la puerta trasera
+ * de la exención headless: sin esto, cualquier componente con apariencia podría
+ * escribir el marcador y saltarse el gate entero.
+ *
+ * Dos señales independientes, cualquiera basta (una puede faltar durante el
+ * flujo contrato-antes-que-código, las dos a la vez no mienten):
+ *
+ *  1. existe alguna historia cuyo id corresponda a este contrato, y
+ *  2. existe el fuente del componente en `packages/ui/src/lib/<name>/`.
+ *
+ * Y hace que la exención CADUQUE SOLA, igual que `(pendiente)`: el día que un
+ * primitivo headless gane piel e historias, su marcador pasa a ser violación
+ * automáticamente. Nadie tiene que acordarse de retirarlo.
+ */
+export function contractRenders(name, existing) {
+  const owned = new RegExp(`(^|-)${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}--`);
+  for (const id of existing) {
+    if (owned.test(id)) {
+      return true;
+    }
+  }
+  return (
+    existsSync(join(UI_LIB, name, `${name}.stories.ts`)) ||
+    existsSync(join(UI_LIB, name, `${name}.component.ts`))
+  );
 }
 
 // --- Parseo de la matriz -------------------------------------------------
@@ -145,13 +194,40 @@ export function parseMatrix(markdown) {
  * @param {string} name nombre del contrato (para los mensajes)
  * @param {ReturnType<parseMatrix>} rows filas, o `null` si no declara matriz
  * @param {Set<string>} existing ids de historia que existen de verdad
+ * @param {{headless?: boolean, renders?: boolean}} [opts] exención declarada
+ *        (ADR-023) y si el sujeto renderiza de verdad
  */
-export function matrixViolations(name, rows, existing) {
+export function matrixViolations(name, rows, existing, opts = {}) {
+  const { headless = false, renders = false } = opts;
+
+  // Exención headless DECLARADA (ADR-023). No es "no hay matriz, pues vale":
+  // es una afirmación, y como toda afirmación se puede desmentir.
+  if (headless) {
+    const violations = [];
+    if (renders) {
+      violations.push(
+        `${name}.md se declara "primitivo headless, no renderiza" pero SÍ tiene ` +
+          `render (historia o componente en packages/ui). La exención no es una ` +
+          `puerta trasera: si renderiza, declara su matriz visual.`,
+      );
+    }
+    if (rows !== null) {
+      violations.push(
+        `${name}.md declara a la vez la exención headless y una "## Matriz visual ` +
+          `representativa". Son incompatibles: o no renderiza y no hay matriz que ` +
+          `declarar, o renderiza y la exención sobra.`,
+      );
+    }
+    return violations;
+  }
+
   if (rows === null) {
     return [
       `${name}.md no declara "## Matriz visual representativa": no se puede ` +
         `verificar que sus variantes tengan objetivo. Un contrato sin matriz declarada ` +
-        `no es cobertura cero, es cobertura DESCONOCIDA.`,
+        `no es cobertura cero, es cobertura DESCONOCIDA. Si es un primitivo headless, ` +
+        `decláralo con "**Sin matriz visual:** primitivo headless, no renderiza" ` +
+        `(ADR-023): la exención se afirma, no se deja en silencio.`,
     ];
   }
   if (rows.length === 0) {
@@ -201,13 +277,23 @@ export function matrixViolations(name, rows, existing) {
 
 // --- Objetivos reales ----------------------------------------------------
 
+const mdIn = (dir) =>
+  existsSync(dir)
+    ? readdirSync(dir)
+        .filter((f) => f.endsWith('.md'))
+        .map((f) => ({ name: f.replace(/\.md$/, ''), path: join(dir, f) }))
+    : [];
+
+/**
+ * Contratos de `ui` (nivel superior) Y de primitivos headless (`cdk/`).
+ *
+ * `docs/contracts/cdk/` entra aquí por el mismo motivo que entró en el gate
+ * `contracts` (ADR-023): un directorio de contratos que ningún raíl mira es un
+ * punto ciego. Que la regla que se les aplique sea distinta no es excusa para
+ * no mirarlos — es el motivo para escribir la regla.
+ */
 function realContracts() {
-  if (!existsSync(CONTRACTS_DIR)) {
-    return [];
-  }
-  return readdirSync(CONTRACTS_DIR)
-    .filter((f) => f.endsWith('.md'))
-    .map((f) => ({ name: f.replace(/\.md$/, ''), path: join(CONTRACTS_DIR, f) }));
+  return [...mdIn(CONTRACTS_DIR), ...mdIn(CDK_CONTRACTS_DIR)];
 }
 
 export function realPackagesViolations() {
@@ -219,7 +305,14 @@ export function realPackagesViolations() {
   if (existing.size === 0) {
     return ['no se derivó ninguna historia de packages/ui: sin objetivos que emparejar.'];
   }
-  return contracts.flatMap((c) => matrixViolations(c.name, parseMatrix(read(c.path)), existing));
+  return contracts.flatMap((c) => {
+    const md = read(c.path);
+    const headless = HEADLESS_EXEMPTION.test(md);
+    return matrixViolations(c.name, parseMatrix(md), existing, {
+      headless,
+      renders: headless && contractRenders(c.name, existing),
+    });
+  });
 }
 
 // --- Canario propio (dos direcciones, ADR-013) ---------------------------
@@ -229,24 +322,82 @@ export function realPackagesViolations() {
 // `tools/fixtures/src/coverage-policy.spec.ts` sobre un repo temporal — mismo
 // reparto que ADR-020 hizo con su `stalePending`.
 const goodFixtureContract = join(FIXTURES, 'good/docs/contracts/fixture-good.md');
+const goodHeadlessContract = join(FIXTURES, 'good/docs/contracts/cdk/fixture-good-primitive.md');
 const badFixtureContract = join(FIXTURES, 'bad/docs/contracts/fixture-bad-orphan.md');
+const badFakeHeadlessContract = join(FIXTURES, 'bad/docs/contracts/fixture-bad-fake-headless.md');
 
-/** Historias que el canario finge que existen (el fixture no está en Storybook). */
-const FIXTURE_STORIES = new Set(['componentes-fixture-good--default']);
+/**
+ * Historias que el canario finge que existen (el fixture no está en Storybook).
+ *
+ * `componentes-fixture-bad-fake-headless--default` está aquí A PROPÓSITO: es lo
+ * que hace que ese contrato RENDERICE de verdad a ojos de `contractRenders()`, y
+ * por tanto lo que convierte su exención headless en la mentira que el gate debe
+ * cazar. Sin esta línea, el canario de la puerta trasera no probaría nada.
+ */
+const FIXTURE_STORIES = new Set([
+  'componentes-fixture-good--default',
+  'componentes-fixture-bad-fake-headless--default',
+]);
+
+/** Aplica la política a un contrato de fixture leyendo su exención del propio md. */
+function checkFixture(name, path) {
+  if (!existsSync(path)) {
+    return [];
+  }
+  const md = read(path);
+  const headless = HEADLESS_EXEMPTION.test(md);
+  return matrixViolations(name, parseMatrix(md), FIXTURE_STORIES, {
+    headless,
+    renders: headless && contractRenders(name, FIXTURE_STORIES),
+  });
+}
+
+/**
+ * Salud del canario: que los fixtures SIGAN conteniendo lo que dicen. Canal
+ * `fixtureCoverage()` de `run.mjs`, siempre bloqueante — meterlo en `bad()`
+ * lo volvería inoperante (basta con que `bad()` devuelva algo no vacío).
+ */
+export function fixtureCoverage() {
+  const gaps = [];
+  if (!existsSync(goodHeadlessContract) || !HEADLESS_EXEMPTION.test(read(goodHeadlessContract))) {
+    gaps.push(
+      'good/ ha perdido su contrato de primitivo con exención headless declarada: ' +
+        'la dirección "exención legítima" (ADR-023) se queda sin cobertura',
+    );
+  }
+  if (
+    !existsSync(badFakeHeadlessContract) ||
+    !HEADLESS_EXEMPTION.test(read(badFakeHeadlessContract))
+  ) {
+    gaps.push(
+      'bad/ ha perdido su contrato de FALSA exención headless: la puerta trasera ' +
+        '(algo que renderiza eximiéndose) se queda sin cobertura',
+    );
+  }
+  if (!contractRenders('fixture-bad-fake-headless', FIXTURE_STORIES)) {
+    gaps.push(
+      'el canario de la puerta trasera ya no "renderiza": sin historia propia en ' +
+        'FIXTURE_STORIES, su exención dejaría de ser una mentira y el gate no la cazaría',
+    );
+  }
+  return gaps;
+}
 
 export default {
   id: 'coverage',
   phase: 3,
-  badExpectation: 'contrato que no declara matriz visual',
-  good: () =>
-    matrixViolations('fixture-good', parseMatrix(read(goodFixtureContract)), FIXTURE_STORIES),
-  bad: () =>
-    existsSync(badFixtureContract)
-      ? matrixViolations(
-          'fixture-bad-orphan',
-          parseMatrix(read(badFixtureContract)),
-          FIXTURE_STORIES,
-        )
-      : [],
+  badExpectation:
+    'contrato que no declara matriz visual Y contrato con render que se exime como headless',
+  good: () => [
+    ...checkFixture('fixture-good', goodFixtureContract),
+    // Exención legítima: declara headless y de verdad no renderiza.
+    ...checkFixture('fixture-good-primitive', goodHeadlessContract),
+  ],
+  bad: () => [
+    ...checkFixture('fixture-bad-orphan', badFixtureContract),
+    // Puerta trasera: declara headless pero tiene historia propia.
+    ...checkFixture('fixture-bad-fake-headless', badFakeHeadlessContract),
+  ],
+  fixtureCoverage,
   realPackagesViolations,
 };

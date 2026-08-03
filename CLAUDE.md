@@ -31,7 +31,7 @@ Node ≥ 22.22.3 (ver `.nvmrc`) y pnpm vía corepack (versión pineada en `packa
 
 Los componentes REALES se verifican **además**, en el mismo job y sin renombrarlo, con los specs de `apps/sandbox/e2e/gate-*.spec.ts` (axe, contraste, target-size y snapshots de estilos computados sobre los 5 componentes en Chromium, ambos temas). Cada job de `a11y`/`contrast`/`target-size`/`visual` corre las dos mitades: el canario de fixtures y el componente real.
 
-`coverage` es el meta-check y no tiene mitad e2e: comprueba que cada variante declarada en la `## Matriz visual representativa` de un contrato nombre una historia que exista. **Está rojo a propósito** hasta que aterricen las matrices de `badge`/`button`/`card`/`switch` y los ids de historia en `input.md`: un contrato sin matriz no es cobertura cero, es cobertura DESCONOCIDA.
+`coverage` es el meta-check y no tiene mitad e2e: comprueba que cada variante declarada en la `## Matriz visual representativa` de un contrato nombre una historia que exista. Un contrato sin matriz no es cobertura cero, es cobertura **DESCONOCIDA**, y por eso falla. Los contratos de primitivos **headless** de `cdk` se eximen **declarándolo** (`**Sin matriz visual:** primitivo headless, no renderiza`, ADR-023), nunca por omisión: si el sujeto renderiza de verdad, la exención es violación. **Está verde y debe seguir verde** — si lo ves rojo, hay cobertura que falta, no una excepción tolerada.
 
 `forced-colors` es solo e2e y solo de **regresión**: comprueba que el CSS responde a `forced-colors: active`. **No** valida que se vea bien en Windows High Contrast real —Chromium emula un juego de colores por defecto, no los temas del SO— y eso sigue siendo pase manual (`docs/pase-manual-set-minimo.md` §8). Los dos, no uno.
 
@@ -44,6 +44,7 @@ Los componentes REALES se verifican **además**, en el mismo job y sin renombrar
 - **Lógica de foco / teclado / posicionamiento va en `@aegisui/cdk`**, nunca en `@aegisui/ui` (brain/skin).
 - **Contrato antes que código**: `docs/contracts/<name>.md` aprobado en PR aparte antes de implementar. Todo token del CSS debe estar listado en el contrato.
 - **Versiones exactas** (sin `^`/`~`). La versión de TypeScript **la acota Angular** (no uses la última TS). `peerDependencies` de los paquetes: `^20 || ^21 || ^22`; subir ese suelo es un **MAJOR** con justificación (ADR-007).
+- **Cero dependencias runtime con acoplamiento de framework** (ADR-023). Pertenecer a `@angular/*` **no** da acceso: `@angular/cdk` está rechazada con datos. Aprobadas hoy: `@floating-ui/dom` (en `dependencies` de `cdk`, para posicionar overlays). Toda candidata pasa los **8 criterios** de ADR-023 §Criterio general y trae ADR propio.
 - **Accesibilidad WCAG 2.2 AA** no es opcional ni se retrofitea (SPEC §8).
 
 ## Dónde vive cada cosa
@@ -57,13 +58,14 @@ Los componentes REALES se verifican **además**, en el mismo job y sin renombrar
 - `apps/sandbox/e2e/gate-*.spec.ts` → la mitad de cada gate que mira el **componente real** en Chromium. Vive aquí, no en `scripts/gates/`: necesita navegador y las galerías del sandbox.
 - `scripts/check-peer-floor.mjs` → gate `peer-floor`.
 - `scripts/check-contracts.mjs` → reconciliación contrato↔componente (la usa el gate `contracts` sobre fixtures y sobre `packages/ui` en Fase 3).
-- `docs/{SPEC,CONTRIBUTING}.md`, `docs/adr/`, `docs/contracts/` (uno por componente).
+- `docs/{SPEC,CONTRIBUTING}.md`, `docs/adr/`, `docs/contracts/` (uno por componente de `ui`) y `docs/contracts/cdk/` (uno por primitivo headless de `cdk`). **Los dos directorios los miran `contracts` Y `coverage`, con reglas distintas** (ADR-023): `reconcile()` para `ui` (selector `aegis-*`), `reconcilePrimitives()` para `cdk` (directorio en `packages/cdk/src/lib/`, sin exigir `aegis-*`; un primitivo que es el brain de un componente homónimo queda cubierto por el contrato de arriba, como `button`/`input`/`switch`). Un contrato de primitivo headless se exime de matriz visual **declarándolo** (`**Sin matriz visual:** primitivo headless, no renderiza`), nunca por omisión: si el sujeto renderiza de verdad, la exención es violación.
 - `.github/workflows/ci.yml` → gates de §9.2. `.changeset/` → versionado.
 - `eslint.config.js` (raíz) → flat config; las reglas propias scopean a `packages/**`.
 
 ## Qué NO hacer nunca
 
-- Añadir una dependencia **runtime** que no sea `@angular/*` (abre un issue primero).
+- Añadir una dependencia **runtime** sin pasar los 8 criterios de ADR-023 y sin ADR propio. **`@angular/cdk` está prohibida explícitamente** — también para "solo virtualizar el Select" (ADR-023 §4).
+- Virtualizar listas en v1: el Select/Combobox **capa a ~100 resultados** y pide afinar la búsqueda. No es un olvido, es ADR-023 §4; el virtual scroll llega con la tabla de datos Pro.
 - Reimplementar en `ui` algo que debería vivir en `cdk`.
 - Escribir código de un componente **antes de que su contrato esté aprobado**.
 - Usar la última versión de TypeScript: **la acota Angular** (ADR-006).

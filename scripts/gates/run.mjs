@@ -14,6 +14,21 @@
  *
  * Si el lado bad/ se queda sin violaciones, el gate ha DEJADO de detectar y hay
  * que enterarse en el acto: sale en rojo.
+ *
+ * Un gate puede exportar además `fixtureCoverage()`: comprobaciones de que sus
+ * FIXTURES siguen conteniendo lo que dicen contener ("bad/ sigue teniendo un
+ * componente sin contrato", "good/ sigue teniendo su contrato pendiente"). No son
+ * violaciones: son la salud del objetivo. Van por un canal propio porque
+ * meterlas en `bad()` las volvía INOPERANTES — `bad()` solo necesita devolver
+ * algo no vacío, así que una salvaguarda empujada ahí se contaba como
+ * "violación detectada" y dejaba el gate en VERDE justo cuando avisaba de que
+ * había perdido cobertura. Verde falso dentro del propio mecanismo anti-verde-
+ * falso (SPEC §13). Aquí, `fixtureCoverage()` no vacío = rojo, sin ambigüedad.
+ *
+ * Se llama `fixtureCoverage` y no `coverage` a propósito: `coverage` ya es el
+ * ID de un gate (el meta-check de matrices visuales, ADR-022). Dos cosas
+ * distintas con el mismo nombre en el mismo runner es una confusión esperando
+ * a ocurrir.
  */
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
@@ -56,6 +71,23 @@ async function run(id) {
     );
     for (const v of badViolations) {
       console.log(`   - ${v}`);
+    }
+  }
+
+  // Salud del objetivo: ¿los fixtures siguen conteniendo lo que dicen? Canal
+  // propio y siempre bloqueante (ver cabecera).
+  if (typeof gate.fixtureCoverage === 'function') {
+    const gaps = gate.fixtureCoverage();
+    if (gaps.length > 0) {
+      failed = true;
+      console.error(
+        `❌ ${id}: COBERTURA PERDIDA — los fixtures ya no prueban lo que dicen probar:`,
+      );
+      for (const g of gaps) {
+        console.error(`   - ${g}`);
+      }
+    } else {
+      console.log(`✅ ${id} · cobertura: los fixtures siguen conteniendo sus objetivos.`);
     }
   }
 

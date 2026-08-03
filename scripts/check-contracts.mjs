@@ -92,6 +92,96 @@ export function reconcile(uiSrc, contractsDir) {
 }
 
 /**
+ * Reconcilia los PRIMITIVOS headless de `@aegisui/cdk` con sus contratos.
+ *
+ * Existe porque `reconcile()` no sirve para este caso: busca `@Component` con
+ * selector `aegis-*`, y un primitivo de `cdk` es headless — es una `@Directive`
+ * (`button[aegisSwitch]`) o un servicio, y NUNCA tendrá un `aegis-*` que
+ * reconciliar. Sin esta función, `docs/contracts/cdk/` sería un directorio que
+ * ningún raíl mira: un punto ciego. La respuesta correcta no es sacar esos
+ * contratos de donde el gate llega, sino darle al gate la REGLA de ese caso.
+ *
+ * La clave de la regla, y lo que la hace no trivial: un primitivo puede estar
+ * cubierto por DOS sitios distintos, y ambos son legítimos.
+ *
+ *  1. `docs/contracts/cdk/<name>.md` — primitivo headless puro, sin piel propia
+ *     (p. ej. `overlay`: lo consumirán Select, Combobox, Popover y Tooltip; no
+ *     existe ni existirá `<aegis-overlay>`).
+ *  2. `docs/contracts/<name>.md` — primitivo que es el BRAIN de un componente
+ *     homónimo, cuyo contrato único documenta brain y skin a la vez. Es el caso
+ *     de `button`, `input` y `switch` hoy: su cerebro vive en `cdk` y su
+ *     contrato, arriba. Exigirles un contrato en `cdk/` sería inventar deuda que
+ *     no existe y duplicar documentación que ya está escrita en el sitio bueno.
+ *
+ * Las direcciones son ASIMÉTRICAS por el mismo motivo que en ADR-020, y el
+ * marcado pendiente caduca igual:
+ *
+ *  - **primitivo sin contrato** (en ninguno de los dos sitios) -> SIEMPRE
+ *    violación. Es el invariante de SPEC §6 aplicado al `cdk`.
+ *  - **contrato en `cdk/` sin primitivo** -> violación SALVO que declare
+ *    `**Estado:** implementación pendiente` (trabajo en curso, ADR-020).
+ *  - **marcador obsoleto** (pendiente cuyo primitivo YA existe) -> SIEMPRE
+ *    violación: implementar obliga a retirarlo.
+ *
+ * El nombre del primitivo es el del DIRECTORIO bajo `packages/cdk/src/lib/`
+ * (`lib/overlay/overlay.ts` -> `overlay`), que es la convención real del
+ * paquete y el único identificador estable: el selector de una directiva
+ * (`button[aegisSwitch]`) no da un nombre de fichero utilizable.
+ */
+export function reconcilePrimitives(cdkLibDir, cdkContractsDir, uiContractsDir) {
+  const primitiveNames = new Set();
+  if (existsSync(cdkLibDir)) {
+    for (const entry of readdirSync(cdkLibDir)) {
+      const dir = join(cdkLibDir, entry);
+      if (statSync(dir).isDirectory() && existsSync(join(dir, `${entry}.ts`))) {
+        primitiveNames.add(entry);
+      }
+    }
+  }
+
+  const contractNames = new Set();
+  const pendingContracts = new Set();
+  if (existsSync(cdkContractsDir)) {
+    for (const entry of readdirSync(cdkContractsDir)) {
+      if (entry.endsWith('.md')) {
+        const name = entry.replace(/\.md$/, '');
+        contractNames.add(name);
+        if (PENDING_MARKER.test(readFileSync(join(cdkContractsDir, entry), 'utf8'))) {
+          pendingContracts.add(name);
+        }
+      }
+    }
+  }
+
+  // Caso 2: el contrato del componente homónimo cubre también su brain.
+  const uiContractNames = new Set();
+  if (uiContractsDir && existsSync(uiContractsDir)) {
+    for (const entry of readdirSync(uiContractsDir)) {
+      if (entry.endsWith('.md')) {
+        uiContractNames.add(entry.replace(/\.md$/, ''));
+      }
+    }
+  }
+
+  const covered = (n) => contractNames.has(n) || uiContractNames.has(n);
+  const missingContract = [...primitiveNames].filter((n) => !covered(n)).sort();
+  const orphanContract = [...contractNames].filter((n) => !primitiveNames.has(n)).sort();
+  const orphanUndeclared = orphanContract.filter((n) => !pendingContracts.has(n));
+  const stalePending = [...pendingContracts].filter((n) => primitiveNames.has(n)).sort();
+
+  return {
+    primitiveNames,
+    contractNames,
+    uiContractNames,
+    pendingContracts,
+    missingContract,
+    orphanContract,
+    orphanUndeclared,
+    stalePending,
+  };
+}
+
+/**
  * POLÍTICA ÚNICA del gate `contracts`, compartida por sus tres llamantes
  * (`check-contracts.mjs` como CLI, el gate sobre `packages/ui`, y el canario de
  * fixtures good/bad). Una sola función para que no puedan divergir.
@@ -113,20 +203,20 @@ export function reconcile(uiSrc, contractsDir) {
  * Sigue siendo un raíl que BLOQUEA, no un aviso (CLAUDE.md): declarar el estado
  * es obligatorio y verificado, y la declaración caduca sola.
  */
-export function violations({ prefix = '', ...r }) {
+export function violations({ prefix = '', subject = 'componente', ...r }) {
   const p = prefix ? `${prefix} ` : '';
   return [
-    ...r.missingContract.map((n) => `${p}componente sin contrato: ${n}`),
+    ...r.missingContract.map((n) => `${p}${subject} sin contrato: ${n}`),
     ...r.orphanUndeclared.map(
       (n) =>
-        `${p}contrato sin componente: ${n} (si la implementación está pendiente, ` +
+        `${p}contrato sin ${subject}: ${n} (si la implementación está pendiente, ` +
         `declara "**Estado:** implementación pendiente" en el contrato; si el ` +
-        `componente ya no existe, borra el contrato)`,
+        `${subject} ya no existe, borra el contrato)`,
     ),
     ...r.stalePending.map(
       (n) =>
         `${p}contrato ${n} sigue declarando "**Estado:** implementación pendiente" ` +
-        `pero su componente YA existe: retira el marcador`,
+        `pero su ${subject} YA existe: retira el marcador`,
     ),
   ];
 }
@@ -135,9 +225,19 @@ function main() {
   const result = reconcile('packages/ui/src', 'docs/contracts');
   const { componentNames, contractNames, pendingContracts } = result;
 
-  if (componentNames.size === 0 && contractNames.size === 0) {
+  // Los primitivos headless de `cdk` tienen su propia reconciliación, con la
+  // regla de `reconcilePrimitives()`. Sin esto, `docs/contracts/cdk/` sería un
+  // directorio que ningún raíl mira.
+  const prim = reconcilePrimitives('packages/cdk/src/lib', 'docs/contracts/cdk', 'docs/contracts');
+
+  if (
+    componentNames.size === 0 &&
+    contractNames.size === 0 &&
+    prim.primitiveNames.size === 0 &&
+    prim.contractNames.size === 0
+  ) {
     console.error(
-      '❌ contracts: no hay componentes de ui ni contratos que reconciliar (no targets found).',
+      '❌ contracts: no hay componentes de ui, primitivos de cdk ni contratos que reconciliar (no targets found).',
     );
     console.error(
       '   El gate se vuelve real cuando existan componentes (Fase 3). Falla a propósito (§13).',
@@ -145,7 +245,10 @@ function main() {
     process.exit(1);
   }
 
-  const found = violations(result);
+  const found = [
+    ...violations(result),
+    ...violations({ ...prim, subject: 'primitivo', prefix: '[cdk]' }),
+  ];
   if (found.length > 0) {
     console.error('❌ contracts: reconciliación contrato<->componente rota:');
     for (const v of found) {
@@ -155,8 +258,13 @@ function main() {
   }
 
   const pending = pendingContracts.size > 0 ? ` (${pendingContracts.size} pendiente(s))` : '';
+  const primPending =
+    prim.pendingContracts.size > 0 ? ` (${prim.pendingContracts.size} pendiente(s))` : '';
   console.log(
     `✅ contracts: ${componentNames.size} componentes <-> ${contractNames.size} contratos, consistentes${pending}.`,
+  );
+  console.log(
+    `✅ contracts [cdk]: ${prim.primitiveNames.size} primitivos <-> ${prim.contractNames.size} contratos en docs/contracts/cdk/, consistentes${primPending}.`,
   );
 }
 
