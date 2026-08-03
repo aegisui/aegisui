@@ -307,6 +307,34 @@ estado, sin anuncio.
   del consumidor (`gap`), no un margen del propio badge — un componente que
   trae margen propio es imposible de componer.
 
+## Matriz visual representativa
+
+Variantes que DEBEN tener objetivo en los gates DOM. Cada fila **nombra la
+historia concreta** que la cubre, y esa historia tiene que existir: es lo que
+verifica el gate `coverage`. Contar filas contra historias no valdría.
+
+**Criterio de selección:** cada fila aporta información visual que ninguna otra
+ya contiene. Se declaran **solo variantes que existen hoy como historia**.
+
+El Badge no es enfocable ni interactivo, así que no hay filas de foco, hover ni
+teclado: sus únicos ejes visuales son el **tinte** (5 variantes) y el **tamaño**.
+
+| # | Variante | Tamaño | Historia | Tema | Información distinta que aporta |
+|---|---|---|---|---|---|
+| 1 | `neutral` | md | `componentes-badge--default` | light | Baseline: el tinte neutro, único que no lleva color semántico |
+| 2 | las 5 | md | `componentes-badge--variantes` | light | Los 5 pares tinte/texto de una vez; verifica que producen tintes DISTINTOS (si un selector dejara de casar, las 5 renderizarían iguales y el contraste seguiría pasando) |
+| 3 | las 5 | md | `componentes-badge--variantes` | dark | Los mismos 5 pares en dark: los tintes de estado son los que más cambian entre temas |
+| 4 | `success` | sm + md | `componentes-badge--tamanos` | light | Escala: `font-size-xs` en `sm` es el texto más pequeño del set — el umbral aquí es de TEXTO (4.5:1), no de UI |
+| 5 | success/warning/danger | md | `componentes-badge--el-color-no-comunica-solo` | light | 1.4.1: el texto tiene que distinguir por sí solo. Es el único objetivo que compara los TEXTOS, no los colores |
+| 6 | `accent` | md | `componentes-badge--decorativo` | light | Uso con `aria-hidden="true"`: el badge redundante desaparece del árbol de accesibilidad sin cambiar de aspecto |
+
+**Redundantes excluidos:**
+- `sm` × las otras 4 variantes: el fenómeno de escala ya está en la fila 4; el
+  tinte no interactúa con el tamaño.
+- `default`/`tamanos`/`decorativo` × dark: el cambio de tema sobre tintes ya está
+  cubierto por la fila 3, que lleva los 5 a la vez.
+- El **borde** del badge no entra: es decorativo (ADR-018), sin requisito de 3:1.
+
 ## Criterios de aceptación (se convierten en tests 1:1)
 
 Unitarios (Vitest + Testing Library):
