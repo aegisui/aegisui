@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 // @ts-expect-error -- script .mjs sin tipos (los gates son JS ESM, como las reglas ESLint)
-import { matrixViolations, parseMatrix } from '../../../scripts/gates/coverage.mjs';
+import {
+  contractRenders,
+  matrixViolations,
+  parseMatrix,
+} from '../../../scripts/gates/coverage.mjs';
 
 /**
  * Política del gate `coverage`: las direcciones NO son simétricas, por el mismo
@@ -95,5 +99,64 @@ describe('política del gate coverage (deuda declarada que caduca sola)', () => 
 | 3 | c | \`componentes-x--a\` (pendiente) | light | x |
 `;
     expect(matrixViolations('x', parseMatrix(md), EXISTE)).toHaveLength(3);
+  });
+});
+
+/**
+ * Exención de matriz visual para primitivos HEADLESS (ADR-023).
+ *
+ * La regla completa, y la razón de cada rama:
+ *
+ *   sin matriz y SIN declarar            -> violación (puede ser un olvido)
+ *   declara headless y NO renderiza      -> exento (afirmación cierta)
+ *   declara headless y SÍ renderiza      -> violación (PUERTA TRASERA)
+ *   declara headless Y matriz a la vez   -> violación (incoherente)
+ *
+ * La tercera rama es la que impide que la exención sea una puerta trasera: sin
+ * ella, cualquier componente con apariencia copiaría la línea y se saltaría el
+ * gate entero. Y hace que la exención CADUQUE SOLA — el día que un primitivo
+ * headless gane piel e historias, su marcador pasa a ser violación sin que
+ * nadie tenga que acordarse.
+ */
+const SIN_MATRIZ = '# Contrato\n\nProsa, sin matriz.\n';
+const headless = (name: string, existing: Set<string>, rows: unknown = null) =>
+  matrixViolations(name, rows, existing, {
+    headless: true,
+    renders: contractRenders(name, existing),
+  });
+
+describe('exención headless del gate coverage (ADR-023)', () => {
+  it('declara headless y no renderiza: exento, sin violaciones', () => {
+    expect(headless('overlay', EXISTE)).toEqual([]);
+  });
+
+  it('PUERTA TRASERA: declara headless pero tiene historia propia -> violación', () => {
+    const v = headless('x', EXISTE); // EXISTE tiene `componentes-x--a`
+    expect(v).toHaveLength(1);
+    expect(v[0]).toContain('SÍ tiene render');
+    expect(v[0]).toContain('no es una puerta trasera');
+  });
+
+  it('declara headless Y matriz a la vez: incoherente -> violación', () => {
+    const rows = parseMatrix(contrato('`componentes-overlay--a`'));
+    const v = headless('overlay', EXISTE, rows);
+    expect(v).toHaveLength(1);
+    expect(v[0]).toContain('a la vez');
+  });
+
+  it('sin matriz y SIN declarar la exención: sigue siendo violación (el olvido no se perdona)', () => {
+    const v = matrixViolations('overlay', parseMatrix(SIN_MATRIZ), EXISTE);
+    expect(v).toHaveLength(1);
+    expect(v[0]).toContain('cobertura DESCONOCIDA');
+    // El mensaje enseña la salida legítima, para que nadie invente la suya.
+    expect(v[0]).toContain('primitivo headless, no renderiza');
+  });
+
+  it('contractRenders distingue por dueño del id, no por subcadena', () => {
+    // `componentes-overlay-inner--a` NO pertenece a `overlay`: el separador de
+    // historia es `--`. Sin esto, un nombre que sea prefijo de otro daría un
+    // falso "sí renderiza" y bloquearía una exención legítima.
+    expect(contractRenders('overlay', new Set(['componentes-overlay-inner--a']))).toBe(false);
+    expect(contractRenders('overlay', new Set(['componentes-overlay--a']))).toBe(true);
   });
 });
