@@ -235,6 +235,85 @@ la mayoría de los formularios. Quien lo adopte debe poder justificarlo con una
 razón concreta (espacio escaso, contexto visual específico, audiencia ya
 familiarizada con el patrón), no con "es lo que usa Material".
 
+## Passthrough al control interno (`controlAttrs`)
+
+**Enmienda.** Un envoltorio (hoy el Combobox; mañana cualquier otro) necesita que
+sus atributos aterricen en el `<input>` REAL —el elemento que recibe el foco—,
+no en el host `<aegis-input>`. Medido, sin esta enmienda:
+
+| | `role` | `aria-expanded` | `aria-activedescendant` |
+|---|---|---|---|
+| Host `<aegis-input>` | `combobox` | `true` | `opt-1` |
+| `<input>` interno (**el focalizable**) | `null` | `null` | `null` |
+
+Para un lector de pantalla eso es un patrón roto: enfoca un `<input>` sin rol ni
+foco virtual. No es un defecto del Input — es que nadie lo había necesitado.
+
+### La forma, y por qué esta
+
+```ts
+readonly controlAttrs = input<Record<string, string | null> | undefined>(undefined);
+```
+
+Un mapa genérico que el Input vuelca sobre su `<input>` interno.
+
+**El Input NO gana conocimiento de combobox.** Ni un solo nombre de atributo del
+patrón aparece en esta API. Lo que gana es una capacidad genérica —*"un envoltorio
+puede gobernar mi control interno"*— reutilizable por cualquier envoltorio futuro
+sin volver a tocar este contrato. Un componente de formulario que usan miles de
+casos normales no puede llenarse de API que solo sirve a uno.
+
+### Conjunto protegido — la parte que importa
+
+Estos siete los gestiona el Input y **el passthrough no puede escribirlos**:
+
+| Atributo | Quién lo gobierna y por qué |
+|---|---|
+| `id` | El Input posee la relación `for`/`id` con su `<label>` (§Selector). |
+| `disabled`, `readonly`, `required` | Estado nativo, derivado de sus inputs. |
+| `aria-required` | Espejo del anterior. |
+| `aria-invalid` | Estado de validación del Input. |
+| `aria-describedby` | **Composición de `helpText` + `errorMessage` de ADR-019.** Pisarlo rompe el anuncio del error de la forma más silenciosa posible. |
+
+La protección es **estructural, no una regla de estilo**: no es que un envoltorio
+*no deba* escribirlos, es que **no puede**. Lo que no se puede escribir no se
+puede romper.
+
+**Colisión → lanza en desarrollo.** Un `controlAttrs` que incluya cualquiera de
+los siete lanza un error que **nombra el atributo** intentado, en un bloque que la
+build de producción elimina. Falla ruidosamente, como los gates: ignorarlo en
+silencio es cómo alguien pierde una tarde preguntándose por qué su atributo no se
+aplica. En producción el valor del Input gana, sin ruido.
+
+### Las otras dos reglas
+
+- **`null` RETIRA el atributo** (no lo pone a `""`). Es funcional, no cosmético:
+  el contrato de [`AegisListbox`](./cdk/listbox.md) exige que
+  `aria-activedescendant` **se retire** cuando no hay opción activa, y un
+  `aria-activedescendant=""` no es lo mismo para un lector.
+- **Es un `input()` de señal.** `aria-activedescendant` cambia en CADA flecha; se
+  reaplica por señales, sin `zone.js`.
+
+### Convivencia con el ARIA propio del Input
+
+Los dos conjuntos **no colisionan por nombre**: el del Input es `id`,
+`disabled`, `readonly`, `required`, `aria-required`, `aria-invalid`,
+`aria-describedby`; el de un combobox es `role`, `aria-expanded`,
+`aria-controls`, `aria-activedescendant`, `aria-autocomplete`. Intersección
+vacía.
+
+Y son compatibles **por especificación**, no por suerte: `aria-invalid` y
+`aria-describedby` son atributos **globales** (válidos con cualquier rol) y
+`aria-required` está soportado en `role="combobox"`. Un combobox editable,
+requerido, inválido y con `describedby` apuntando a su error es una construcción
+ARIA válida — que es el caso real, no uno hipotético.
+
+**Sutileza que sí existe** (y que ningún gate puede resolver): `role="combobox"`
+**sustituye** el rol implícito `textbox` del `<input>`. `required` queda cubierto
+porque el Input ya escribe `aria-required` explícito, pero el mapeo de `disabled`
+y `readonly` nativos bajo un rol sobrescrito **varía entre lectores**. Va al pase
+manual (§Manual), no a un raíl automático.
+
 ## Tokens que consume
 
 Lista **exhaustiva** de tokens de **capa 3** (ADR-016: local al componente,
@@ -804,6 +883,12 @@ muestra el mismo fenómeno de escala que `inset-sm` vs. `inset-lg`, que ya está
 
 **Presupuesto marginal:** 6.61 kB brotli
 
+> **Enmienda `controlAttrs`:** el presupuesto **no se sube por adelantado**. El
+> passthrough añade un `computed` y un merge pequeños, y el margen actual
+> (medido 6.19 kB contra 6.61 declarado) debería absorberlos. Si no los absorbe,
+> el gate `size-marginal` lo dirá y **la subida se justifica con el número
+> medido en el PR de implementación** — nunca al revés.
+
 Lo que este componente añade **por encima del coste fijo** de la librería, en una
 app Angular real construida contra `dist/` (medido hoy: **6.23 kB**; el
 presupuesto lleva ~5 % de margen para absorber la variación de codegen entre
@@ -935,6 +1020,24 @@ arquitectura.
       anillo de foco visible. Solo aplica cuando `labelMode='floating'` esté
       implementado. Limitación conocida: el fondo `Canvas` de la etiqueta puede
       no preservarse en Safari/WebKit (ver §Alto contraste forzado).
+
+### Passthrough al control interno (`controlAttrs`)
+
+- [ ] `controlAttrs` aplica sus atributos al `<input>` INTERNO, no al host.
+- [ ] Un atributo con valor `null` **se retira** del DOM (no queda como `""`).
+- [ ] Cambiar `controlAttrs` reaplica sin `zone.js` (zoneless): cambiar
+      `aria-activedescendant` 100 veces seguidas se refleja las 100.
+- [ ] **Raíl del conjunto protegido**: para CADA uno de los siete (`id`,
+      `disabled`, `readonly`, `required`, `aria-required`, `aria-invalid`,
+      `aria-describedby`), pasarlo por `controlAttrs` **lanza en dev**, el error
+      **nombra el atributo**, y el valor gobernado por el Input **gana** en el DOM.
+      Es la prueba de regresión de la protección estructural: si alguien "abre" el
+      conjunto en el futuro, este test se pone rojo.
+- [ ] Sin `controlAttrs`, el Input se comporta exactamente igual que antes
+      (ningún test existente cambia).
+- [ ] Con `controlAttrs` de combobox Y el Input en estado inválido, coexisten en
+      el `<input>`: `role`, `aria-expanded`, `aria-activedescendant` **y**
+      `aria-invalid`, `aria-describedby` apuntando al mensaje de error.
 
 ## Fuera de alcance
 
