@@ -8,4 +8,6 @@
 export const AEGIS_CDK_VERSION = '0.1.0';
 export * from './lib/button/button';
 export * from './lib/input/input';
+export * from './lib/listbox/listbox';
+export * from './lib/overlay/overlay';
 export * from './lib/switch/switch';

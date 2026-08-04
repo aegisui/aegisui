@@ -335,6 +335,20 @@ teclado: sus únicos ejes visuales son el **tinte** (5 variantes) y el **tamaño
   cubierto por la fila 3, que lleva los 5 a la vez.
 - El **borde** del badge no entra: es decorativo (ADR-018), sin requisito de 3:1.
 
+## Presupuesto de tamaño
+
+**Presupuesto marginal:** 0.45 kB brotli
+
+Lo que este componente añade **por encima del coste fijo** de la librería, en una
+app Angular real construida contra `dist/` (medido hoy: **0.36 kB**; el
+presupuesto lleva ~5 % de margen para absorber la variación de codegen entre
+parches de Angular, no para hacer sitio a código nuevo).
+
+Lo verifica el gate `size-marginal` ([`scripts/check-size-marginal.mjs`](../../scripts/check-size-marginal.mjs)).
+**Sin esta declaración el gate falla**: un componente sin presupuesto no es
+presupuesto cero, es presupuesto DESCONOCIDO — el mismo principio que la matriz
+visual en el gate `coverage`.
+
 ## Criterios de aceptación (se convierten en tests 1:1)
 
 Unitarios (Vitest + Testing Library):
