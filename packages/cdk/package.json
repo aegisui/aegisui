@@ -9,6 +9,7 @@
     "@angular/core": "^20.0.0 || ^21.0.0 || ^22.0.0"
   },
   "dependencies": {
+    "@floating-ui/dom": "1.8.0",
     "tslib": "^2.3.0"
   }
 }

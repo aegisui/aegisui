@@ -1,7 +1,5 @@
 # Contrato: `AegisListbox` (primitivo de `@aegisui/cdk`)
 
-> **Estado:** implementación pendiente
->
 > **Sin matriz visual:** primitivo headless, no renderiza
 >
 > **Cobertura del gate `contracts`:** igual que [`overlay.md`](./overlay.md) — lo
@@ -205,7 +203,7 @@ Este invariante es el motivo entero por el que ADR-023 §4 aplazó el virtual sc
 con virtualización, `aria-activedescendant` puede referirse a un `id` que no existe,
 y ni `@angular/cdk` ni `@angular/aria` traen eso resuelto (Hallazgos 3 y 4).
 
-- [ ] **Raíl automático:** un test recorre la lista entera con `ArrowDown` y verifica
+- [x] **Raíl automático:** un test recorre la lista entera con `ArrowDown` y verifica
       en cada paso que `document.getElementById(activeDescendantId)` **no es `null`**.
       Si algún día alguien virtualiza sin resolver el problema, este test se pone
       rojo. Es el guardián de la decisión de ADR-023 §4, escrito antes de que exista
@@ -260,20 +258,20 @@ truncado y la de vacío).
 
 Unitarios (Vitest + Testing Library):
 
-- [ ] `visibleOptions` aplica `filter` y **después** `maxVisible`.
-- [ ] `matchCount` cuenta **todas** las coincidencias, no las visibles.
-- [ ] `truncated` es `true` exactamente cuando `matchCount > maxVisible`.
-- [ ] Con 1 240 coincidencias y `maxVisible=100`: se renderizan 100 opciones + 1
+- [x] `visibleOptions` aplica `filter` y **después** `maxVisible`.
+- [x] `matchCount` cuenta **todas** las coincidencias, no las visibles.
+- [x] `truncated` es `true` exactamente cuando `matchCount > maxVisible`.
+- [x] Con 1 240 coincidencias y `maxVisible=100`: se renderizan 100 opciones + 1
       fila de estado; la fila **no** tiene `role="option"`.
-- [ ] La fila de estado no es alcanzable con `ArrowDown`/`ArrowUp`/`End`.
-- [ ] Estado vacío: 0 opciones, fila *"Sin resultados"*, `aria-activedescendant`
+- [x] La fila de estado no es alcanzable con `ArrowDown`/`ArrowUp`/`End`.
+- [x] Estado vacío: 0 opciones, fila *"Sin resultados"*, `aria-activedescendant`
       **ausente**.
-- [ ] Navegar con flechas **no** cambia `value` ni emite `optionSelected`.
-- [ ] `Enter` sobre la activa emite `optionSelected` y fija `value`.
-- [ ] Las deshabilitadas se saltan al navegar y conservan `aria-disabled`.
-- [ ] `loop=false` detiene la navegación en los extremos.
-- [ ] Typeahead activa por prefijo y reinicia el buffer a 1 s.
-- [ ] Reducir el filtro hasta que desaparece la activa recoloca `activeIndex` sin
+- [x] Navegar con flechas **no** cambia `value` ni emite `optionSelected`.
+- [x] `Enter` sobre la activa emite `optionSelected` y fija `value`.
+- [x] Las deshabilitadas se saltan al navegar y conservan `aria-disabled`.
+- [x] `loop=false` detiene la navegación en los extremos.
+- [x] Typeahead activa por prefijo y reinicia el buffer a 1 s.
+- [x] Reducir el filtro hasta que desaparece la activa recoloca `activeIndex` sin
       dejarlo fuera de rango.
 
 Etiqueta de la opción (`optionLabel`):
@@ -301,28 +299,28 @@ Modo editable (`editable`):
 
 Invariante de foco virtual (el raíl de ADR-023 §4):
 
-- [ ] Recorriendo la lista completa con `ArrowDown`,
+- [x] Recorriendo la lista completa con `ArrowDown`,
       `document.getElementById(activeDescendantId)` **nunca** es `null`.
-- [ ] `aria-activedescendant` se retira cuando no hay opción activa.
-- [ ] La opción activa queda siempre dentro del área visible del scroller.
+- [x] `aria-activedescendant` se retira cuando no hay opción activa.
+- [x] La opción activa queda siempre dentro del área visible del scroller.
 
 Anuncios (estructura — el oído va en el pase manual):
 
-- [ ] Existe **una sola** región `aria-live="polite"`, presente desde el primer
+- [x] Existe **una sola** región `aria-live="polite"`, presente desde el primer
       render y **vacía**.
-- [ ] Esa región **no** está referenciada por `aria-describedby` desde ningún sitio
+- [x] Esa región **no** está referenciada por `aria-describedby` desde ningún sitio
       (ADR-019 Regla 3).
-- [ ] El recuento normal **no** se anuncia (la región sigue vacía con
+- [x] El recuento normal **no** se anuncia (la región sigue vacía con
       `0 < matchCount ≤ maxVisible`).
-- [ ] Pasar a truncado escribe el mensaje **una vez**; seguir tecleando sin que el
+- [x] Pasar a truncado escribe el mensaje **una vez**; seguir tecleando sin que el
       mensaje cambie **no** lo reescribe.
-- [ ] `MutationObserver`: las transiciones de mensaje producen solo mutaciones
+- [x] `MutationObserver`: las transiciones de mensaje producen solo mutaciones
       `characterData`, **ninguna** `childList` (ADR-019 Regla 4, mismo raíl que el
       Button).
 
 Teclado (gate `keyboard`):
 
-- [ ] Cada tecla de la tabla hace lo declarado; `data-handles` coincide con ella.
+- [x] Cada tecla de la tabla hace lo declarado; `data-handles` coincide con ella.
 
 Accesibilidad (gate `a11y`):
 

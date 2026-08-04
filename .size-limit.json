@@ -1,12 +1,12 @@
 [
   {
-    "name": "@aegisui/cdk (fesm2022, gzip)",
-    "path": "dist/packages/cdk/fesm2022/*.mjs",
-    "limit": "15 kB"
+    "name": "@aegisui/cdk (fesm2022, brotli) — informativo, sin @floating-ui",
+    "path": "dist/packages/cdk/fesm2022/aegisui-cdk.mjs",
+    "ignore": ["@floating-ui/dom", "@angular/core", "@angular/common", "tslib"]
   },
   {
-    "name": "@aegisui/ui (fesm2022, gzip)",
-    "path": "dist/packages/ui/fesm2022/*.mjs",
-    "limit": "10 kB"
+    "name": "@aegisui/ui (fesm2022, brotli) — informativo",
+    "path": "dist/packages/ui/fesm2022/aegisui-ui.mjs",
+    "ignore": ["@aegisui/cdk", "@angular/core", "@angular/common", "tslib"]
   }
 ]

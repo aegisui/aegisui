@@ -13,6 +13,9 @@ out-tsc
 # angular build cache
 .angular
 
+# app sonda que genera y borra el gate size-marginal
+.size-probe
+
 # testing
 coverage
 test-output

@@ -399,6 +399,20 @@ declarar una fila sin historia sería el mismo agujero al revés.
   remapeo de deshabilitado son independientes de la variante.
 - `playground`: es el banco de controles, no una variante con información propia.
 
+## Presupuesto de tamaño
+
+**Presupuesto marginal:** 3.05 kB brotli
+
+Lo que este componente añade **por encima del coste fijo** de la librería, en una
+app Angular real construida contra `dist/` (medido hoy: **2.84 kB**; el
+presupuesto lleva ~5 % de margen para absorber la variación de codegen entre
+parches de Angular, no para hacer sitio a código nuevo).
+
+Lo verifica el gate `size-marginal` ([`scripts/check-size-marginal.mjs`](../../scripts/check-size-marginal.mjs)).
+**Sin esta declaración el gate falla**: un componente sin presupuesto no es
+presupuesto cero, es presupuesto DESCONOCIDO — el mismo principio que la matriz
+visual en el gate `coverage`.
+
 ## Criterios de aceptación (se convierten en tests 1:1)
 
 Unitarios (Vitest + Testing Library — comportamiento observable):

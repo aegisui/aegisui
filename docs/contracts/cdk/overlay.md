@@ -1,16 +1,12 @@
 # Contrato: `AegisOverlay` (primitivo de `@aegisui/cdk`)
 
-> **Estado:** implementación pendiente
->
 > **Sin matriz visual:** primitivo headless, no renderiza
 >
 > **Cobertura del gate `contracts`:** este contrato vive en `docs/contracts/cdk/` y
 > **el gate lo reconcilia** con su propia regla (`reconcilePrimitives()` en
 > [`scripts/check-contracts.mjs`](../../../scripts/check-contracts.mjs)): un
 > contrato de primitivo headless es válido contra `packages/cdk/src/lib/`, **sin**
-> exigir un componente `aegis-*` que nunca existirá. El marcador de arriba caduca
-> solo en cuanto exista `packages/cdk/src/lib/overlay/overlay.ts`, igual que en
-> ADR-020.
+> exigir un componente `aegis-*` que nunca existirá.
 
 Primer primitivo de la Fase 5. Es el que desbloquea [ADR-023](../../adr/ADR-023-politica-de-dependencias-runtime.md)
 y la base de Select, Combobox, Popover, Tooltip y Menu.
@@ -195,9 +191,9 @@ Unitarios (Vitest + Testing Library):
 
 Frontera de la dependencia (ADR-023 §3):
 
-- [ ] El `.d.ts` construido de `@aegisui/cdk` **no contiene** ninguna referencia a
+- [x] El `.d.ts` construido de `@aegisui/cdk` **no contiene** ninguna referencia a
       `@floating-ui/*`. Es el raíl que mantiene la dependencia retirable.
-- [ ] `@floating-ui/dom` aparece en `dependencies` de `packages/cdk/package.json`
+- [x] `@floating-ui/dom` aparece en `dependencies` de `packages/cdk/package.json`
       con **versión exacta**, y **no** en `@aegisui/ui`.
 
 Teclado (gate `keyboard`):
@@ -213,8 +209,9 @@ Accesibilidad (gate `a11y`):
 
 Tamaño (`size-limit`):
 
-- [ ] La entrada nueva de ADR-023 §6 (cdk **con** Floating UI incluida, Angular
-      externo) se añade **en este mismo PR** y queda **≤ 12 kB**.
+- [x] La entrada nueva de ADR-023 §6 (cdk **con** Floating UI incluida, Angular
+      externo) se añade **en este mismo PR** y queda **≤ 12 kB** (medido: **7.94 kB**
+      brotli vía `scripts/check-size-consumer.mjs`).
 
 Manual (antes de release):
 

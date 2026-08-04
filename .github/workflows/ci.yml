@@ -76,6 +76,11 @@ jobs:
       - uses: ./.github/actions/setup
       - run: pnpm nx run-many -t build
 
+  # `size` mide el COSTE DE CONSUMIDOR de cdk (con Floating UI incluida, Angular
+  # externo, ≤ 12 kB de ADR-023 §6) y reporta el agregado de los FESM como
+  # INFORMATIVO —sin `limit`—, porque el agregado no lo paga nadie: nadie instala
+  # los cinco componentes para usar uno. El presupuesto que sí se paga lo vigila
+  # el job `size-marginal`.
   size:
     name: size
     runs-on: ubuntu-latest
@@ -84,6 +89,28 @@ jobs:
       - uses: ./.github/actions/setup
       - run: pnpm nx run-many -t build
       - run: pnpm size
+      - run: pnpm size:canary
+
+  # `size-marginal` descompone lo que un consumidor paga de verdad: el COSTE FIJO
+  # (el peaje que paga cualquiera que use la librería) y el COSTE MARGINAL de cada
+  # componente. Mide con una app Angular REAL contra dist/, no con esbuild sobre el
+  # FESM: los partial declarations de ng-packagr solo los resuelve el linker de
+  # Angular, y sin él parece —falsamente— que la librería no se tree-shakea.
+  #
+  # Es además un META-GATE: todo componente de packages/ui debe DECLARAR su
+  # presupuesto marginal en su contrato. Sin declaración el job falla, igual que
+  # `coverage` con la matriz visual — un componente sin presupuesto no es
+  # presupuesto cero, es presupuesto DESCONOCIDO. Ningún componente nuevo (el
+  # Combobox incluido) entra sin un número que lo vigile.
+  size-marginal:
+    name: size-marginal
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - run: pnpm nx run-many -t build
+      - run: pnpm size:marginal
+      - run: pnpm size:marginal:canary
 
   peer-floor:
     name: peer-floor

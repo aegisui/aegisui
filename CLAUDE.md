@@ -19,7 +19,8 @@ Node ≥ 22.22.3 (ver `.nvmrc`) y pnpm vía corepack (versión pineada en `packa
 | Formato | `pnpm format:check` (o `pnpm format` para escribir) |
 | Typecheck (`tsc --noEmit`, strict) | `pnpm typecheck` |
 | peer-floor (minVersion del artefacto ≤ 20) | `pnpm peer-floor` (requiere build antes) |
-| Tamaño (size-limit) | `pnpm size` (requiere build antes) |
+| Tamaño: coste de consumidor de `cdk` + agregado informativo | `pnpm size` (requiere build antes) |
+| Tamaño: coste **fijo** + **marginal** por componente | `pnpm size:marginal` (requiere build antes) |
 | e2e / Playwright (vs sandbox) | `pnpm nx run sandbox:e2e` |
 | Storybook (dev) | `pnpm nx run tokens:build && pnpm storybook` |
 | Storybook (build estático) | `pnpm nx run tokens:build && pnpm storybook:build` |
@@ -32,6 +33,8 @@ Node ≥ 22.22.3 (ver `.nvmrc`) y pnpm vía corepack (versión pineada en `packa
 Los componentes REALES se verifican **además**, en el mismo job y sin renombrarlo, con los specs de `apps/sandbox/e2e/gate-*.spec.ts` (axe, contraste, target-size y snapshots de estilos computados sobre los 5 componentes en Chromium, ambos temas). Cada job de `a11y`/`contrast`/`target-size`/`visual` corre las dos mitades: el canario de fixtures y el componente real.
 
 `coverage` es el meta-check y no tiene mitad e2e: comprueba que cada variante declarada en la `## Matriz visual representativa` de un contrato nombre una historia que exista. Un contrato sin matriz no es cobertura cero, es cobertura **DESCONOCIDA**, y por eso falla. Los contratos de primitivos **headless** de `cdk` se eximen **declarándolo** (`**Sin matriz visual:** primitivo headless, no renderiza`, ADR-023), nunca por omisión: si el sujeto renderiza de verdad, la exención es violación. **Está verde y debe seguir verde** — si lo ves rojo, hay cobertura que falta, no una excepción tolerada.
+
+`size-marginal` es el **segundo meta-check**, y mide lo que un consumidor paga de verdad, no el agregado que nadie paga: el **coste fijo** (el peaje de usar la librería, aunque solo uses un componente) y el **coste marginal** de cada componente por encima de ese peaje. Mide con una **app Angular real** construida contra `dist/`, nunca con esbuild sobre el FESM: los *partial declarations* de ng-packagr solo los resuelve el linker de Angular, y sin él parece —**falsamente**— que la librería no se tree-shakea. Todo componente de `packages/ui` **declara su presupuesto marginal en su contrato** (`**Presupuesto marginal:** X.XX kB`); sin declaración el gate falla, igual que `coverage` con la matriz visual: un componente sin presupuesto no es presupuesto cero, es presupuesto **DESCONOCIDO**. El agregado sigue reportándose, pero **informativo y sin `limit`** — un salto suyo sin que se mueva ningún marginal significa que creció el tronco común.
 
 `forced-colors` es solo e2e y solo de **regresión**: comprueba que el CSS responde a `forced-colors: active`. **No** valida que se vea bien en Windows High Contrast real —Chromium emula un juego de colores por defecto, no los temas del SO— y eso sigue siendo pase manual (`docs/pase-manual-set-minimo.md` §8). Los dos, no uno.
 
@@ -68,6 +71,7 @@ Los componentes REALES se verifican **además**, en el mismo job y sin renombrar
 - Virtualizar listas en v1: el Select/Combobox **capa a ~100 resultados** y pide afinar la búsqueda. No es un olvido, es ADR-023 §4; el virtual scroll llega con la tabla de datos Pro.
 - Reimplementar en `ui` algo que debería vivir en `cdk`.
 - Escribir código de un componente **antes de que su contrato esté aprobado**.
+- Añadir un componente a `packages/ui` **sin declarar su presupuesto marginal** en el contrato (`**Presupuesto marginal:** X.XX kB`). El gate `size-marginal` lo bloquea: ningún componente nace sin un número que lo vigile, y el Combobox no es la excepción por ser el más pesado — es justo el que más lo necesita.
 - Usar la última versión de TypeScript: **la acota Angular** (ADR-006).
 - Tocar el suelo de `peerDependencies` sin ADR y bump MAJOR (ADR-007).
 - Poner una regla en `'warn'`: **los raíles bloquean, no avisan**.
