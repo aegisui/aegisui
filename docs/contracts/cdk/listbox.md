@@ -276,26 +276,26 @@ Unitarios (Vitest + Testing Library):
 
 Etiqueta de la opción (`optionLabel`):
 
-- [ ] Sin `optionLabel`, `options: string[]` se comporta igual que con `String(option)`.
-- [ ] `optionLabel="label"` filtra por `option.label` en `{ id, label }`.
-- [ ] `optionLabel` como función filtra por lo que devuelve.
-- [ ] El filtro **no** casa contra el `id` ni contra otras propiedades: con
+- [x] Sin `optionLabel`, `options: string[]` se comporta igual que con `String(option)`.
+- [x] `optionLabel="label"` filtra por `option.label` en `{ id, label }`.
+- [x] `optionLabel` como función filtra por lo que devuelve.
+- [x] El filtro **no** casa contra el `id` ni contra otras propiedades: con
       `{ id: 3, label: 'Argentina' }`, teclear `3` **no** la muestra.
-- [ ] El typeahead salta por prefijo de la **etiqueta**, no del objeto.
-- [ ] `value` y `optionSelected` entregan **la opción**, no su etiqueta.
-- [ ] Dos opciones distintas con la misma etiqueta se distinguen (`aria-selected`
+- [x] El typeahead salta por prefijo de la **etiqueta**, no del objeto.
+- [x] `value` y `optionSelected` entregan **la opción**, no su etiqueta.
+- [x] Dos opciones distintas con la misma etiqueta se distinguen (`aria-selected`
       marca una sola).
-- [ ] Una etiqueta ausente se trata como cadena vacía y no rompe filtro ni typeahead.
+- [x] Una etiqueta ausente se trata como cadena vacía y no rompe filtro ni typeahead.
 
 Modo editable (`editable`):
 
-- [ ] `editable=false` + `typeahead=false`: `Space` **sigue seleccionando**. Es el
+- [x] `editable=false` + `typeahead=false`: `Space` **sigue seleccionando**. Es el
       caso que una inferencia implícita rompería, y el motivo de que `editable`
       exista como input propio.
-- [ ] `editable=true`: `Space` **no** selecciona ni llama a `preventDefault`.
-- [ ] `editable=true`: los caracteres imprimibles **no** mueven la activa, aunque
+- [x] `editable=true`: `Space` **no** selecciona ni llama a `preventDefault`.
+- [x] `editable=true`: los caracteres imprimibles **no** mueven la activa, aunque
       `typeahead=true`.
-- [ ] `editable=false` + `typeahead=true`: el typeahead funciona.
+- [x] `editable=false` + `typeahead=true`: el typeahead funciona.
 
 Invariante de foco virtual (el raíl de ADR-023 §4):
 

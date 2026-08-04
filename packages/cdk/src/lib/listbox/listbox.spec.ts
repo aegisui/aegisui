@@ -29,6 +29,7 @@ import { AegisListbox } from './listbox';
       [maxVisible]="maxVisible()"
       [disabledOptions]="disabledOptions()"
       [typeahead]="typeahead()"
+      [editable]="editable()"
       [loop]="loop()"
       [(activeIndex)]="activeIndex"
       [(value)]="value"
@@ -58,6 +59,7 @@ class HostComponent {
   readonly maxVisible = signal(100);
   readonly disabledOptions = signal<readonly string[]>([]);
   readonly typeahead = signal(true);
+  readonly editable = signal(false);
   readonly loop = signal(true);
   readonly activeIndex = signal(-1);
   readonly value = signal<string | undefined>(undefined);
@@ -67,8 +69,84 @@ class HostComponent {
   }
 }
 
+/** Opción con forma de objeto: el caso de uso PRINCIPAL del Select. */
+interface Pais {
+  id: number;
+  label?: string;
+}
+
+/**
+ * Segundo host, para las enmiendas: opciones con forma de objeto y `optionLabel`.
+ * Va aparte del host de strings a propósito — así los tests de string[] siguen
+ * probando la ruta SIN accesor (que es la que no debe cambiar).
+ */
+@Component({
+  selector: 'host-obj',
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [AegisListbox],
+  template: `
+    <input
+      role="combobox"
+      data-testid="trigger"
+      [attr.aria-activedescendant]="lb.activeDescendantId() ?? null"
+      (keydown)="lb.onKeydown($event)"
+    />
+    <div
+      aegisListbox
+      #lb="aegisListbox"
+      data-testid="listbox"
+      [options]="options()"
+      [optionLabel]="optionLabel()"
+      [filter]="filter()"
+      [(activeIndex)]="activeIndex"
+      [(value)]="value"
+      (optionSelected)="onSelected($event)"
+    >
+      @for (o of lb.visibleOptions(); track $index) {
+        <div
+          role="option"
+          [id]="lb.optionId($index)"
+          [attr.aria-selected]="lb.isSelected($index)"
+          (click)="lb.selectAt($index)"
+        >
+          {{ lb.labelOf(o) }}
+        </div>
+      }
+    </div>
+  `,
+})
+class ObjectHostComponent {
+  readonly options = signal<readonly Pais[]>([]);
+  readonly optionLabel = signal<string | ((o: Pais) => string) | undefined>(undefined);
+  readonly filter = signal('');
+  readonly activeIndex = signal(-1);
+  readonly value = signal<Pais | undefined>(undefined);
+  readonly selected: Pais[] = [];
+  onSelected(option: Pais) {
+    this.selected.push(option);
+  }
+}
+
 async function setup() {
   const view = await render(HostComponent);
+  const host = view.fixture.componentInstance;
+  const flush = async () => {
+    view.detectChanges();
+    for (let i = 0; i < 5; i++) await Promise.resolve();
+    view.detectChanges();
+  };
+  await flush();
+  const trigger = screen.getByTestId('trigger');
+  const key = async (k: string) => {
+    fireEvent.keyDown(trigger, { key: k });
+    await flush();
+  };
+  const optionEls = () => screen.queryAllByRole('option');
+  return { view, host, trigger, flush, key, optionEls };
+}
+
+async function setupObjects() {
+  const view = await render(ObjectHostComponent);
   const host = view.fixture.componentInstance;
   const flush = async () => {
     view.detectChanges();
@@ -266,24 +344,13 @@ describe('AegisListbox', () => {
       expect(host.activeIndex()).toBe(0);
     });
 
-    it('Space selecciona cuando el listbox no está en un campo de texto (typeahead activo)', async () => {
+    it('Space selecciona cuando no hay campo de texto delante (editable=false)', async () => {
       const { host, key } = await setup();
       await key('ArrowDown');
       await key(' ');
 
       expect(host.value()).toBe('alfa');
       expect(host.selected).toEqual(['alfa']);
-    });
-
-    it('Space NO selecciona en modo editable (typeahead desactivado): la escritura manda', async () => {
-      const { host, flush, key } = await setup();
-      host.typeahead.set(false);
-      await flush();
-      await key('ArrowDown');
-      await key(' ');
-
-      expect(host.value()).toBeUndefined();
-      expect(host.selected).toEqual([]);
     });
 
     it('las teclas de navegación llaman a preventDefault (no hay scroll de página)', async () => {
@@ -591,6 +658,162 @@ describe('AegisListbox', () => {
       expect(mutations.length).toBeGreaterThan(0);
       expect(mutations.every((m) => m.type === 'characterData')).toBe(true);
       expect(mutations.some((m) => m.type === 'childList')).toBe(false);
+    });
+  });
+
+  describe('etiqueta de la opción (optionLabel)', () => {
+    it('sin optionLabel, string[] se comporta igual que con String(option)', async () => {
+      const { host, flush, optionEls } = await setup();
+      host.filter.set('bet');
+      await flush();
+
+      expect(optionEls().map((e) => e.textContent?.trim())).toEqual(['beta']);
+    });
+
+    it('optionLabel="label" filtra por option.label en { id, label }', async () => {
+      const { host, flush, optionEls } = await setupObjects();
+      host.options.set([
+        { id: 1, label: 'Argentina' },
+        { id: 2, label: 'Brasil' },
+      ]);
+      host.optionLabel.set('label');
+      host.filter.set('bras');
+      await flush();
+
+      expect(optionEls().map((e) => e.textContent?.trim())).toEqual(['Brasil']);
+    });
+
+    it('optionLabel como función filtra por lo que devuelve', async () => {
+      const { host, flush, optionEls } = await setupObjects();
+      host.options.set([
+        { id: 1, label: 'Argentina' },
+        { id: 2, label: 'Brasil' },
+      ]);
+      host.optionLabel.set((o: { id: number; label: string }) => `${o.label} (${o.id})`);
+      host.filter.set('(2)');
+      await flush();
+
+      expect(optionEls().map((e) => e.textContent?.trim())).toEqual(['Brasil (2)']);
+    });
+
+    it('el filtro NO casa contra el id: teclear "3" no muestra { id: 3, label: "Argentina" }', async () => {
+      const { host, flush, optionEls } = await setupObjects();
+      host.options.set([
+        { id: 3, label: 'Argentina' },
+        { id: 4, label: 'Brasil 3' },
+      ]);
+      host.optionLabel.set('label');
+      host.filter.set('3');
+      await flush();
+
+      // Solo casa el que LLEVA un 3 en su etiqueta visible. Argentina no.
+      expect(optionEls().map((e) => e.textContent?.trim())).toEqual(['Brasil 3']);
+    });
+
+    it('el typeahead salta por prefijo de la ETIQUETA, no del objeto', async () => {
+      const { host, flush, key } = await setupObjects();
+      host.options.set([
+        { id: 1, label: 'Argentina' },
+        { id: 2, label: 'Brasil' },
+      ]);
+      host.optionLabel.set('label');
+      await flush();
+      await key('b');
+
+      expect(host.activeIndex()).toBe(1);
+    });
+
+    it('value y optionSelected entregan LA OPCIÓN, no su etiqueta', async () => {
+      const { host, flush, key } = await setupObjects();
+      const brasil = { id: 2, label: 'Brasil' };
+      host.options.set([{ id: 1, label: 'Argentina' }, brasil]);
+      host.optionLabel.set('label');
+      await flush();
+      await key('End');
+      await key('Enter');
+
+      expect(host.value()).toBe(brasil);
+      expect(host.selected).toEqual([brasil]);
+    });
+
+    it('dos opciones distintas con la misma etiqueta se distinguen (aria-selected marca una)', async () => {
+      const { host, flush, key, optionEls } = await setupObjects();
+      host.options.set([
+        { id: 1, label: 'Duplicado' },
+        { id: 2, label: 'Duplicado' },
+      ]);
+      host.optionLabel.set('label');
+      await flush();
+      await key('ArrowDown');
+      await key('Enter');
+
+      expect(optionEls().map((e) => e.getAttribute('aria-selected'))).toEqual(['true', 'false']);
+    });
+
+    it('una etiqueta ausente se trata como cadena vacía y no rompe filtro ni typeahead', async () => {
+      const { host, flush, key, optionEls } = await setupObjects();
+      host.options.set([{ id: 1 } as { id: number; label?: string }, { id: 2, label: 'Brasil' }]);
+      host.optionLabel.set('label');
+      host.filter.set('bra');
+      await flush();
+
+      expect(optionEls().map((e) => e.textContent?.trim())).toEqual(['Brasil']);
+
+      host.filter.set('');
+      await flush();
+      await key('b');
+      expect(host.activeIndex()).toBe(1);
+    });
+  });
+
+  describe('modo editable', () => {
+    it('editable=false + typeahead=false: Space SIGUE seleccionando', async () => {
+      // Es el caso que rompía inferir "editable" de "typeahead apagado", y el
+      // motivo entero de que `editable` exista como input propio.
+      const { host, flush, key } = await setup();
+      host.typeahead.set(false);
+      host.editable.set(false);
+      await flush();
+      await key('ArrowDown');
+      await key(' ');
+
+      expect(host.value()).toBe('alfa');
+      expect(host.selected).toEqual(['alfa']);
+    });
+
+    it('editable=true: Space no selecciona ni llama a preventDefault', async () => {
+      const { host, trigger, flush, key } = await setup();
+      host.editable.set(true);
+      await flush();
+      await key('ArrowDown');
+
+      const evt = new KeyboardEvent('keydown', { key: ' ', bubbles: true, cancelable: true });
+      trigger.dispatchEvent(evt);
+      await flush();
+
+      expect(host.value()).toBeUndefined();
+      expect(host.selected).toEqual([]);
+      expect(evt.defaultPrevented).toBe(false);
+    });
+
+    it('editable=true: los imprimibles no mueven la activa aunque typeahead=true', async () => {
+      const { host, flush, key } = await setup();
+      host.editable.set(true);
+      host.typeahead.set(true);
+      await flush();
+      await key('g');
+
+      expect(host.activeIndex()).toBe(-1);
+    });
+
+    it('editable=false + typeahead=true: el typeahead funciona', async () => {
+      const { host, flush, key } = await setup();
+      host.editable.set(false);
+      host.typeahead.set(true);
+      await flush();
+      await key('g');
+
+      expect(host.activeIndex()).toBe(2);
     });
   });
 

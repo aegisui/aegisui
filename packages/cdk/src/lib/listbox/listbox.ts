@@ -56,7 +56,22 @@ export class AegisListbox<T> {
   /** Colección COMPLETA, sin recortar: el cap lo aplica el primitivo, no el consumidor. */
   readonly options = input<readonly T[]>([]);
 
-  /** Texto de filtrado. `''` = sin filtrar. Coincidencia por subcadena. */
+  /**
+   * Cómo obtener la ETIQUETA VISIBLE de una opción: nombre de propiedad
+   * (`optionLabel="label"`), accesor libre, o nada (entonces `String(option)`,
+   * que mantiene `options: string[]` sin ceremonia).
+   *
+   * El filtro y el typeahead operan SOBRE LA ETIQUETA, nunca sobre el objeto:
+   * un usuario busca lo que ve. Si buscaran en el objeto entero, teclear "3"
+   * casaría con `{ id: 3, label: 'Argentina' }` y aparecería un país que no
+   * contiene ningún 3 — imposible de explicar.
+   *
+   * La IDENTIDAD, en cambio, va siempre por objeto (`value`, `aria-selected`,
+   * `disabledOptions`). Son dos ejes distintos a propósito.
+   */
+  readonly optionLabel = input<string | ((option: T) => string) | undefined>(undefined);
+
+  /** Texto de filtrado. `''` = sin filtrar. Subcadena sobre la ETIQUETA. */
   readonly filter = input<string>('');
 
   /** Cap de opciones renderizadas (ADR-023 §4). Menor que 1 se trata como 1. */
@@ -65,16 +80,21 @@ export class AegisListbox<T> {
   /** Opciones presentes pero no seleccionables. Siguen visibles y anunciadas. */
   readonly disabledOptions = input<readonly T[]>([]);
 
-  /**
-   * Salto a opción por escritura rápida.
-   *
-   * También distingue el modo del listbox, porque el contrato ata las dos cosas
-   * a la MISMA condición ("dentro de un combobox editable"): con `typeahead`
-   * activo el listbox no está en un campo de texto, así que `Space` selecciona;
-   * con `typeahead` desactivado (el caso del combobox editable) la escritura
-   * pertenece al campo y `Space` escribe un espacio — nunca se secuestra.
-   */
+  /** Salto a opción por escritura rápida. Se ignora con `editable=true`. */
   readonly typeahead = input<boolean>(true);
+
+  /**
+   * El listbox está gobernado por un CAMPO DE TEXTO editable (el combobox),
+   * donde cada pulsación pertenece a la escritura del usuario.
+   *
+   * `Space` consulta ESTE input, nunca el estado de `typeahead`. Son conceptos
+   * distintos aunque hoy coincidan en las dos pieles previstas: un combobox
+   * editable con filtro no usa typeahead porque se escribe de verdad; un select
+   * no editable sí lo usa. Deducir "hay un campo de texto delante" de "el
+   * typeahead está apagado" se cobra sola la primera vez que alguien quiera un
+   * select SIN typeahead y descubra que su `Space` dejó de seleccionar.
+   */
+  readonly editable = input<boolean>(false);
 
   /** `ArrowDown` en la última vuelve a la primera. */
   readonly loop = input<boolean>(true);
@@ -98,14 +118,30 @@ export class AegisListbox<T> {
     return Number.isFinite(raw) && raw >= 1 ? raw : 1;
   });
 
-  /** Coincidencias con `filter`, ANTES del cap. */
+  /**
+   * Etiqueta visible de una opción. Una etiqueta ausente (propiedad que no
+   * existe) es cadena vacía: no casa con ningún filtro y no rompe el typeahead.
+   */
+  labelOf(option: T): string {
+    const accessor = this.optionLabel();
+    if (typeof accessor === 'function') {
+      return accessor(option) ?? '';
+    }
+    if (typeof accessor === 'string') {
+      const raw = (option as Record<string, unknown> | null | undefined)?.[accessor];
+      return raw === undefined || raw === null ? '' : String(raw);
+    }
+    return option === undefined || option === null ? '' : String(option);
+  }
+
+  /** Coincidencias con `filter`, ANTES del cap. Compara contra la ETIQUETA. */
   private readonly matched = computed(() => {
     const needle = this.filter().trim().toLowerCase();
     const all = this.options();
     if (needle === '') {
       return all;
     }
-    return all.filter((o) => String(o).toLowerCase().includes(needle));
+    return all.filter((o) => this.labelOf(o).toLowerCase().includes(needle));
   });
 
   /** Lo que se renderiza: `filter` primero y `maxVisible` DESPUÉS. */
@@ -255,9 +291,10 @@ export class AegisListbox<T> {
         }
         return;
       case ' ':
-        // Solo selecciona fuera de un campo de texto. Dentro de un combobox
-        // editable (typeahead desactivado) el espacio pertenece a la escritura.
-        if (this.typeahead() && this.activeIndex() >= 0) {
+        // Solo selecciona fuera de un campo de texto. La condición es `editable`,
+        // NUNCA el estado de `typeahead`: un select sin typeahead sigue
+        // seleccionando con Space.
+        if (!this.editable() && this.activeIndex() >= 0) {
           event.preventDefault();
           this.selectAt(this.activeIndex());
         }
@@ -326,7 +363,9 @@ export class AegisListbox<T> {
   }
 
   private handleTypeahead(event: KeyboardEvent): void {
-    if (!this.typeahead() || event.key.length !== 1 || event.key === ' ') {
+    // Con un campo de texto delante la escritura tiene dueño: filtrar YA es la
+    // búsqueda, y saltar por prefijo además sería pelearse con el usuario.
+    if (this.editable() || !this.typeahead() || event.key.length !== 1 || event.key === ' ') {
       return;
     }
 
@@ -341,7 +380,10 @@ export class AegisListbox<T> {
 
     const list = this.visibleOptions();
     for (let i = 0; i < list.length; i++) {
-      if (!this.isDisabledAt(i) && String(list[i]).toLowerCase().startsWith(this.typeaheadBuffer)) {
+      if (
+        !this.isDisabledAt(i) &&
+        this.labelOf(list[i]).toLowerCase().startsWith(this.typeaheadBuffer)
+      ) {
         this.activateAt(i);
         return;
       }
