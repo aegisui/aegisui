@@ -36,10 +36,12 @@ Directivas standalone, signals-only, `OnPush`, sin `NgModule`.
 | Nombre | Tipo | Default | Descripción |
 |---|---|---|---|
 | `options` | `readonly T[]` | `[]` | Colección **completa**, sin recortar. El cap lo aplica el primitivo, no el consumidor. |
-| `filter` | `string` | `''` | Texto de filtrado. `''` = sin filtrar. |
+| `optionLabel` | `string \| ((option: T) => string)` | *(sin valor)* → `String(option)` | Cómo obtener la **etiqueta visible** de una opción. Ver §Etiqueta de una opción. |
+| `filter` | `string` | `''` | Texto de filtrado. `''` = sin filtrar. Compara contra la **etiqueta**, no contra el objeto. |
 | `maxVisible` | `number` | `100` | Cap de opciones renderizadas. Ver §Cap de resultados. |
 | `disabledOptions` | `readonly T[]` | `[]` | Opciones presentes pero no seleccionables. |
-| `typeahead` | `boolean` | `true` | Salto a opción por escritura rápida. |
+| `typeahead` | `boolean` | `true` | Salto a opción por escritura rápida. Se ignora con `editable=true`. |
+| `editable` | `boolean` | `false` | El listbox está gobernado por un **campo de texto editable** (combobox). Ver §Modo editable. |
 | `loop` | `boolean` | `true` | `ArrowDown` en la última vuelve a la primera. |
 
 ### Model
@@ -68,6 +70,53 @@ al navegar" que rompe a los usuarios de lector de pantalla.
 | Nombre | Payload | Cuándo |
 |---|---|---|
 | `optionSelected` | `T` | El usuario comprometió una opción (`Enter`, `Space`, click). No se emite al navegar. |
+
+## Etiqueta de una opción (`optionLabel`)
+
+`optionLabel` dice cómo sacar el **texto visible** de una opción:
+
+| Forma | Significado |
+|---|---|
+| *(sin valor)* | `String(option)`. Mantiene `options: string[]` funcionando sin ceremonia. |
+| `string` | Nombre de propiedad: `optionLabel="label"` toma `option.label`. |
+| `(option: T) => string` | Accesor libre, para etiquetas compuestas. |
+
+**El filtro y el typeahead operan SOBRE LA ETIQUETA, nunca sobre el objeto ni
+sobre el `id`.** Es la regla que hace predecible la búsqueda: **un usuario busca
+lo que ve**. Si el filtro mirase el objeto entero, teclear `3` casaría con
+`{ id: 3, label: 'Argentina' }` y el usuario vería aparecer un país que no
+contiene ningún `3` — comportamiento imposible de explicar.
+
+La identidad va por **objeto**; la búsqueda, por **etiqueta**. Son ejes distintos
+a propósito:
+
+- El `value` emitido y el `aria-selected` comparan **la opción**, no su etiqueta:
+  dos opciones distintas con la misma etiqueta siguen siendo distintas.
+- `disabledOptions` compara **opciones**, no etiquetas.
+- Una etiqueta `undefined`/`null` (propiedad que no existe) se trata como cadena
+  vacía: no casa con ningún filtro y no rompe el typeahead.
+
+## Modo editable (`editable`)
+
+`editable=true` declara que **el listbox vive bajo un campo de texto real** (el
+combobox), donde cada pulsación pertenece a la escritura del usuario.
+
+| | `editable=false` (Select) | `editable=true` (Combobox) |
+|---|---|---|
+| `Space` | **Selecciona** la activa | **Escribe un espacio.** Nunca se secuestra la escritura |
+| Typeahead | Según `typeahead` | **Ignorado**: filtrar YA es la búsqueda |
+
+**`Space` consulta `editable`, NO el estado de `typeahead`.** Son conceptos
+distintos aunque hoy coincidan en las dos pieles previstas: un combobox editable
+con filtro no usa typeahead porque se escribe de verdad; un select no editable sí
+lo usa. Deducir una condición semántica ("hay un campo de texto delante") a partir
+de un efecto colateral ("el typeahead está apagado") es una trampa que se cobra
+sola la primera vez que alguien quiera un select **sin** typeahead y descubra que
+su `Space` dejó de seleccionar. Ese caso concreto es criterio de aceptación.
+
+`typeahead` sigue siendo un input independiente; lo único que `editable` hace con
+él es **ignorarlo**, porque con un campo de texto delante las teclas ya tienen
+dueño.
 
 ## Cap de resultados — el comportamiento que fija ADR-023 §4
 
@@ -176,8 +225,8 @@ Fuente de verdad del gate `keyboard`.
 | `Home` | Activa la primera habilitada. |
 | `End` | Activa la última habilitada **renderizada** (no la última del modelo: ver Cap). |
 | `Enter` | Selecciona la activa y emite `optionSelected`. Sin activa, no hace nada. |
-| `Space` | Igual que `Enter` **cuando el listbox no está dentro de un campo de texto**. Dentro de un combobox editable, `Space` escribe un espacio (nunca se secuestra la escritura). |
-| *(caracteres imprimibles)* | Con `typeahead`, activa la primera coincidencia por prefijo; el buffer se reinicia a **1 s** de inactividad. Dentro de un combobox editable, la escritura va al campo y el typeahead **se desactiva** (filtrar ya es la búsqueda). |
+| `Space` | Igual que `Enter` **cuando `editable=false`**. Con `editable=true` escribe un espacio y no selecciona (nunca se secuestra la escritura). La condición es `editable`, **no** el estado de `typeahead`. |
+| *(caracteres imprimibles)* | Con `typeahead` **y** `editable=false`, activa la primera coincidencia por prefijo **de la etiqueta** (`optionLabel`); el buffer se reinicia a **1 s** de inactividad. Con `editable=true` la escritura va al campo y el typeahead se ignora (filtrar ya es la búsqueda). |
 
 Las opciones deshabilitadas **se saltan** al navegar, pero permanecen visibles y
 anunciadas con `aria-disabled` (SPEC §8: no ocultar del teclado algo legible).
@@ -226,6 +275,29 @@ Unitarios (Vitest + Testing Library):
 - [ ] Typeahead activa por prefijo y reinicia el buffer a 1 s.
 - [ ] Reducir el filtro hasta que desaparece la activa recoloca `activeIndex` sin
       dejarlo fuera de rango.
+
+Etiqueta de la opción (`optionLabel`):
+
+- [ ] Sin `optionLabel`, `options: string[]` se comporta igual que con `String(option)`.
+- [ ] `optionLabel="label"` filtra por `option.label` en `{ id, label }`.
+- [ ] `optionLabel` como función filtra por lo que devuelve.
+- [ ] El filtro **no** casa contra el `id` ni contra otras propiedades: con
+      `{ id: 3, label: 'Argentina' }`, teclear `3` **no** la muestra.
+- [ ] El typeahead salta por prefijo de la **etiqueta**, no del objeto.
+- [ ] `value` y `optionSelected` entregan **la opción**, no su etiqueta.
+- [ ] Dos opciones distintas con la misma etiqueta se distinguen (`aria-selected`
+      marca una sola).
+- [ ] Una etiqueta ausente se trata como cadena vacía y no rompe filtro ni typeahead.
+
+Modo editable (`editable`):
+
+- [ ] `editable=false` + `typeahead=false`: `Space` **sigue seleccionando**. Es el
+      caso que una inferencia implícita rompería, y el motivo de que `editable`
+      exista como input propio.
+- [ ] `editable=true`: `Space` **no** selecciona ni llama a `preventDefault`.
+- [ ] `editable=true`: los caracteres imprimibles **no** mueven la activa, aunque
+      `typeahead=true`.
+- [ ] `editable=false` + `typeahead=true`: el typeahead funciona.
 
 Invariante de foco virtual (el raíl de ADR-023 §4):
 
