@@ -61,9 +61,23 @@ test.describe('Popover real (Chromium) — lo que jsdom no cubre', () => {
 
     // `matchAnchorWidth`: el panel mide lo que el disparador (±1 px de redondeo).
     expect(Math.abs(cajaP.width - cajaD.width)).toBeLessThanOrEqual(1);
-    // Y está pegado a él, no en (0,0) ni fuera de la pantalla.
     expect(Math.abs(cajaP.x - cajaD.x)).toBeLessThanOrEqual(2);
-    expect(cajaP.y).toBeGreaterThan(0);
+
+    // PEGADO AL DISPARADOR, en vertical. Esta es la aserción que faltaba: la
+    // versión anterior solo pedía `y > 0`, y un panel mal posicionado a 6899 px
+    // (coordenadas de documento aplicadas a un `position: fixed`) la cumplía. El
+    // panel se abría de verdad y no se veía; el gate decía verde.
+    const bordeInferiorDisparador = cajaD.y + cajaD.height;
+    expect(
+      Math.abs(cajaP.y - bordeInferiorDisparador),
+      'el panel debe quedar pegado al disparador, no a cientos de píxeles',
+    ).toBeLessThanOrEqual(24);
+
+    // Y DENTRO DEL VIEWPORT: `toBeVisible()` de Playwright no lo garantiza —
+    // un elemento fuera de pantalla sigue contando como visible para él.
+    const vp = page.viewportSize()!;
+    expect(cajaP.y, 'el panel debe estar dentro de la pantalla').toBeLessThan(vp.height);
+    expect(cajaP.y + cajaP.height).toBeGreaterThan(0);
   });
 
   test('el Combobox filtra en vivo y las opciones filtradas siguen expuestas', async ({ page }) => {

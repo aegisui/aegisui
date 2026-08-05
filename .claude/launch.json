@@ -1,0 +1,12 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "sandbox",
+      "runtimeExecutable": "/Users/alejandrodavomelgarejo/.nvm/versions/node/v22.23.1/bin/node",
+      "runtimeArgs": ["../../node_modules/@angular/cli/bin/ng.js", "serve", "--port", "4200"],
+      "cwd": "apps/sandbox",
+      "port": 4200
+    }
+  ]
+}
