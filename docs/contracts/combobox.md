@@ -240,7 +240,8 @@ de "qué elegí" — el mismo error conceptual que confundir `activeIndex` con
 - `--aegis-border-width-hairline`, `--aegis-border-width-thin`
 - `--aegis-focus-ring-width`, `--aegis-focus-ring-offset`
 - `--aegis-radius-md`, `--aegis-space-1`, `--aegis-space-2`, `--aegis-space-3`
-- `--aegis-shadow-raised`
+- `--aegis-elevation-2` (el panel es superficie elevada)
+- `--aegis-space-5` (altura mínima de disparador y opción — objetivo táctil de 2.5.8)
 
 ### Custom properties del overlay — NO son tokens
 
