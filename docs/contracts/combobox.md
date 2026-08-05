@@ -169,6 +169,87 @@ restringir `labelMode`, y se resuelve donde toca:
 `autocomplete` queda como input para el caso legítimo contrario: un combobox de
 país o de dirección donde el autofill del navegador **sí** se quiere.
 
+## Tokens que consume
+
+Lista **exhaustiva** de tokens de **capa 3** (ADR-016: locales al componente, dos
+rieles — color→capa 2, estructura→capa 1). Los define el propio CSS del
+componente en su `:host`, y de ahí salen a capa 2. Cero literales
+(`no-literal-design-values`), y la palabra `dark` no aparece: el tema vive en
+los tokens.
+
+Los verifica la regla `tokens-declared-in-contract`: **cualquier
+`var(--aegis-*)` del CSS que no esté en esta lista es error de lint**.
+
+### El campo NO tiene tokens propios
+
+El campo editable **es un `<aegis-input>`**, así que su superficie, su foco, su
+etiqueta, su ayuda y su error los gobiernan los tokens `--aegis-input-*` que ya
+declara [`input.md`](./input.md). El Combobox **no los redeclara ni los pisa** —
+si lo hiciera, un Input y el campo de un Combobox podrían divergir, que es
+exactamente lo que reutilizar existe para impedir.
+
+Consecuencia práctica: retocar el aspecto del campo se hace en un solo sitio.
+
+### Panel y opciones
+
+Panel:
+
+- `--aegis-combobox-panel-bg`
+- `--aegis-combobox-panel-border-color`
+- `--aegis-combobox-panel-border-width`
+- `--aegis-combobox-panel-radius`
+- `--aegis-combobox-panel-shadow`
+- `--aegis-combobox-panel-padding-block`
+
+Opción:
+
+- `--aegis-combobox-option-fg`
+- `--aegis-combobox-option-padding-inline`
+- `--aegis-combobox-option-padding-block`
+- `--aegis-combobox-option-min-height`
+- `--aegis-combobox-option-bg-active`
+- `--aegis-combobox-option-fg-active`
+- `--aegis-combobox-option-bg-selected`
+- `--aegis-combobox-option-fg-selected`
+- `--aegis-combobox-option-fg-disabled`
+
+Fila de estado (truncado / sin resultados):
+
+- `--aegis-combobox-status-color`
+- `--aegis-combobox-status-font-size`
+
+**`option-bg-active` y `option-bg-selected` son tokens distintos a propósito.**
+Activa (foco virtual) y seleccionada son estados distintos que pueden coincidir en
+la misma fila; si compartieran token, el usuario no podría distinguir "dónde estoy"
+de "qué elegí" — el mismo error conceptual que confundir `activeIndex` con
+`value` en el listbox.
+
+### Capa 2 a la que mapean
+
+- `--aegis-color-surface-raised`, `--aegis-color-surface-sunken`,
+  `--aegis-color-surface-canvas`
+- `--aegis-color-text-strong`, `--aegis-color-text-muted`,
+  `--aegis-color-text-subtle`
+- `--aegis-color-border-separator`, `--aegis-color-border-strong`
+- `--aegis-color-accent-bg`, `--aegis-color-accent-text`,
+  `--aegis-color-accent-border`, `--aegis-color-accent-ring`
+- `--aegis-color-state-danger-text`, `--aegis-color-state-danger-point`
+- `--aegis-font-size-xs`, `--aegis-font-size-sm`, `--aegis-font-size-base`,
+  `--aegis-font-size-lg`
+- `--aegis-font-weight-medium`, `--aegis-font-leading-normal`
+- `--aegis-border-width-hairline`, `--aegis-border-width-thin`
+- `--aegis-focus-ring-width`, `--aegis-focus-ring-offset`
+- `--aegis-radius-md`, `--aegis-space-1`, `--aegis-space-2`, `--aegis-space-3`
+- `--aegis-shadow-raised`
+
+### Custom properties del overlay — NO son tokens
+
+El primitivo escribe `--aegis-overlay-x`, `--aegis-overlay-y`,
+`--aegis-overlay-available-height` y `--aegis-overlay-anchor-width`. El CSS del
+panel las consume, pero **no son decisiones de diseño**: son geometría calculada
+en tiempo real. Se listan aquí solo para que `tokens-declared-in-contract` no las
+tome por tokens sin declarar ([overlay.md §Lo que expone al CSS](./cdk/overlay.md)).
+
 ## Accesibilidad (WCAG 2.2 AA — SPEC §8)
 
 ### Roles y foco virtual

@@ -90,6 +90,122 @@ Esto es lo que el Select *es*: una configuración concreta. Cada valor, decidido
 encendido. Esa distinción es exactamente la enmienda 2 del listbox, y este
 contrato es su primer consumidor real.
 
+## Tokens que consume
+
+Lista **exhaustiva** de tokens de **capa 3** (ADR-016: locales al componente, dos
+rieles — color→capa 2, estructura→capa 1). Los define el propio CSS del
+componente en su `:host`, y de ahí salen a capa 2. Cero literales
+(`no-literal-design-values`), y la palabra `dark` no aparece: el tema vive en
+los tokens.
+
+Los verifica la regla `tokens-declared-in-contract`: **cualquier
+`var(--aegis-*)` del CSS que no esté en esta lista es error de lint**.
+
+### Disparador
+
+Superficie y texto:
+
+- `--aegis-select-bg`
+- `--aegis-select-fg`
+- `--aegis-select-placeholder-color`
+- `--aegis-select-border-color`
+- `--aegis-select-border-color-hover`
+- `--aegis-select-border-color-invalid`
+- `--aegis-select-border-width`
+
+Foco:
+
+- `--aegis-select-focus-ring-color`
+- `--aegis-select-focus-ring-color-invalid`
+- `--aegis-select-focus-ring-width`
+- `--aegis-select-focus-ring-offset`
+
+Forma, tipografía y espaciado:
+
+- `--aegis-select-radius`
+- `--aegis-select-font-size`
+- `--aegis-select-padding-inline`
+- `--aegis-select-padding-block`
+- `--aegis-select-min-height`
+- `--aegis-select-gap`
+
+Indicador (la flecha):
+
+- `--aegis-select-indicator-color`
+- `--aegis-select-indicator-size`
+
+Etiqueta, ayuda y error — **los mismos roles que el Input**, para que un Select y
+un Input uno al lado del otro no se vean como de librerías distintas:
+
+- `--aegis-select-label-color`
+- `--aegis-select-label-font-size`
+- `--aegis-select-label-font-weight`
+- `--aegis-select-label-gap`
+- `--aegis-select-help-color`
+- `--aegis-select-help-font-size`
+- `--aegis-select-error-color`
+- `--aegis-select-error-font-size`
+
+### Panel y opciones
+
+Panel:
+
+- `--aegis-select-panel-bg`
+- `--aegis-select-panel-border-color`
+- `--aegis-select-panel-border-width`
+- `--aegis-select-panel-radius`
+- `--aegis-select-panel-shadow`
+- `--aegis-select-panel-padding-block`
+
+Opción:
+
+- `--aegis-select-option-fg`
+- `--aegis-select-option-padding-inline`
+- `--aegis-select-option-padding-block`
+- `--aegis-select-option-min-height`
+- `--aegis-select-option-bg-active`
+- `--aegis-select-option-fg-active`
+- `--aegis-select-option-bg-selected`
+- `--aegis-select-option-fg-selected`
+- `--aegis-select-option-fg-disabled`
+
+Fila de estado (truncado / sin resultados):
+
+- `--aegis-select-status-color`
+- `--aegis-select-status-font-size`
+
+**`option-bg-active` y `option-bg-selected` son tokens distintos a propósito.**
+Activa (foco virtual) y seleccionada son estados distintos que pueden coincidir en
+la misma fila; si compartieran token, el usuario no podría distinguir "dónde estoy"
+de "qué elegí" — el mismo error conceptual que confundir `activeIndex` con
+`value` en el listbox.
+
+### Capa 2 a la que mapean
+
+- `--aegis-color-surface-raised`, `--aegis-color-surface-sunken`,
+  `--aegis-color-surface-canvas`
+- `--aegis-color-text-strong`, `--aegis-color-text-muted`,
+  `--aegis-color-text-subtle`
+- `--aegis-color-border-separator`, `--aegis-color-border-strong`
+- `--aegis-color-accent-bg`, `--aegis-color-accent-text`,
+  `--aegis-color-accent-border`, `--aegis-color-accent-ring`
+- `--aegis-color-state-danger-text`, `--aegis-color-state-danger-point`
+- `--aegis-font-size-xs`, `--aegis-font-size-sm`, `--aegis-font-size-base`,
+  `--aegis-font-size-lg`
+- `--aegis-font-weight-medium`, `--aegis-font-leading-normal`
+- `--aegis-border-width-hairline`, `--aegis-border-width-thin`
+- `--aegis-focus-ring-width`, `--aegis-focus-ring-offset`
+- `--aegis-radius-md`, `--aegis-space-1`, `--aegis-space-2`, `--aegis-space-3`
+- `--aegis-shadow-raised`
+
+### Custom properties del overlay — NO son tokens
+
+El primitivo escribe `--aegis-overlay-x`, `--aegis-overlay-y`,
+`--aegis-overlay-available-height` y `--aegis-overlay-anchor-width`. El CSS del
+panel las consume, pero **no son decisiones de diseño**: son geometría calculada
+en tiempo real. Se listan aquí solo para que `tokens-declared-in-contract` no las
+tome por tokens sin declarar ([overlay.md §Lo que expone al CSS](./cdk/overlay.md)).
+
 ## Accesibilidad (WCAG 2.2 AA — SPEC §8)
 
 ### Roles y foco virtual
