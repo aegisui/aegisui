@@ -1,0 +1,244 @@
+/*
+ * Select — capa 3 (ADR-016): los tokens locales se definen aquí y salen a capa 2.
+ * Cero literales de diseño y cero condicionales de tema: el modo oscuro lo
+ * resuelven los tokens de capa 2, nunca este archivo.
+ *
+ * Los roles de etiqueta, ayuda y error mapean a los MISMOS tokens de capa 2 que
+ * el Input: un Select y un Input uno al lado del otro no pueden verse como de
+ * librerías distintas.
+ */
+:host {
+  /* Disparador: superficie y texto */
+  --aegis-select-bg: var(--aegis-color-surface-raised);
+  --aegis-select-fg: var(--aegis-color-text-strong);
+  --aegis-select-placeholder-color: var(--aegis-color-text-subtle);
+  --aegis-select-border-color: var(--aegis-color-border-strong);
+  --aegis-select-border-color-hover: var(--aegis-color-accent-border);
+  --aegis-select-border-color-invalid: var(--aegis-color-state-danger-point);
+  --aegis-select-border-width: var(--aegis-border-width-thin);
+
+  /* Foco */
+  --aegis-select-focus-ring-color: var(--aegis-color-accent-ring);
+  --aegis-select-focus-ring-color-invalid: var(--aegis-color-state-danger-point);
+  --aegis-select-focus-ring-width: var(--aegis-focus-ring-width);
+  --aegis-select-focus-ring-offset: var(--aegis-focus-ring-offset);
+
+  /* Forma, tipografía y espaciado */
+  --aegis-select-radius: var(--aegis-radius-md);
+  --aegis-select-font-size: var(--aegis-font-size-base);
+  --aegis-select-padding-inline: var(--aegis-space-3);
+  --aegis-select-padding-block: var(--aegis-space-2);
+  --aegis-select-min-height: var(--aegis-space-5);
+  --aegis-select-gap: var(--aegis-space-2);
+
+  /* Indicador */
+  --aegis-select-indicator-color: var(--aegis-color-text-muted);
+  --aegis-select-indicator-size: var(--aegis-font-size-xs);
+
+  /* Etiqueta, ayuda y error */
+  --aegis-select-label-color: var(--aegis-color-text-strong);
+  --aegis-select-label-font-size: var(--aegis-font-size-sm);
+  --aegis-select-label-font-weight: var(--aegis-font-weight-medium);
+  --aegis-select-label-gap: var(--aegis-space-1);
+  --aegis-select-help-color: var(--aegis-color-text-muted);
+  --aegis-select-help-font-size: var(--aegis-font-size-sm);
+  --aegis-select-error-color: var(--aegis-color-state-danger-text);
+  --aegis-select-error-font-size: var(--aegis-font-size-sm);
+
+  /* Panel */
+  --aegis-select-panel-bg: var(--aegis-color-surface-raised);
+  --aegis-select-panel-border-color: var(--aegis-color-border-separator);
+  --aegis-select-panel-border-width: var(--aegis-border-width-hairline);
+  --aegis-select-panel-radius: var(--aegis-radius-md);
+  --aegis-select-panel-shadow: var(--aegis-elevation-2);
+  --aegis-select-panel-padding-block: var(--aegis-space-1);
+
+  /* Opción */
+  --aegis-select-option-fg: var(--aegis-color-text-strong);
+  --aegis-select-option-padding-inline: var(--aegis-space-3);
+  --aegis-select-option-padding-block: var(--aegis-space-2);
+  --aegis-select-option-min-height: var(--aegis-space-5);
+  --aegis-select-option-bg-active: var(--aegis-color-accent-bg);
+  --aegis-select-option-fg-active: var(--aegis-color-accent-text);
+  --aegis-select-option-bg-selected: var(--aegis-color-surface-sunken);
+  --aegis-select-option-fg-selected: var(--aegis-color-text-strong);
+  --aegis-select-option-fg-disabled: var(--aegis-color-text-subtle);
+
+  /* Fila de estado */
+  --aegis-select-status-color: var(--aegis-color-text-muted);
+  --aegis-select-status-font-size: var(--aegis-font-size-sm);
+
+  display: block;
+}
+
+.aegis-select__label {
+  display: block;
+  margin-block-end: var(--aegis-select-label-gap);
+  color: var(--aegis-select-label-color);
+  font-size: var(--aegis-select-label-font-size);
+  font-weight: var(--aegis-select-label-font-weight);
+  line-height: var(--aegis-font-leading-normal);
+}
+
+.aegis-select__trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--aegis-select-gap);
+  inline-size: 100%;
+  min-block-size: var(--aegis-select-min-height);
+  padding-inline: var(--aegis-select-padding-inline);
+  padding-block: var(--aegis-select-padding-block);
+  border: var(--aegis-select-border-width) solid var(--aegis-select-border-color);
+  border-radius: var(--aegis-select-radius);
+  background: var(--aegis-select-bg);
+  color: var(--aegis-select-fg);
+  font: inherit;
+  font-size: var(--aegis-select-font-size);
+  line-height: var(--aegis-font-leading-normal);
+  text-align: start;
+  cursor: pointer;
+}
+
+.aegis-select__trigger:hover:not(:disabled) {
+  border-color: var(--aegis-select-border-color-hover);
+}
+
+/* `no-outline-none`: el anillo se sustituye, nunca se quita. */
+.aegis-select__trigger:focus-visible {
+  outline: var(--aegis-select-focus-ring-width) solid var(--aegis-select-focus-ring-color);
+  outline-offset: var(--aegis-select-focus-ring-offset);
+}
+
+.aegis-select__trigger--invalid {
+  border-color: var(--aegis-select-border-color-invalid);
+}
+
+.aegis-select__trigger--invalid:focus-visible {
+  outline-color: var(--aegis-select-focus-ring-color-invalid);
+}
+
+.aegis-select__trigger:disabled {
+  --aegis-select-bg: var(--aegis-color-surface-sunken);
+  --aegis-select-fg: var(--aegis-color-text-muted);
+  --aegis-select-border-color: var(--aegis-color-border-separator);
+  cursor: not-allowed;
+}
+
+.aegis-select__trigger--placeholder .aegis-select__value {
+  color: var(--aegis-select-placeholder-color);
+}
+
+.aegis-select__value {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Flecha puramente CSS: sin icono, sin dependencia. */
+.aegis-select__indicator {
+  flex: none;
+  inline-size: var(--aegis-select-indicator-size);
+  block-size: var(--aegis-select-indicator-size);
+  border-inline-end: var(--aegis-select-border-width) solid var(--aegis-select-indicator-color);
+  border-block-end: var(--aegis-select-border-width) solid var(--aegis-select-indicator-color);
+  rotate: 45deg;
+  translate: 0 -25%;
+}
+
+/*
+ * El panel vive en la CAPA SUPERIOR (`popover="auto"`), así que no necesita
+ * `z-index` ni escapar de ancestros con `overflow`/`transform`. Las custom
+ * properties `--aegis-overlay-*` las escribe el primitivo: son geometría
+ * calculada, no decisiones de diseño.
+ */
+.aegis-select__panel {
+  position: fixed;
+  inset: auto;
+  margin: 0;
+  padding: var(--aegis-select-panel-padding-block) 0;
+  border: var(--aegis-select-panel-border-width) solid var(--aegis-select-panel-border-color);
+  border-radius: var(--aegis-select-panel-radius);
+  background: var(--aegis-select-panel-bg);
+  box-shadow: var(--aegis-select-panel-shadow);
+  overflow-y: auto;
+  left: var(--aegis-overlay-x);
+  top: var(--aegis-overlay-y);
+  inline-size: var(--aegis-overlay-anchor-width);
+  max-block-size: var(--aegis-overlay-available-height);
+}
+
+.aegis-select__panel:not(:popover-open) {
+  display: none;
+}
+
+.aegis-select__option {
+  display: flex;
+  align-items: center;
+  min-block-size: var(--aegis-select-option-min-height);
+  padding-inline: var(--aegis-select-option-padding-inline);
+  padding-block: var(--aegis-select-option-padding-block);
+  color: var(--aegis-select-option-fg);
+  font-size: var(--aegis-select-font-size);
+  line-height: var(--aegis-font-leading-normal);
+  cursor: pointer;
+}
+
+/*
+ * Seleccionada y activa son estados DISTINTOS que pueden coincidir en la misma
+ * fila: "qué elegí" vs "dónde estoy". Por eso son dos tokens, no uno.
+ */
+.aegis-select__option[aria-selected='true'] {
+  background: var(--aegis-select-option-bg-selected);
+  color: var(--aegis-select-option-fg-selected);
+}
+
+.aegis-select__option--active {
+  background: var(--aegis-select-option-bg-active);
+  color: var(--aegis-select-option-fg-active);
+}
+
+.aegis-select__option[aria-disabled='true'] {
+  color: var(--aegis-select-option-fg-disabled);
+  cursor: not-allowed;
+}
+
+.aegis-select__status {
+  padding-inline: var(--aegis-select-option-padding-inline);
+  padding-block: var(--aegis-select-option-padding-block);
+  color: var(--aegis-select-status-color);
+  font-size: var(--aegis-select-status-font-size);
+  line-height: var(--aegis-font-leading-normal);
+}
+
+.aegis-select__help {
+  display: block;
+  margin-block-start: var(--aegis-select-label-gap);
+  color: var(--aegis-select-help-color);
+  font-size: var(--aegis-select-help-font-size);
+  line-height: var(--aegis-font-leading-normal);
+}
+
+/*
+ * El nodo del error existe SIEMPRE y vacío (ADR-019 Regla 4): un `@if` alrededor
+ * recrearía el nodo y dispararía doble anuncio. Interpolación plana.
+ */
+.aegis-select__error {
+  display: block;
+  margin-block-start: var(--aegis-select-label-gap);
+  color: var(--aegis-select-error-color);
+  font-size: var(--aegis-select-error-font-size);
+  line-height: var(--aegis-font-leading-normal);
+}
+
+/* La piel no anima; si lo hiciera, se anularía aquí (`require-reduced-motion`). */
+@media (forced-colors: active) {
+  .aegis-select__trigger {
+    border-color: ButtonBorder;
+  }
+
+  .aegis-select__option--active {
+    background: Highlight;
+    color: HighlightText;
+  }
+}

@@ -1,7 +1,5 @@
 # Contrato: Select
 
-> **Estado:** implementación pendiente
-
 Primera de las dos pieles de la Fase 5. Es una **configuración fina** sobre
 [`AegisOverlay`](./cdk/overlay.md) y [`AegisListbox`](./cdk/listbox.md): aquí no
 vive lógica de foco, teclado ni posicionamiento. Si algo de eso hiciera falta,
@@ -196,7 +194,8 @@ de "qué elegí" — el mismo error conceptual que confundir `activeIndex` con
 - `--aegis-border-width-hairline`, `--aegis-border-width-thin`
 - `--aegis-focus-ring-width`, `--aegis-focus-ring-offset`
 - `--aegis-radius-md`, `--aegis-space-1`, `--aegis-space-2`, `--aegis-space-3`
-- `--aegis-shadow-raised`
+- `--aegis-elevation-2` (el panel es superficie elevada)
+- `--aegis-space-5` (altura mínima de disparador y opción — objetivo táctil de 2.5.8)
 
 ### Custom properties del overlay — NO son tokens
 
@@ -275,16 +274,16 @@ la misma diferencia que otra ya cubierta.
 
 | # | Variante | Historia | Tema | Información distinta que aporta |
 |---|---|---|---|---|
-| 1 | Cerrado, sin selección | `componentes-select--default` (pendiente) | light | Baseline: el disparador con `placeholder`, que es como se ve por primera vez |
-| 2 | Cerrado, con selección | `componentes-select--selected` (pendiente) | light | El valor sustituye al placeholder — verifica que lo que se lee es el texto elegido, no el marcador |
-| 3 | Abierto con opción activa | `componentes-select--open` (pendiente) | light | El caso central: panel, activa distinguible de la seleccionada, y anillo de foco **en el disparador** (si saltara a la opción, el patrón estaría roto y se vería aquí) |
-| 4 | Abierto con opción activa | `componentes-select--open` (pendiente) | dark | El panel es superficie elevada: fondo y sombra son lo que más cambia entre temas |
-| 5 | Deshabilitado | `componentes-select--disabled` (pendiente) | light | Umbral de contraste distinto (no exige 4.5:1) y hay que ver que no se confunde con "vacío" |
-| 6 | Inválido con error | `componentes-select--invalid` (pendiente) | light | Borde de error y mensaje: comparte tokens con el Input y hay que ver que **coinciden** |
-| 7 | Tamaños `sm`/`md`/`lg` | `componentes-select--sizes` (pendiente) | light | Escala del disparador; `sm` es donde el objetivo táctil roza el mínimo de 2.5.8 |
-| 8 | Opciones deshabilitadas | `componentes-select--disabled-options` (pendiente) | light | Una deshabilitada **dentro** del panel: sigue visible y legible, no oculta (SPEC §8) |
-| 9 | Truncado (>100) | `componentes-select--truncated` (pendiente) | light | La fila de estado del listbox: debe leerse como mensaje, **no** como una opción más |
-| 10 | Sin resultados | `componentes-select--empty` (pendiente) | light | Panel con solo la fila de estado — que no parezca un panel roto o vacío por error |
+| 1 | Cerrado, sin selección | `componentes-select--default` | light | Baseline: el disparador con `placeholder`, que es como se ve por primera vez |
+| 2 | Cerrado, con selección | `componentes-select--selected` | light | El valor sustituye al placeholder — verifica que lo que se lee es el texto elegido, no el marcador |
+| 3 | Abierto con opción activa | `componentes-select--open` | light | El caso central: panel, activa distinguible de la seleccionada, y anillo de foco **en el disparador** (si saltara a la opción, el patrón estaría roto y se vería aquí) |
+| 4 | Abierto con opción activa | `componentes-select--open` | dark | El panel es superficie elevada: fondo y sombra son lo que más cambia entre temas |
+| 5 | Deshabilitado | `componentes-select--disabled` | light | Umbral de contraste distinto (no exige 4.5:1) y hay que ver que no se confunde con "vacío" |
+| 6 | Inválido con error | `componentes-select--invalid` | light | Borde de error y mensaje: comparte tokens con el Input y hay que ver que **coinciden** |
+| 7 | Tamaños `sm`/`md`/`lg` | `componentes-select--sizes` | light | Escala del disparador; `sm` es donde el objetivo táctil roza el mínimo de 2.5.8 |
+| 8 | Opciones deshabilitadas | `componentes-select--disabled-options` | light | Una deshabilitada **dentro** del panel: sigue visible y legible, no oculta (SPEC §8) |
+| 9 | Truncado (>100) | `componentes-select--truncated` | light | La fila de estado del listbox: debe leerse como mensaje, **no** como una opción más |
+| 10 | Sin resultados | `componentes-select--empty` | light | Panel con solo la fila de estado — que no parezca un panel roto o vacío por error |
 
 > Todas las filas van marcadas `(pendiente)`: el componente aún no existe, así
 > que sus historias tampoco. El marcador **caduca solo** — en cuanto la historia
@@ -293,20 +292,50 @@ la misma diferencia que otra ya cubierta.
 
 ## Presupuesto de tamaño
 
-**Presupuesto marginal:** 3.50 kB brotli *(provisional, sin medir)*
+**Presupuesto marginal:** 16.20 kB brotli
 
-> **Techo provisional, no medida.** La marca `*(provisional, sin medir)*` la
-> vigila el gate `size-marginal` y **caduca sola**: en cuanto el componente exista,
-> seguir marcado es violación. El contrato va antes que el código, así que
-> este número **no puede** estar medido todavía — y un presupuesto sin medir no es
-> "ceñido", que es justo lo que exigimos al resto. Se declara como **techo al que
-> nos comprometemos** para que el componente no nazca sin nadie vigilándolo, y el
-> PR de implementación **debe sustituirlo por medido + ~5 %**. Si la medida sale
-> por encima del techo, se discute el componente, no se sube el número.
->
-> Base del techo: el Select es piel delgada sobre primitivos que ya paga el `cdk`
-> (el overlay y el listbox no entran en el marginal de `ui`), así que debería
-> quedar cerca del Button (2.78 kB medido) más el panel.
+Medido con app Angular real contra `dist/`: **15.43 kB**, más ~5 % de margen.
+
+### El techo provisional era 3.50 kB y estaba mal
+
+No se sube el número sin explicar por qué falló, así que: el techo asumía que
+*"el overlay y el listbox no entran en el marginal de `ui`"*. **Esa suposición es
+falsa y está medida.** El gate construye una app que usa **solo** el Select, y
+esa app arrastra los dos primitivos y Floating UI enteros.
+
+Atribución medida (misma app real, mismo método):
+
+| Pieza | Coste sobre una app vacía |
+|---|---|
+| `AegisListbox` solo | 5.73 kB |
+| `AegisOverlay` solo (con Floating UI dentro) | 9.00 kB |
+| **Suma de los dos primitivos** | **14.73 kB** |
+| Select completo | 15.43 kB |
+| **→ piel propia del Select** | **~0.70 kB** |
+
+**La piel pesa 0.70 kB.** Eso es exactamente lo que "configuración fina, no lógica
+nueva" debe producir, y es la lectura optimista del número: el componente está
+bien: lo caro es la infraestructura que habilita, no él.
+
+### Lo que este presupuesto NO vigila bien
+
+Con el listón en 16.20 kB, **una regresión de 1 kB en la piel se pierde en el
+ruido** de una dependencia que ni siquiera es suya. El presupuesto cumple su
+función original —avisar si el coste total se dispara— pero **no vigila el código
+propio del componente**, que es lo que un presupuesto por componente debería
+vigilar.
+
+Es [#36](https://github.com/aegisui/aegisui/issues/36) generalizado: allí el
+doble-conteo era entre componentes de `ui`; aquí es `ui` → `cdk` → dependencia
+externa, y es **mayor**. El número honesto para esta piel sería
+
+```
+marginal_neto(Select) = Δ(app con overlay+listbox+Select) − Δ(app con overlay+listbox)
+```
+
+que es ~0.70 kB y sí se movería con un descuido de 1 kB. Hasta que ese gate
+exista, este presupuesto vigila el bruto, **dicho en voz alta aquí** para que
+nadie lea 16.20 kB como "hay sitio de sobra".
 
 ## Criterios de aceptación (se convierten en tests 1:1)
 
