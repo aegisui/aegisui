@@ -177,9 +177,11 @@ la misma diferencia que otra ya cubierta.
 
 ## Presupuesto de tamaño
 
-**Presupuesto marginal:** 3.50 kB brotli
+**Presupuesto marginal:** 3.50 kB brotli *(provisional, sin medir)*
 
-> **Techo provisional, no medida.** El contrato va antes que el código, así que
+> **Techo provisional, no medida.** La marca `*(provisional, sin medir)*` la
+> vigila el gate `size-marginal` y **caduca sola**: en cuanto el componente exista,
+> seguir marcado es violación. El contrato va antes que el código, así que
 > este número **no puede** estar medido todavía — y un presupuesto sin medir no es
 > "ceñido", que es justo lo que exigimos al resto. Se declara como **techo al que
 > nos comprometemos** para que el componente no nazca sin nadie vigilándolo, y el

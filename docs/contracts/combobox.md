@@ -257,9 +257,11 @@ del combobox y el `aria-describedby` del error **coexisten** en el mismo `<input
 
 ## Presupuesto de tamaño
 
-**Presupuesto marginal:** 10.50 kB brotli
+**Presupuesto marginal:** 10.50 kB brotli *(provisional, sin medir)*
 
-> **Techo provisional, no medida** — mismo régimen que el [Select](./select.md):
+> **Techo provisional, no medida** — mismo régimen que el [Select](./select.md).
+> La marca `*(provisional, sin medir)*` **caduca sola**: el gate `size-marginal` la
+> rechaza en cuanto el componente existe.
 > el PR de implementación lo sustituye por **medido + ~5 %**.
 >
 > **Por qué es tan alto, y por qué es honesto.** El gate `size-marginal` mide lo
@@ -272,6 +274,12 @@ del combobox y el `aria-describedby` del error **coexisten** en el mismo `<input
 > sería más barata para quien use los dos componentes, y además duplicaría la
 > etiqueta flotante y ADR-019. El agregado informativo es donde se ve que
 > compartir sale a cuenta.
+>
+> **Matiz anotado en [#36](https://github.com/aegisui/aegisui/issues/36):** este
+> número es correcto para quien use SOLO el Combobox, pero miente al alza para
+> quien ya usa `<aegis-input>` en sus formularios — ese añade ~4 kB, no 10.5.
+> El marginal NETO (descontando la dependencia interna) es trabajo de gate
+> pendiente; hasta entonces el presupuesto vigila el bruto, dicho en voz alta.
 
 ## Criterios de aceptación (se convierten en tests 1:1)
 

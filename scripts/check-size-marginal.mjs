@@ -91,6 +91,25 @@ function discoverComponents() {
 }
 
 /**
+ * Marca de presupuesto **provisional**: un número que el contrato declaró ANTES
+ * de que existiera el código, así que no puede estar medido.
+ *
+ * Existe por una tensión real del orden contrato-primero: el contrato fija el
+ * presupuesto antes de que haya nada que medir, y un presupuesto sin medir no es
+ * "ceñido" — que es justo lo que le exigimos al resto. La marca deja constancia
+ * de que ese número es un TECHO al que nos comprometemos, no una medida.
+ *
+ * Y **caduca sola**, igual que `**Estado:** implementación pendiente` y que el
+ * `(pendiente)` de las matrices: en cuanto el componente existe, seguir marcado
+ * como provisional es violación. Sin esta caducidad, un número inventado se
+ * quedaría para siempre pareciendo medido — exactamente el verde-falso que estos
+ * presupuestos existen para evitar.
+ *
+ * Forma exacta, como todos los marcadores del repo: prosa parecida no cuela.
+ */
+const PROVISIONAL = /\*\*Presupuesto marginal:\*\*[^\n]*\*\(provisional, sin medir\)\*/;
+
+/**
  * Lee el presupuesto marginal DECLARADO en el contrato del componente.
  * Sin declaración no hay medición válida: es el mismo principio que la matriz
  * visual del gate `coverage`. Un componente sin presupuesto declarado no es
@@ -111,6 +130,19 @@ function declaredBudget(name) {
         `su contrato no declara "**Presupuesto marginal:** X.XX kB". ` +
         `Sin declaración no es presupuesto cero, es presupuesto DESCONOCIDO ` +
         `(mismo principio que la matriz visual en el gate coverage).`,
+    };
+  }
+  // Solo se llega aquí para componentes que EXISTEN (los descubre el fuente), así
+  // que una marca de provisional aquí ya está caducada por definición.
+  if (PROVISIONAL.test(src)) {
+    return {
+      provisional: true,
+      error:
+        `su presupuesto sigue marcado "*(provisional, sin medir)*" pero el ` +
+        `componente YA EXISTE. La marca caduca al implementar: sustitúyela por el ` +
+        `valor MEDIDO + ~5 % (lo que este gate acaba de imprimir). Un techo ` +
+        `inventado que sobrevive a la implementación pasa a parecer una medida, ` +
+        `y eso es el verde-falso que este presupuesto existe para evitar.`,
     };
   }
   return { bytes: Math.round(parseFloat(m[1]) * 1024) };
@@ -290,7 +322,12 @@ for (const c of components) {
   const declared = declaredBudget(c.name);
 
   if (declared.error) {
-    console.log(`    ✗ ${c.name}: medido ${kb(marginal)} · SIN PRESUPUESTO DECLARADO`);
+    // Distinguir "no lo declaró" de "lo declaró provisional y ya caducó": son
+    // dos arreglos distintos, y decir el equivocado manda a buscar donde no es.
+    const etiqueta = declared.provisional
+      ? `PRESUPUESTO PROVISIONAL CADUCADO (mídelo: ${kb(Math.ceil(marginal * 1.05))})`
+      : 'SIN PRESUPUESTO DECLARADO';
+    console.log(`    ✗ ${c.name}: medido ${kb(marginal)} · ${etiqueta}`);
     failures.push(`${c.name}: ${declared.error}`);
     continue;
   }
