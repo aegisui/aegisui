@@ -13,3 +13,4 @@ export * from './lib/switch/switch.component';
 export * from './lib/card/card.component';
 export * from './lib/badge/badge.component';
 export * from './lib/select/select.component';
+export * from './lib/combobox/combobox.component';

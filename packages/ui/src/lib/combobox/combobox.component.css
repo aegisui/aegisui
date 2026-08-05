@@ -1,0 +1,108 @@
+/*
+ * Combobox — capa 3 (ADR-016). Solo el PANEL: el campo es un `<aegis-input>` y
+ * lo gobiernan los tokens `--aegis-input-*`, que este archivo no redeclara ni
+ * pisa. Si los redeclarara, un Input y el campo de un Combobox podrían divergir
+ * — justo lo que reutilizar existe para impedir.
+ *
+ * Cero literales de diseño y cero condicionales de tema: el modo oscuro lo
+ * resuelven los tokens de capa 2, nunca este archivo.
+ */
+:host {
+  /* Panel */
+  --aegis-combobox-panel-bg: var(--aegis-color-surface-raised);
+  --aegis-combobox-panel-border-color: var(--aegis-color-border-separator);
+  --aegis-combobox-panel-border-width: var(--aegis-border-width-hairline);
+  --aegis-combobox-panel-radius: var(--aegis-radius-md);
+  --aegis-combobox-panel-shadow: var(--aegis-elevation-2);
+  --aegis-combobox-panel-padding-block: var(--aegis-space-1);
+
+  /* Opción */
+  --aegis-combobox-option-font-size: var(--aegis-font-size-base);
+  --aegis-combobox-option-fg: var(--aegis-color-text-strong);
+  --aegis-combobox-option-padding-inline: var(--aegis-space-3);
+  --aegis-combobox-option-padding-block: var(--aegis-space-2);
+  --aegis-combobox-option-min-height: var(--aegis-space-5);
+  --aegis-combobox-option-bg-active: var(--aegis-color-accent-bg);
+  --aegis-combobox-option-fg-active: var(--aegis-color-accent-text);
+  --aegis-combobox-option-bg-selected: var(--aegis-color-surface-sunken);
+  --aegis-combobox-option-fg-selected: var(--aegis-color-text-strong);
+  --aegis-combobox-option-fg-disabled: var(--aegis-color-text-subtle);
+
+  /* Fila de estado */
+  --aegis-combobox-status-color: var(--aegis-color-text-muted);
+  --aegis-combobox-status-font-size: var(--aegis-font-size-sm);
+
+  display: block;
+}
+
+/*
+ * El panel vive en la CAPA SUPERIOR (`popover="auto"`), así que no necesita
+ * `z-index` ni escapar de ancestros con `overflow`/`transform`. Las custom
+ * properties `--aegis-overlay-*` las escribe el primitivo: son geometría
+ * calculada, no decisiones de diseño.
+ */
+.aegis-combobox__panel {
+  position: fixed;
+  inset: auto;
+  margin: 0;
+  padding: var(--aegis-combobox-panel-padding-block) 0;
+  border: var(--aegis-combobox-panel-border-width) solid var(--aegis-combobox-panel-border-color);
+  border-radius: var(--aegis-combobox-panel-radius);
+  background: var(--aegis-combobox-panel-bg);
+  box-shadow: var(--aegis-combobox-panel-shadow);
+  overflow-y: auto;
+  left: var(--aegis-overlay-x);
+  top: var(--aegis-overlay-y);
+  inline-size: var(--aegis-overlay-anchor-width);
+  max-block-size: var(--aegis-overlay-available-height);
+}
+
+.aegis-combobox__panel:not(:popover-open) {
+  display: none;
+}
+
+.aegis-combobox__option {
+  display: flex;
+  align-items: center;
+  min-block-size: var(--aegis-combobox-option-min-height);
+  padding-inline: var(--aegis-combobox-option-padding-inline);
+  padding-block: var(--aegis-combobox-option-padding-block);
+  color: var(--aegis-combobox-option-fg);
+  font-size: var(--aegis-combobox-option-font-size);
+  line-height: var(--aegis-font-leading-normal);
+  cursor: pointer;
+}
+
+/*
+ * Seleccionada y activa son estados DISTINTOS que pueden coincidir en la misma
+ * fila: "qué elegí" vs "dónde estoy". Por eso son dos tokens, no uno.
+ */
+.aegis-combobox__option[aria-selected='true'] {
+  background: var(--aegis-combobox-option-bg-selected);
+  color: var(--aegis-combobox-option-fg-selected);
+}
+
+.aegis-combobox__option--active {
+  background: var(--aegis-combobox-option-bg-active);
+  color: var(--aegis-combobox-option-fg-active);
+}
+
+.aegis-combobox__option[aria-disabled='true'] {
+  color: var(--aegis-combobox-option-fg-disabled);
+  cursor: not-allowed;
+}
+
+.aegis-combobox__status {
+  padding-inline: var(--aegis-combobox-option-padding-inline);
+  padding-block: var(--aegis-combobox-option-padding-block);
+  color: var(--aegis-combobox-status-color);
+  font-size: var(--aegis-combobox-status-font-size);
+  line-height: var(--aegis-font-leading-normal);
+}
+
+@media (forced-colors: active) {
+  .aegis-combobox__option--active {
+    background: Highlight;
+    color: HighlightText;
+  }
+}

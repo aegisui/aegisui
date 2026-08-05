@@ -1,4 +1,5 @@
 import {
+  afterNextRender,
   booleanAttribute,
   ChangeDetectionStrategy,
   Component,
@@ -7,6 +8,7 @@ import {
   input,
   model,
   output,
+  signal,
   viewChild,
 } from '@angular/core';
 import { AegisListbox, AegisOverlay, type AegisPlacement } from '@aegisui/cdk';
@@ -76,7 +78,7 @@ let nextId = 0;
       #lb="aegisListbox"
       class="aegis-select__panel"
       [id]="panelId()"
-      [anchor]="triggerEl()?.nativeElement"
+      [anchor]="anchorEl()"
       [(open)]="open"
       [placement]="placement()"
       [matchAnchorWidth]="true"
@@ -116,9 +118,26 @@ let nextId = 0;
   styleUrl: './select.component.css',
 })
 export class AegisSelectComponent<T> {
-  protected readonly triggerEl = viewChild<ElementRef<HTMLButtonElement>>('trigger');
+  private readonly triggerRef = viewChild<ElementRef<HTMLButtonElement>>('trigger');
+
+  /**
+   * Ancla del overlay. **No se ata directamente al `viewChild`**: esa consulta se
+   * resuelve DESPUÉS de la primera pasada, y con `open=true` desde el montaje no
+   * hay ningún evento posterior que vuelva a evaluar el binding — el efecto del
+   * overlay vería `anchor` indefinido, no abriría, y el panel se quedaría cerrado
+   * para siempre.
+   *
+   * Escribir esta señal tras el render garantiza una pasada más y cierra la
+   * carrera. Lo destapó el gate e2e en Chromium real: jsdom no podía verlo,
+   * porque allí el panel nunca se muestra de todos modos.
+   */
+  protected readonly anchorEl = signal<HTMLElement | undefined>(undefined);
 
   private readonly uid = `aegis-select-${nextId++}`;
+
+  constructor() {
+    afterNextRender(() => this.anchorEl.set(this.triggerRef()?.nativeElement));
+  }
 
   readonly label = input('');
   readonly options = input<readonly T[]>([]);

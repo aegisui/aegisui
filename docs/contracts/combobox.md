@@ -1,7 +1,5 @@
 # Contrato: Combobox
 
-> **Estado:** implementación pendiente
-
 Última pieza del set. Como el [Select](./select.md), es una **configuración fina**
 sobre [`AegisOverlay`](./cdk/overlay.md) y [`AegisListbox`](./cdk/listbox.md), más
 la reutilización del [Input](./input.md) real como campo editable.
@@ -204,6 +202,7 @@ Panel:
 Opción:
 
 - `--aegis-combobox-option-fg`
+- `--aegis-combobox-option-font-size`
 - `--aegis-combobox-option-padding-inline`
 - `--aegis-combobox-option-padding-block`
 - `--aegis-combobox-option-min-height`
@@ -318,16 +317,16 @@ ninguna otra contiene.
 
 | # | Variante | Historia | Tema | Información distinta que aporta |
 |---|---|---|---|---|
-| 1 | Reposo, sin selección | `componentes-combobox--default` (pendiente) | light | Baseline: es un campo de texto y tiene que **parecerlo** (si se ve como un Select, el usuario no sabrá que puede escribir) |
-| 2 | Con selección comprometida | `componentes-combobox--selected` (pendiente) | light | El campo muestra `optionLabel(value)`, no el texto tecleado — la distinción de §Texto del campo, hecha visible |
-| 3 | Abierto, filtrando, con activa | `componentes-combobox--filtering` (pendiente) | light | El caso central: texto parcial, lista recortada, opción activa, y el foco **en el campo** |
-| 4 | Abierto, filtrando, con activa | `componentes-combobox--filtering` (pendiente) | dark | Panel elevado sobre campo editable: fondo, sombra y color de texto cambian a la vez |
-| 5 | Sin resultados | `componentes-combobox--empty` (pendiente) | light | Con texto en el campo y cero coincidencias — el estado que más desconcierta si no se explica |
-| 6 | Truncado (>100) | `componentes-combobox--truncated` (pendiente) | light | La fila de truncado, aquí alcanzable tecleando: el comportamiento observable de ADR-023 §4 |
-| 7 | Deshabilitado | `componentes-combobox--disabled` (pendiente) | light | Campo deshabilitado, sin panel posible |
-| 8 | Inválido **con panel abierto** | `componentes-combobox--invalid-open` (pendiente) | light | **No es decorativa:** la única que muestra error y panel a la vez — la coexistencia del ARIA de combobox con el `aria-describedby` de ADR-019, hecha visible |
-| 9 | Etiqueta flotante, abierto | `componentes-combobox--floating` (pendiente) | light | La decisión de §Autofill: etiqueta flotada **y** panel sin recortar por el wrapper `position: relative` (lo garantiza la capa superior del popover) |
-| 10 | Tamaños `sm`/`md`/`lg` | `componentes-combobox--sizes` (pendiente) | light | Escala del campo y del panel, que la sigue vía `matchAnchorWidth` |
+| 1 | Reposo, sin selección | `componentes-combobox--default` | light | Baseline: es un campo de texto y tiene que **parecerlo** (si se ve como un Select, el usuario no sabrá que puede escribir) |
+| 2 | Con selección comprometida | `componentes-combobox--selected` | light | El campo muestra `optionLabel(value)`, no el texto tecleado — la distinción de §Texto del campo, hecha visible |
+| 3 | Abierto, filtrando, con activa | `componentes-combobox--filtering` | light | El caso central: texto parcial, lista recortada, opción activa, y el foco **en el campo** |
+| 4 | Abierto, filtrando, con activa | `componentes-combobox--filtering` | dark | Panel elevado sobre campo editable: fondo, sombra y color de texto cambian a la vez |
+| 5 | Sin resultados | `componentes-combobox--empty` | light | Con texto en el campo y cero coincidencias — el estado que más desconcierta si no se explica |
+| 6 | Truncado (>100) | `componentes-combobox--truncated` | light | La fila de truncado, aquí alcanzable tecleando: el comportamiento observable de ADR-023 §4 |
+| 7 | Deshabilitado | `componentes-combobox--disabled` | light | Campo deshabilitado, sin panel posible |
+| 8 | Inválido **con panel abierto** | `componentes-combobox--invalid-open` | light | **No es decorativa:** la única que muestra error y panel a la vez — la coexistencia del ARIA de combobox con el `aria-describedby` de ADR-019, hecha visible |
+| 9 | Etiqueta flotante, abierto | `componentes-combobox--floating` | light | La decisión de §Autofill: etiqueta flotada **y** panel sin recortar por el wrapper `position: relative` (lo garantiza la capa superior del popover) |
+| 10 | Tamaños `sm`/`md`/`lg` | `componentes-combobox--sizes` | light | Escala del campo y del panel, que la sigue vía `matchAnchorWidth` |
 
 `Combobox/InvalidOpen` no es decorativa: es la variante que demuestra que el ARIA
 del combobox y el `aria-describedby` del error **coexisten** en el mismo `<input>`.
@@ -339,29 +338,47 @@ del combobox y el `aria-describedby` del error **coexisten** en el mismo `<input
 
 ## Presupuesto de tamaño
 
-**Presupuesto marginal:** 10.50 kB brotli *(provisional, sin medir)*
+**Presupuesto marginal:** 18.93 kB brotli
 
-> **Techo provisional, no medida** — mismo régimen que el [Select](./select.md).
-> La marca `*(provisional, sin medir)*` **caduca sola**: el gate `size-marginal` la
-> rechaza en cuanto el componente existe.
-> el PR de implementación lo sustituye por **medido + ~5 %**.
->
-> **Por qué es tan alto, y por qué es honesto.** El gate `size-marginal` mide lo
-> que paga una app que usa **solo** este componente. Como el Combobox depende del
-> Input, ese coste **entra en su marginal** (Input medido: 6.19 kB). El techo son
-> ~6.2 kB de Input más ~4 kB de combobox propio.
->
-> No es un número inflado para tener sitio: es la consecuencia medible de
-> reutilizar el Input en vez de duplicarlo. La alternativa —un campo paralelo— no
-> sería más barata para quien use los dos componentes, y además duplicaría la
-> etiqueta flotante y ADR-019. El agregado informativo es donde se ve que
-> compartir sale a cuenta.
->
-> **Matiz anotado en [#36](https://github.com/aegisui/aegisui/issues/36):** este
-> número es correcto para quien use SOLO el Combobox, pero miente al alza para
-> quien ya usa `<aegis-input>` en sus formularios — ese añade ~4 kB, no 10.5.
-> El marginal NETO (descontando la dependencia interna) es trabajo de gate
-> pendiente; hasta entonces el presupuesto vigila el bruto, dicho en voz alta.
+Medido con app Angular real contra `dist/`: **18.03 kB**, más ~5 % de margen.
+
+### El techo provisional era 10.50 kB y se quedó corto
+
+Por la misma razón que en el [Select](./select.md): asumía que los primitivos no
+entraban en el marginal. Sí entran, y aquí además entra el Input reutilizado.
+
+Números medidos, todos con el mismo método:
+
+| App que usa… | Coste sobre una app vacía |
+|---|---|
+| Solo los dos primitivos (listbox + overlay) | 14.73 kB |
+| Solo el Input | 6.19 kB |
+| Solo el Select | 16.10 kB |
+| **Solo el Combobox** | **18.03 kB** |
+
+**Aquí NO se publica una cifra de "piel propia".** La resta ingenua
+(18.03 − primitivos − Input) da **negativo**, porque brotli no es aditivo: código
+parecido comprime mejor junto, y la suma de las partes medidas por separado
+(20.9 kB) supera al total real. Inventar un reparto que los números no sostienen
+sería justo el tipo de cifra que este proyecto no publica.
+
+### El número que sí discrimina
+
+Lo que un consumidor realista paga por **añadir** el Combobox a una app que ya
+usa el Select:
+
+```
+Δ(app con Select + Combobox) − Δ(app con Select) = 3.03 kB
+```
+
+Ese es el coste honesto del componente para quien ya usa la librería, y es el que
+[#36](https://github.com/aegisui/aegisui/issues/36) propone que gobierne el
+presupuesto. Hasta que ese gate exista, el presupuesto vigila el **bruto**
+(18.93 kB), y conviene saber que **no discrimina bien**: una regresión de 1 kB en
+la piel se pierde en el ruido de los ~15 kB de infraestructura compartida.
+
+Compartir sale a cuenta, y se ve: Select y Combobox juntos cuestan 50.87 kB, no
+los 34 kB que costarían si cada uno arrastrase su propia copia de todo.
 
 ## Criterios de aceptación (se convierten en tests 1:1)
 

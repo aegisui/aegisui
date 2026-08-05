@@ -881,13 +881,18 @@ muestra el mismo fenómeno de escala que `inset-sm` vs. `inset-lg`, que ya está
 
 ## Presupuesto de tamaño
 
-**Presupuesto marginal:** 6.61 kB brotli
+**Presupuesto marginal:** 7.20 kB brotli
 
-> **Enmienda `controlAttrs`:** el presupuesto **no se sube por adelantado**. El
-> passthrough añade un `computed` y un merge pequeños, y el margen actual
-> (medido 6.19 kB contra 6.61 declarado) debería absorberlos. Si no los absorbe,
-> el gate `size-marginal` lo dirá y **la subida se justifica con el número
-> medido en el PR de implementación** — nunca al revés.
+> **Subido al implementar `controlAttrs`, con el número medido delante.** El
+> contrato dijo que el presupuesto no se subía por adelantado y que, si el margen
+> no absorbía el passthrough, la subida se justificaría con la medida. Eso es lo
+> que pasó: de **6.19 kB** a **6.85 kB** (+0.66), y el gate `size-marginal` lo
+> puso en rojo antes de que nadie lo notara.
+>
+> Verificado que esos 0.66 kB **no son el mensaje de error de desarrollo**: el
+> bloque `ngDevMode` se elimina en una build de producción (0 ocurrencias del
+> texto en el bundle optimizado). Es lógica real — el `effect`, la comparación
+> contra el conjunto protegido y el aplicar/retirar atributos.
 
 Lo que este componente añade **por encima del coste fijo** de la librería, en una
 app Angular real construida contra `dist/` (medido hoy: **6.23 kB**; el

@@ -149,6 +149,9 @@ importers:
       '@aegisui/tokens':
         specifier: workspace:*
         version: link:../../packages/tokens
+      '@floating-ui/dom':
+        specifier: 1.8.0
+        version: 1.8.0
 
   packages/cdk:
     dependencies:

@@ -109,3 +109,125 @@ describe('AegisInput (cdk brain)', () => {
     expect(screen.getByRole('textbox')).toHaveFocus();
   });
 });
+
+describe('AegisInput — passthrough al control interno (controlAttrs)', () => {
+  @Component({
+    selector: 'host-attrs',
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    imports: [AegisInput],
+    template: `<input
+      aegisInput
+      [invalid]="invalid()"
+      [errorId]="errorId()"
+      [controlAttrs]="attrs()"
+      data-testid="campo"
+    />`,
+  })
+  class AttrsHost {
+    readonly attrs = signal<Record<string, string | null> | undefined>(undefined);
+    readonly invalid = signal(false);
+    readonly errorId = signal<string | undefined>(undefined);
+  }
+
+  const montar = async () => {
+    const view = await render(AttrsHost);
+    const host = view.fixture.componentInstance;
+    const flush = async () => {
+      view.detectChanges();
+      for (let i = 0; i < 3; i++) await Promise.resolve();
+      view.detectChanges();
+    };
+    await flush();
+    return { host, flush, campo: screen.getByTestId('campo') };
+  };
+
+  it('aplica los atributos al <input>', async () => {
+    const { host, flush, campo } = await montar();
+    host.attrs.set({ role: 'combobox', 'aria-expanded': 'true' });
+    await flush();
+
+    expect(campo.getAttribute('role')).toBe('combobox');
+    expect(campo.getAttribute('aria-expanded')).toBe('true');
+  });
+
+  it('null RETIRA el atributo (no lo deja en "")', async () => {
+    const { host, flush, campo } = await montar();
+    host.attrs.set({ 'aria-activedescendant': 'opt-1' });
+    await flush();
+    expect(campo.getAttribute('aria-activedescendant')).toBe('opt-1');
+
+    host.attrs.set({ 'aria-activedescendant': null });
+    await flush();
+    expect(campo.hasAttribute('aria-activedescendant')).toBe(false);
+  });
+
+  it('retira los atributos que desaparecen del mapa', async () => {
+    const { host, flush, campo } = await montar();
+    host.attrs.set({ role: 'combobox', 'aria-expanded': 'true' });
+    await flush();
+
+    host.attrs.set({ role: 'combobox' });
+    await flush();
+    expect(campo.hasAttribute('aria-expanded')).toBe(false);
+    expect(campo.getAttribute('role')).toBe('combobox');
+  });
+
+  it('reaplica en caliente sin zone.js: 50 cambios seguidos se reflejan los 50', async () => {
+    const { host, flush, campo } = await montar();
+    for (let i = 0; i < 50; i++) {
+      host.attrs.set({ 'aria-activedescendant': `opt-${i}` });
+      await flush();
+      expect(campo.getAttribute('aria-activedescendant')).toBe(`opt-${i}`);
+    }
+  });
+
+  // RAÍL DEL CONJUNTO PROTEGIDO. Si alguien "abre" el conjunto en el futuro,
+  // estos casos se ponen rojos: la protección estructural tiene su regresión.
+  const PROTEGIDOS = [
+    'id',
+    'disabled',
+    'readonly',
+    'required',
+    'aria-required',
+    'aria-invalid',
+    'aria-describedby',
+  ];
+
+  for (const protegido of PROTEGIDOS) {
+    it(`lanza en dev al intentar escribir "${protegido}", y el valor del Input gana`, async () => {
+      const { host, flush } = await montar();
+      host.attrs.set({ [protegido]: 'pisado' });
+
+      await expect(flush()).rejects.toThrow(
+        new RegExp(`controlAttrs no puede escribir "${protegido}"`),
+      );
+    });
+  }
+
+  it('el ARIA de combobox y el propio del Input COEXISTEN en el mismo <input>', async () => {
+    const { host, flush, campo } = await montar();
+    host.invalid.set(true);
+    host.errorId.set('err-1');
+    host.attrs.set({
+      role: 'combobox',
+      'aria-expanded': 'true',
+      'aria-activedescendant': 'opt-3',
+      'aria-autocomplete': 'list',
+    });
+    await flush();
+
+    // Del envoltorio
+    expect(campo.getAttribute('role')).toBe('combobox');
+    expect(campo.getAttribute('aria-expanded')).toBe('true');
+    expect(campo.getAttribute('aria-activedescendant')).toBe('opt-3');
+    // Del Input, intactos
+    expect(campo.getAttribute('aria-invalid')).toBe('true');
+    expect(campo.getAttribute('aria-describedby')).toBe('err-1');
+  });
+
+  it('sin controlAttrs, el Input se comporta igual que antes', async () => {
+    const { campo } = await montar();
+    expect(campo.hasAttribute('role')).toBe(false);
+    expect(campo.hasAttribute('aria-expanded')).toBe(false);
+  });
+});
