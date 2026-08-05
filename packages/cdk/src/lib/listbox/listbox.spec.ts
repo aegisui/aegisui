@@ -46,10 +46,17 @@ import { AegisListbox } from './listbox';
           {{ o }}
         </div>
       }
-      @if (lb.statusMessage()) {
-        <div data-testid="status">{{ lb.statusMessage() }}</div>
-      }
     </div>
+    <!--
+      La fila de estado va FUERA del role="listbox", como la montan las pieles
+      reales: dentro, un lector la cuenta como un item más ("1 item" con cero
+      resultados). Este host imita la estructura REAL a propósito — un host de
+      pruebas que enseña una estructura que los consumidores no usan valida algo
+      que nadie ejecuta.
+    -->
+    @if (lb.statusMessage()) {
+      <div data-testid="status" aria-hidden="true">{{ lb.statusMessage() }}</div>
+    }
     <span data-testid="live" aria-live="polite">{{ lb.statusMessage() }}</span>
   `,
 })

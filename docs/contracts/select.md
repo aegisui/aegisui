@@ -292,9 +292,14 @@ la misma diferencia que otra ya cubierta.
 
 ## Presupuesto de tamaño
 
-**Presupuesto marginal:** 16.20 kB brotli
+**Presupuesto marginal:** 17.04 kB brotli
 
-Medido con app Angular real contra `dist/`: **15.43 kB**, más ~5 % de margen.
+Medido con app Angular real contra `dist/`: **16.23 kB**, más ~5 % de margen.
+
+> Subió 0.13 kB (de 16.10 a 16.23) al separar el `role="listbox"` del panel y
+> añadir la región `aria-live`. Es el coste de que un lector cuente bien los
+> items y de que el vacío y el truncado se anuncien: dos nodos más y su CSS.
+> El gate lo puso en rojo por 0.03 kB — hace exactamente lo que debe.
 
 ### El techo provisional era 3.50 kB y estaba mal
 

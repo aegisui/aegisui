@@ -336,7 +336,10 @@ describe('AegisSelectComponent', () => {
       await key('ArrowDown');
 
       expect(optionEls()).toHaveLength(0);
-      expect(screen.getByText('Sin resultados.')).toBeTruthy();
+      // La FILA VISIBLE por su clase, no `getByText`: el texto vive a propósito
+      // en dos sitios y la aserción tiene que decir en cuál lo espera.
+      const fila = document.querySelector('.aegis-select__status');
+      expect(fila?.textContent?.trim()).toBe('Sin resultados.');
     });
 
     it('más de maxVisible aplica el cap del listbox con su fila de truncado', async () => {
@@ -347,7 +350,8 @@ describe('AegisSelectComponent', () => {
       await key('ArrowDown');
 
       expect(optionEls()).toHaveLength(100);
-      expect(screen.getByText(/Mostrando los primeros 100 de 150/)).toBeTruthy();
+      const fila = document.querySelector('.aegis-select__status');
+      expect(fila?.textContent).toContain('Mostrando los primeros 100 de 150');
     });
 
     it('las opciones deshabilitadas se saltan al navegar y conservan aria-disabled', async () => {
@@ -375,6 +379,106 @@ describe('AegisSelectComponent', () => {
       const error = view.container.querySelector('.aegis-select__error');
       expect(error).not.toBeNull();
       expect(error?.textContent?.trim()).toBe('');
+    });
+  });
+
+  /**
+   * RAÍLES CONTRA EL COMPONENTE REAL.
+   *
+   * Existen por una lección concreta: los tests del listbox verificaban su
+   * contrato de anuncios contra un HOST DE PRUEBAS escrito a mano — que sí traía
+   * la región live. Daban verde mientras las pieles REALES, que son lo que el
+   * usuario toca, no la renderizaban en absoluto. Un contrato verificado contra
+   * un consumidor de mentira no dice nada del consumidor de verdad.
+   *
+   * De ahí que estos midan sobre el componente renderizado, y que comprueben lo
+   * que el lector percibe, no lo que el DOM contiene en cualquier sitio.
+   */
+  describe('estructura y anuncios del COMPONENTE REAL', () => {
+    it('el role="listbox" NO tiene más hijos que opciones — con lista vacía', async () => {
+      // NVDA cuenta los HIJOS del listbox, no los `role="option"`. Con la fila de
+      // estado dentro, anunciaba "1 item" habiendo cero resultados.
+      const { host, flush, key } = await setup();
+      host.options.set([]);
+      await flush();
+      await key('ArrowDown');
+
+      const listbox = document.querySelector('[role=listbox]')!;
+      expect(listbox.querySelectorAll('[role=option]')).toHaveLength(0);
+      expect(listbox.children, 'ningún hijo que no sea una opción').toHaveLength(0);
+    });
+
+    it('el role="listbox" NO tiene más hijos que opciones — con lista truncada', async () => {
+      const { host, flush, key } = await setup();
+      host.options.set(manyPaises(150));
+      host.maxVisible.set(100);
+      await flush();
+      await key('ArrowDown');
+
+      const listbox = document.querySelector('[role=listbox]')!;
+      expect(listbox.querySelectorAll('[role=option]')).toHaveLength(100);
+      expect(listbox.children, '100 opciones y ni un hijo más').toHaveLength(100);
+    });
+
+    it('la fila de estado es HERMANA del listbox y está oculta al lector', async () => {
+      const { host, flush, key } = await setup();
+      host.options.set([]);
+      await flush();
+      await key('ArrowDown');
+
+      const listbox = document.querySelector('[role=listbox]')!;
+      const fila = document.querySelector('.aegis-select__status')!;
+      expect(listbox.contains(fila), 'la fila no puede ser hija del listbox').toBe(false);
+      // La anuncia la región live; si además la leyera el panel, sonaría dos veces.
+      expect(fila.getAttribute('aria-hidden')).toBe('true');
+    });
+
+    it('hay UNA región aria-live, presente desde el primer render y VACÍA', async () => {
+      const { view } = await setup();
+      const regiones = view.container.querySelectorAll('[aria-live]');
+
+      expect(regiones, 'la piel real debe traer su región live').toHaveLength(1);
+      expect(regiones[0].getAttribute('aria-live')).toBe('polite');
+      expect(regiones[0].textContent?.trim()).toBe('');
+    });
+
+    it('la región live está FUERA del popover (dentro saldría del árbol al cerrar)', async () => {
+      const { view } = await setup();
+      const panel = view.container.querySelector('.aegis-select__panel')!;
+      const region = view.container.querySelector('[aria-live]')!;
+
+      expect(panel.contains(region)).toBe(false);
+    });
+
+    it('el vacío se anuncia EN LA REGIÓN LIVE, no solo en cualquier sitio del DOM', async () => {
+      // La aserción anterior era `getByText('Sin resultados.')`, que encontraba la
+      // fila visual y se daba por satisfecha aunque nada lo anunciara.
+      const { host, flush, key } = await setup();
+      host.options.set([]);
+      await flush();
+      await key('ArrowDown');
+
+      const region = document.querySelector('[aria-live]')!;
+      expect(region.textContent?.trim()).toBe('Sin resultados.');
+    });
+
+    it('el truncado se anuncia EN LA REGIÓN LIVE con su recuento', async () => {
+      const { host, flush, key } = await setup();
+      host.options.set(manyPaises(150));
+      host.maxVisible.set(100);
+      await flush();
+      await key('ArrowDown');
+
+      const region = document.querySelector('[aria-live]')!;
+      expect(region.textContent).toContain('Mostrando los primeros 100 de 150');
+    });
+
+    it('el recuento NORMAL no se anuncia: la región sigue vacía', async () => {
+      const { key } = await setup();
+      await key('ArrowDown');
+
+      const region = document.querySelector('[aria-live]')!;
+      expect(region.textContent?.trim()).toBe('');
     });
   });
 });

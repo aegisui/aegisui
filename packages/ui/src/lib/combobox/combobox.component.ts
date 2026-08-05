@@ -64,44 +64,61 @@ let nextId = 0;
       (focusout)="onFocusOut()"
     />
 
+    <!--
+      Overlay y listbox en elementos SEPARADOS: compartiéndolo, la fila de estado
+      quedaba como HIJA del "role="listbox" y NVDA la contaba como un item más
+      ("1 item" con cero resultados). No basta con quitarle "role="option".
+    -->
     <div
       aegisOverlay
-      aegisListbox
-      #lb="aegisListbox"
       class="aegis-combobox__panel"
-      [id]="panelId()"
       [anchor]="anchorEl()"
       [(open)]="open"
       [placement]="placement()"
       [matchAnchorWidth]="true"
       [maxHeightFromViewport]="true"
-      [options]="options()"
-      [optionLabel]="optionLabel()"
-      [filter]="filter()"
-      [maxVisible]="maxVisible()"
-      [disabledOptions]="disabledOptions()"
-      [editable]="true"
-      [value]="value()"
-      (optionSelected)="onOptionSelected($event)"
     >
-      @for (option of lb.visibleOptions(); track $index) {
-        <div
-          class="aegis-combobox__option"
-          role="option"
-          [id]="lb.optionId($index)"
-          [attr.aria-selected]="lb.isSelected($index)"
-          [attr.aria-disabled]="lb.isDisabledAt($index) ? 'true' : null"
-          [class.aegis-combobox__option--active]="lb.activeIndex() === $index"
-          (mousedown)="$event.preventDefault()"
-          (click)="lb.selectAt($index)"
-        >
-          {{ lb.labelOf(option) }}
-        </div>
-      }
+      <div
+        aegisListbox
+        #lb="aegisListbox"
+        class="aegis-combobox__list"
+        [id]="listboxId()"
+        [options]="options()"
+        [optionLabel]="optionLabel()"
+        [filter]="filter()"
+        [maxVisible]="maxVisible()"
+        [disabledOptions]="disabledOptions()"
+        [editable]="true"
+        [value]="value()"
+        (optionSelected)="onOptionSelected($event)"
+      >
+        @for (option of lb.visibleOptions(); track $index) {
+          <div
+            class="aegis-combobox__option"
+            role="option"
+            [id]="lb.optionId($index)"
+            [attr.aria-selected]="lb.isSelected($index)"
+            [attr.aria-disabled]="lb.isDisabledAt($index) ? 'true' : null"
+            [class.aegis-combobox__option--active]="lb.activeIndex() === $index"
+            (mousedown)="$event.preventDefault()"
+            (click)="lb.selectAt($index)"
+          >
+            {{ lb.labelOf(option) }}
+          </div>
+        }
+      </div>
+
+      <!-- Hermana del listbox y "aria-hidden": la anuncia la región live. -->
       @if (lb.statusMessage()) {
-        <div class="aegis-combobox__status">{{ lb.statusMessage() }}</div>
+        <div class="aegis-combobox__status" aria-hidden="true">{{ lb.statusMessage() }}</div>
       }
     </div>
+
+    <!--
+      Región live FUERA del popover (dentro saldría del árbol al cerrarse),
+      presente desde el primer render, vacía en reposo, interpolación plana.
+    -->
+    <span class="aegis-combobox__sr" aria-live="polite">{{ lb.statusMessage() }}</span>
   `,
   styleUrl: './combobox.component.css',
 })
@@ -150,7 +167,7 @@ export class AegisComboboxComponent<T> {
   /** Texto tecleado. `undefined` = el campo muestra la opción comprometida. */
   private readonly typed = signal<string | undefined>(undefined);
 
-  protected readonly panelId = computed(() => `${this.uid}-listbox`);
+  protected readonly listboxId = computed(() => `${this.uid}-listbox`);
   protected readonly filter = computed(() => this.typed() ?? '');
 
   /**
@@ -177,7 +194,7 @@ export class AegisComboboxComponent<T> {
     return {
       role: 'combobox',
       'aria-expanded': this.open() ? 'true' : 'false',
-      'aria-controls': this.panelId(),
+      'aria-controls': this.listboxId(),
       // `null` RETIRA el atributo: sin opción activa no puede quedar colgando.
       'aria-activedescendant': this.open() ? (lb.activeDescendantId() ?? null) : null,
       'aria-autocomplete': 'list',

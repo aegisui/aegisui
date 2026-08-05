@@ -196,3 +196,88 @@ test.describe('Popover real (Chromium) — lo que jsdom no cubre', () => {
     expect(scrollea, 'con 100 opciones el panel debe scrollear').toBe(true);
   });
 });
+
+/**
+ * Recuento de items y anuncios, en el ÁRBOL DE ACCESIBILIDAD real.
+ *
+ * Nace de un fallo del pase manual con NVDA: anunciaba "1 item" con cero
+ * resultados, porque la fila de estado era HIJA del `role="listbox"` y el lector
+ * cuenta hijos, no `role="option"`. Ningún test lo veía: los del primitivo
+ * corrían contra un host de pruebas escrito a mano, que además montaba la
+ * estructura equivocada.
+ */
+test.describe('Recuento y anuncios (Chromium) — lo que oye un lector', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/');
+  });
+
+  test('con cero resultados, el listbox no tiene NINGÚN hijo que no sea opción', async ({
+    page,
+  }) => {
+    const combo = page.getByTestId('combobox-cerrado');
+    const campo = combo.getByRole('combobox');
+
+    await campo.click();
+    await campo.fill('zzz');
+
+    const listbox = combo.locator('[role=listbox]');
+    await expect(listbox.getByRole('option')).toHaveCount(0);
+    // Lo que NVDA cuenta: hijos del listbox. Con la fila dentro decía "1 item".
+    expect(await listbox.evaluate((el) => el.children.length)).toBe(0);
+  });
+
+  test('con lista truncada, el listbox tiene exactamente 100 hijos', async ({ page }) => {
+    const select = page.getByTestId('select-truncado');
+    await select.getByRole('combobox').click();
+
+    const listbox = select.locator('[role=listbox]');
+    await expect(listbox.getByRole('option')).toHaveCount(100);
+    expect(
+      await listbox.evaluate((el) => el.children.length),
+      'ni un hijo de más: con la fila dentro, NVDA decía 101 items',
+    ).toBe(100);
+  });
+
+  test('el vacío se anuncia por la región live, y la fila visible NO lo duplica', async ({
+    page,
+  }) => {
+    const combo = page.getByTestId('combobox-cerrado');
+    const campo = combo.getByRole('combobox');
+
+    await campo.click();
+    await campo.fill('zzz');
+
+    const region = combo.locator('[aria-live]');
+    await expect(region).toHaveText('Sin resultados.');
+
+    // La fila visible existe para quien ve, pero está fuera del árbol de
+    // accesibilidad: un solo canal anuncia (ADR-019 Regla 3).
+    const fila = combo.locator('.aegis-combobox__status');
+    await expect(fila).toBeVisible();
+    await expect(fila).toHaveAttribute('aria-hidden', 'true');
+  });
+
+  test('el truncado se anuncia con su recuento', async ({ page }) => {
+    const select = page.getByTestId('select-truncado');
+    await select.getByRole('combobox').click();
+
+    await expect(select.locator('[aria-live]')).toHaveText(/Mostrando los primeros 100 de 150/);
+  });
+
+  test('el recuento normal NO se anuncia: la región queda vacía', async ({ page }) => {
+    const select = page.getByTestId('select-cerrado');
+    await select.getByRole('combobox').click();
+
+    await expect(select.getByRole('option')).toHaveCount(3);
+    await expect(select.locator('[aria-live]')).toHaveText('');
+  });
+
+  test('la región live existe desde el primer render, antes de abrir nada', async ({ page }) => {
+    const combo = page.getByTestId('combobox-cerrado');
+    const region = combo.locator('[aria-live]');
+
+    await expect(region).toHaveCount(1);
+    await expect(region).toHaveAttribute('aria-live', 'polite');
+    await expect(region).toHaveText('');
+  });
+});
