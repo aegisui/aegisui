@@ -121,6 +121,27 @@ jobs:
       - run: pnpm nx run-many -t build
       - run: pnpm peer-floor
 
+  # `publish-smoke` verifica los ARTEFACTOS desde un CONSUMIDOR EXTERNO REAL
+  # (issue #19): empaqueta, instala con **npm** en un proyecto FUERA del monorepo,
+  # ejecuta `aegisui add` con los 7 componentes y los typechequea. Es la única
+  # forma válida de comprobarlo: dentro del repo el fallback del CLI siempre salva
+  # la papeleta y pnpm siempre resuelve `workspace:` — por eso los cinco
+  # componentes del set mínimo reportaban "CLI ✓" con ADR-003 roto.
+  #
+  # Este job es además el raíl que habría cazado el #24: mientras esté en rojo, un
+  # comentario no puede declarar la librería publicable. Es lo que hace del estado
+  # publicable algo que el CI AFIRMA, no algo que se afirma en prosa. Por eso va
+  # como REQUIRED en la protección de rama, no como informativo.
+  publish-smoke:
+    name: publish-smoke
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - run: pnpm nx run-many -t build
+      - run: pnpm publish-smoke
+      - run: pnpm publish-smoke:canary
+
   # `contracts` corre la reconciliación contrato<->componente sobre los fixtures
   # (dos direcciones) y, "además de", sobre packages/ui cuando existan (Fase 3).
   contracts:

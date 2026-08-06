@@ -23,6 +23,9 @@
     "size:canary": "node scripts/check-size-consumer.mjs --canary",
     "size:marginal": "node scripts/check-size-marginal.mjs",
     "size:marginal:canary": "node scripts/check-size-marginal.mjs --canary",
+    "assemble-dist": "node scripts/assemble-dist.mjs",
+    "publish-smoke": "node scripts/assemble-dist.mjs && node scripts/publish-smoke.mjs",
+    "publish-smoke:canary": "node scripts/publish-smoke.mjs --canary",
     "storybook": "storybook dev -p 6006",
     "storybook:build": "storybook build -o dist/storybook"
   },

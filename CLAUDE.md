@@ -21,6 +21,9 @@ Node ≥ 22.22.3 (ver `.nvmrc`) y pnpm vía corepack (versión pineada en `packa
 | peer-floor (minVersion del artefacto ≤ 20) | `pnpm peer-floor` (requiere build antes) |
 | Tamaño: coste de consumidor de `cdk` + agregado informativo | `pnpm size` (requiere build antes) |
 | Tamaño: coste **fijo** + **marginal** por componente | `pnpm size:marginal` (requiere build antes) |
+| Ensamblar el artefacto publicable | `pnpm assemble-dist` (requiere build antes) |
+| Smoke de publicación (consumidor EXTERNO, npm) | `pnpm publish-smoke` (requiere build antes; ADR-024) |
+| Canario del smoke (los 3 fallos de #19) | `pnpm publish-smoke:canary` (requiere `publish-smoke` antes) |
 | e2e / Playwright (vs sandbox) | `pnpm nx run sandbox:e2e` |
 | Storybook (dev) | `pnpm nx run tokens:build && pnpm storybook` |
 | Storybook (build estático) | `pnpm nx run tokens:build && pnpm storybook:build` |
@@ -60,6 +63,7 @@ Los componentes REALES se verifican **además**, en el mismo job y sin renombrar
 - `scripts/gates/` → los 7 gates DOM de §9.2 (analizadores propios, cero deps) + `run.mjs` (las dos direcciones; es el comando de cada job de CI). ADR-013.
 - `apps/sandbox/e2e/gate-*.spec.ts` → la mitad de cada gate que mira el **componente real** en Chromium. Vive aquí, no en `scripts/gates/`: necesita navegador y las galerías del sandbox.
 - `scripts/check-peer-floor.mjs` → gate `peer-floor`.
+- `scripts/assemble-dist.mjs` → ensambla el artefacto publicable (fuente incluida por ADR-001, manifiestos de `cli`/`icons`, `workspace:` resuelto a rango real). `scripts/publish-smoke.mjs` → lo verifica desde un proyecto **fuera del monorepo** con npm, con los 7 componentes (ADR-024): dentro del repo el fallback del CLI hace verde un ADR-003 roto. **Todo componente nuevo entra en su `COMPONENTS`** o el smoke falla.
 - `scripts/check-contracts.mjs` → reconciliación contrato↔componente (la usa el gate `contracts` sobre fixtures y sobre `packages/ui` en Fase 3).
 - `docs/{SPEC,CONTRIBUTING}.md`, `docs/adr/`, `docs/contracts/` (uno por componente de `ui`) y `docs/contracts/cdk/` (uno por primitivo headless de `cdk`). **Los dos directorios los miran `contracts` Y `coverage`, con reglas distintas** (ADR-023): `reconcile()` para `ui` (selector `aegis-*`), `reconcilePrimitives()` para `cdk` (directorio en `packages/cdk/src/lib/`, sin exigir `aegis-*`; un primitivo que es el brain de un componente homónimo queda cubierto por el contrato de arriba, como `button`/`input`/`switch`). Un contrato de primitivo headless se exime de matriz visual **declarándolo** (`**Sin matriz visual:** primitivo headless, no renderiza`), nunca por omisión: si el sujeto renderiza de verdad, la exención es violación.
 - `.github/workflows/ci.yml` → gates de §9.2. `.changeset/` → versionado.
