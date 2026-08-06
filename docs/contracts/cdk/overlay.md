@@ -105,6 +105,20 @@ gancho de estilo declarativo sin suscribirse a `placementChange`.
 - Al cerrarse: `autoUpdate` se **desuscribe siempre**, también si el componente se
   destruye con el overlay abierto. Fuga de listeners = defecto (se testea).
 
+### Estrategia de posicionamiento: `fixed`, y no es opcional
+
+`computePosition` se llama **siempre** con `strategy: 'fixed'`. Un elemento con
+`popover` vive en la **capa superior**, cuyo bloque contenedor es el viewport, así
+que sus coordenadas tienen que ser relativas al viewport.
+
+La estrategia por defecto de Floating UI (`absolute`) devuelve coordenadas
+relativas al **documento**. Aplicadas a un `position: fixed`, colocan el panel a
+la altura que el ancla ocupa en la página entera: en una página larga, a miles de
+píxeles fuera de la pantalla. **El panel se abre de verdad —`:popover-open`
+casa, tiene caja y opciones— y simplemente no se ve.** Es un fallo silencioso que
+parece "el desplegable no funciona", y por eso queda fijado aquí y con test de
+regresión.
+
 ### Apoyo en la Popover API
 
 El flotante usa `popover="auto"`. De ahí salen **gratis y garantizados por el

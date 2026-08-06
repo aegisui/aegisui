@@ -28,3 +28,6 @@ playwright-report
 .DS_Store
 .env
 .env.local
+
+# config local para levantar el sandbox (lleva rutas absolutas de la máquina)
+.claude/launch.json

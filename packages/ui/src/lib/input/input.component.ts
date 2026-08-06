@@ -63,6 +63,7 @@ let nextId = 0;
         [helpId]="helpId()"
         [errorId]="errorId()"
         [value]="value()"
+        [controlAttrs]="controlAttrs()"
         (input)="onInput($event)"
       />
     } @else {
@@ -83,6 +84,7 @@ let nextId = 0;
           [helpId]="helpId()"
           [errorId]="errorId()"
           [value]="value()"
+          [controlAttrs]="controlAttrs()"
           (input)="onInput($event)"
         />
         <label [for]="resolvedId()" class="aegis-input__label aegis-input__label--float">
@@ -145,6 +147,13 @@ export class AegisInputComponent {
 
   /** `id` propio del campo; si no se aporta, se autogenera. */
   readonly id = input<string | undefined>(undefined);
+
+  /**
+   * Atributos que un ENVOLTORIO vuelca sobre el `<input>` interno (el
+   * focalizable). Canal genérico, sin vocabulario de ningún envoltorio concreto;
+   * el conjunto protegido y las reglas viven en el brain (`AegisInput` del cdk).
+   */
+  readonly controlAttrs = input<Record<string, string | null> | undefined>(undefined);
 
   protected readonly classes = computed(() => {
     const base = `aegis-input aegis-input--${this.size()}`;

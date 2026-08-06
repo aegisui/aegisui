@@ -1,6 +1,33 @@
-import { booleanAttribute, computed, Directive, ElementRef, inject, input } from '@angular/core';
+import {
+  booleanAttribute,
+  computed,
+  Directive,
+  effect,
+  ElementRef,
+  inject,
+  input,
+} from '@angular/core';
 
 let nextId = 0;
+
+/**
+ * Atributos que gobierna el propio Input y que un envoltorio **NO PUEDE**
+ * escribir por `controlAttrs`.
+ *
+ * La protección es estructural, no una regla de estilo: lo que no se puede
+ * escribir no se puede romper. `aria-describedby` es el más delicado — es la
+ * composición de ayuda + error de ADR-019, y pisarlo rompería el anuncio del
+ * error de la forma más silenciosa posible.
+ */
+const ATRIBUTOS_PROTEGIDOS: readonly string[] = [
+  'id',
+  'disabled',
+  'readonly',
+  'required',
+  'aria-required',
+  'aria-invalid',
+  'aria-describedby',
+];
 
 /**
  * Brain (headless) del Input — `@aegisui/cdk` (ADR-002, brain/skin).
@@ -58,6 +85,71 @@ export class AegisInput {
     const ids = [this.helpId(), this.errorId()].filter((v): v is string => !!v);
     return ids.length > 0 ? ids.join(' ') : null;
   });
+
+  /**
+   * Atributos que un ENVOLTORIO vuelca sobre este `<input>`.
+   *
+   * Existe porque un envoltorio (hoy el Combobox) necesita que su ARIA aterrice
+   * en el `<input>` REAL —el que recibe el foco—, no en el host del componente
+   * que lo pinta. Sin esto, un lector de pantalla enfoca un campo sin `role` ni
+   * `aria-activedescendant`: el patrón entero deja de funcionar.
+   *
+   * **El Input NO gana conocimiento de combobox**: esto es un canal genérico
+   * ("un envoltorio puede gobernar mi control interno"), reutilizable por
+   * cualquier envoltorio futuro sin volver a tocar esta API.
+   *
+   * Reglas:
+   * - `null` **retira** el atributo (no lo pone a `""`). Lo exige el contrato del
+   *   listbox para `aria-activedescendant`, que debe DESAPARECER sin opción activa.
+   * - Los {@link ATRIBUTOS_PROTEGIDOS} no se pueden escribir: en desarrollo se
+   *   lanza nombrando el atributo; en producción gana el Input, sin ruido.
+   */
+  readonly controlAttrs = input<Record<string, string | null> | undefined>(undefined);
+
+  /** Claves aplicadas en la última pasada, para poder retirar las que desaparezcan. */
+  private aplicadas: string[] = [];
+
+  constructor() {
+    effect(() => {
+      const attrs = this.controlAttrs() ?? {};
+      const el = this.elementRef.nativeElement;
+
+      // Falla ruidosamente, como los gates. Ignorar en silencio es cómo alguien
+      // pierde una tarde preguntándose por qué su atributo no se aplica. El
+      // bloque desaparece en producción (`ngDevMode` queda como `false`).
+      if (typeof ngDevMode === 'undefined' || ngDevMode) {
+        for (const clave of Object.keys(attrs)) {
+          if (ATRIBUTOS_PROTEGIDOS.includes(clave.toLowerCase())) {
+            throw new Error(
+              `[AegisInput] controlAttrs no puede escribir "${clave}": lo gobierna el ` +
+                `propio Input. Protegidos: ${ATRIBUTOS_PROTEGIDOS.join(', ')}. ` +
+                `Pisarlos rompería la relación label/id o el anuncio del error (ADR-019).`,
+            );
+          }
+        }
+      }
+
+      for (const clave of this.aplicadas) {
+        if (!(clave in attrs)) {
+          el.removeAttribute(clave);
+        }
+      }
+
+      const siguientes: string[] = [];
+      for (const [clave, valor] of Object.entries(attrs)) {
+        if (ATRIBUTOS_PROTEGIDOS.includes(clave.toLowerCase())) {
+          continue; // en producción: gana el Input
+        }
+        if (valor === null) {
+          el.removeAttribute(clave);
+        } else {
+          el.setAttribute(clave, valor);
+          siguientes.push(clave);
+        }
+      }
+      this.aplicadas = siguientes;
+    });
+  }
 
   /** Enfoca el campo real. Expuesto para consumidores (p. ej. tras validar un formulario). */
   focus(): void {

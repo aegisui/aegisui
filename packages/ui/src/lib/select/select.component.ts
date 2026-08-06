@@ -1,4 +1,5 @@
 import {
+  afterNextRender,
   booleanAttribute,
   ChangeDetectionStrategy,
   Component,
@@ -7,6 +8,7 @@ import {
   input,
   model,
   output,
+  signal,
   viewChild,
 } from '@angular/core';
 import { AegisListbox, AegisOverlay, type AegisPlacement } from '@aegisui/cdk';
@@ -42,7 +44,7 @@ let nextId = 0;
     </label>
 
     <!--
-      El panel se declara DESPUÉS del disparador pero \`lb\` se referencia ANTES:
+      El panel se declara DESPUÉS del disparador pero "lb" se referencia ANTES:
       Angular instancia las directivas de una vista en la pasada de creación y
       evalúa los bindings en la de actualización, así que la instancia ya existe.
       Es el mismo cableado que usan los tests del propio listbox.
@@ -57,7 +59,7 @@ let nextId = 0;
       [class.aegis-select__trigger--placeholder]="value() === undefined"
       [disabled]="disabled()"
       [attr.aria-expanded]="open() ? 'true' : 'false'"
-      [attr.aria-controls]="panelId()"
+      [attr.aria-controls]="listboxId()"
       aria-haspopup="listbox"
       [attr.aria-activedescendant]="open() ? (lb.activeDescendantId() ?? null) : null"
       [attr.aria-invalid]="invalid() ? 'true' : null"
@@ -70,43 +72,70 @@ let nextId = 0;
       <span class="aegis-select__indicator" aria-hidden="true"></span>
     </button>
 
+    <!--
+      El overlay y el listbox van en elementos SEPARADOS a propósito. Cuando
+      compartían elemento, la fila de estado quedaba como HIJA del
+      "role="listbox" y NVDA la contaba: anunciaba "1 item" con cero opciones, y
+      "101 items" con cien. No basta con que no tenga "role="option" — para el
+      recuento cuenta ser hijo del listbox.
+    -->
     <div
       aegisOverlay
-      aegisListbox
-      #lb="aegisListbox"
       class="aegis-select__panel"
-      [id]="panelId()"
-      [anchor]="triggerEl()?.nativeElement"
+      [anchor]="anchorEl()"
       [(open)]="open"
       [placement]="placement()"
       [matchAnchorWidth]="true"
       [maxHeightFromViewport]="true"
-      [options]="options()"
-      [optionLabel]="optionLabel()"
-      [disabledOptions]="disabledOptions()"
-      [maxVisible]="maxVisible()"
-      [editable]="false"
-      [typeahead]="true"
-      [value]="value()"
-      (optionSelected)="onOptionSelected($event)"
     >
-      @for (option of lb.visibleOptions(); track $index) {
-        <div
-          class="aegis-select__option"
-          role="option"
-          [id]="lb.optionId($index)"
-          [attr.aria-selected]="lb.isSelected($index)"
-          [attr.aria-disabled]="lb.isDisabledAt($index) ? 'true' : null"
-          [class.aegis-select__option--active]="lb.activeIndex() === $index"
-          (click)="lb.selectAt($index)"
-        >
-          {{ lb.labelOf(option) }}
-        </div>
-      }
+      <div
+        aegisListbox
+        #lb="aegisListbox"
+        class="aegis-select__list"
+        [id]="listboxId()"
+        [options]="options()"
+        [optionLabel]="optionLabel()"
+        [disabledOptions]="disabledOptions()"
+        [maxVisible]="maxVisible()"
+        [editable]="false"
+        [typeahead]="true"
+        [value]="value()"
+        (optionSelected)="onOptionSelected($event)"
+      >
+        @for (option of lb.visibleOptions(); track $index) {
+          <div
+            class="aegis-select__option"
+            role="option"
+            [id]="lb.optionId($index)"
+            [attr.aria-selected]="lb.isSelected($index)"
+            [attr.aria-disabled]="lb.isDisabledAt($index) ? 'true' : null"
+            [class.aegis-select__option--active]="lb.activeIndex() === $index"
+            (click)="lb.selectAt($index)"
+          >
+            {{ lb.labelOf(option) }}
+          </div>
+        }
+      </div>
+
+      <!--
+        HERMANA del listbox, no hija: se ve donde el usuario mira (dentro del
+        panel) sin contar como opción. "aria-hidden" porque quien la anuncia es
+        la región live de abajo — un solo canal para el mismo contenido
+        (ADR-019 Regla 3).
+      -->
       @if (lb.statusMessage()) {
-        <div class="aegis-select__status">{{ lb.statusMessage() }}</div>
+        <div class="aegis-select__status" aria-hidden="true">{{ lb.statusMessage() }}</div>
       }
     </div>
+
+    <!--
+      La región live vive FUERA del popover: dentro se iría del árbol de
+      accesibilidad cada vez que el panel se cierra, y una región que aparece en
+      caliente puede no registrarse. Siempre presente, vacía en reposo, e
+      interpolación PLANA — un "@if" alrededor recrearía el nodo y dispararía
+      doble anuncio (ADR-019 Regla 4).
+    -->
+    <span class="aegis-select__sr" aria-live="polite">{{ lb.statusMessage() }}</span>
 
     @if (helpText()) {
       <span class="aegis-select__help" [id]="helpId()">{{ helpText() }}</span>
@@ -116,9 +145,26 @@ let nextId = 0;
   styleUrl: './select.component.css',
 })
 export class AegisSelectComponent<T> {
-  protected readonly triggerEl = viewChild<ElementRef<HTMLButtonElement>>('trigger');
+  private readonly triggerRef = viewChild<ElementRef<HTMLButtonElement>>('trigger');
+
+  /**
+   * Ancla del overlay. **No se ata directamente al `viewChild`**: esa consulta se
+   * resuelve DESPUÉS de la primera pasada, y con `open=true` desde el montaje no
+   * hay ningún evento posterior que vuelva a evaluar el binding — el efecto del
+   * overlay vería `anchor` indefinido, no abriría, y el panel se quedaría cerrado
+   * para siempre.
+   *
+   * Escribir esta señal tras el render garantiza una pasada más y cierra la
+   * carrera. Lo destapó el gate e2e en Chromium real: jsdom no podía verlo,
+   * porque allí el panel nunca se muestra de todos modos.
+   */
+  protected readonly anchorEl = signal<HTMLElement | undefined>(undefined);
 
   private readonly uid = `aegis-select-${nextId++}`;
+
+  constructor() {
+    afterNextRender(() => this.anchorEl.set(this.triggerRef()?.nativeElement));
+  }
 
   readonly label = input('');
   readonly options = input<readonly T[]>([]);
@@ -139,7 +185,7 @@ export class AegisSelectComponent<T> {
   readonly selectionChange = output<T>();
 
   protected readonly triggerId = computed(() => `${this.uid}-trigger`);
-  protected readonly panelId = computed(() => `${this.uid}-listbox`);
+  protected readonly listboxId = computed(() => `${this.uid}-listbox`);
   protected readonly helpId = computed(() => `${this.uid}-help`);
   protected readonly errorId = computed(() => `${this.uid}-error`);
 

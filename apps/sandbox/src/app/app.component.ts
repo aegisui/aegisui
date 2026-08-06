@@ -17,6 +17,8 @@ import { SwitchGalleryComponent } from './switch-gallery.component';
 import { CardGalleryComponent } from './card-gallery.component';
 import { BadgeGalleryComponent } from './badge-gallery.component';
 import { ComposicionBenchComponent } from './composicion-bench.component';
+import { SelectComboboxGalleryComponent } from './select-combobox-gallery.component';
+import { SelectComboboxA11yManualComponent } from './select-combobox-a11y-manual.component';
 
 type Theme = 'light' | 'dark';
 
@@ -54,6 +56,8 @@ interface Preset {
     CardGalleryComponent,
     BadgeGalleryComponent,
     ComposicionBenchComponent,
+    SelectComboboxGalleryComponent,
+    SelectComboboxA11yManualComponent,
   ],
   styleUrl: './app.component.css',
   template: `
@@ -235,6 +239,26 @@ interface Preset {
           (ADR-019). Guion del pase en <code>docs/pase-manual-set-minimo.md</code>.
         </p>
         <aegis-composicion-bench />
+      </section>
+
+      <section class="panel" aria-labelledby="select-combobox-title">
+        <h2 id="select-combobox-title">Select y Combobox (Fase 5)</h2>
+        <p class="muted">
+          Galería estática para los gates e2e, con los paneles ABIERTOS: es la única forma de que
+          axe, el contraste y el target-size vean las opciones — y de comprobar en un navegador REAL
+          lo que jsdom no puede decirnos, porque no implementa la Popover API.
+        </p>
+        <aegis-select-combobox-gallery />
+      </section>
+
+      <section class="panel" aria-labelledby="select-combobox-a11y-title">
+        <h2 id="select-combobox-a11y-title">Select y Combobox — pase manual con lector</h2>
+        <p class="muted">
+          El examen final del patrón (SPEC §8.4): foco virtual sobre un campo editable, que es donde
+          los lectores más difieren. Ningún gate lo cubre. Los nueve casos, con NVDA+Firefox
+          <strong>y</strong> con VoiceOver+Safari — un solo lector no certifica un patrón.
+        </p>
+        <aegis-select-combobox-a11y-manual />
       </section>
     </main>
   `,

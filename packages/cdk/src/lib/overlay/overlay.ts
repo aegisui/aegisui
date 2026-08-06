@@ -155,6 +155,15 @@ export class AegisOverlay {
 
     computePosition(anchorEl, floatingEl, {
       placement: this.placement(),
+      // `fixed` NO es opcional aquí, y omitirlo es un fallo silencioso caro: un
+      // elemento con `popover` vive en la CAPA SUPERIOR, cuyo bloque contenedor
+      // es el viewport. La estrategia por defecto de Floating UI (`absolute`)
+      // devuelve coordenadas relativas al DOCUMENTO; aplicadas a un
+      // `position: fixed` colocan el panel a la altura que el ancla ocupa en la
+      // página entera. En una página larga eso lo manda a miles de píxeles de
+      // distancia: el panel se abre de verdad, pero fuera de la pantalla, y
+      // parece que "no se despliega".
+      strategy: 'fixed',
       middleware,
     }).then(({ x, y, placement: effectivePlacement }) => {
       floatingEl.style.setProperty('--aegis-overlay-x', `${x}px`);

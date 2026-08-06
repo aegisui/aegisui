@@ -3,7 +3,9 @@
   "version": "0.0.0",
   "private": true,
   "description": "App Angular real para probar componentes de Aegis UI.",
+  "//floating-ui": "Dependencia TRANSITIVA de @aegisui/cdk, declarada aquí a propósito: el sandbox consume la librería por rutas de tsconfig al FUENTE, no por un install real, así que no la recibe sola. Sin esto el servidor de dev no resuelve el import (Vite pre-empaqueta y resuelve desde la raíz, donde pnpm no la eleva) y TODOS los gates e2e se caen. Un consumidor de npm sí la recibe transitiva. Versión exacta, igual que en cdk.",
   "dependencies": {
-    "@aegisui/tokens": "workspace:*"
+    "@aegisui/tokens": "workspace:*",
+    "@floating-ui/dom": "1.8.0"
   }
 }

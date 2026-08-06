@@ -308,3 +308,21 @@ describe('AegisOverlay', () => {
     expect(validPlacements).toHaveLength(7);
   });
 });
+
+describe('AegisOverlay — estrategia de posicionamiento', () => {
+  it('usa strategy "fixed": la capa superior se posiciona contra el VIEWPORT', async () => {
+    // Regresión de un bug real: con la estrategia por defecto (`absolute`),
+    // Floating UI devuelve coordenadas relativas al DOCUMENTO. Aplicadas al
+    // `position: fixed` que exige la capa superior, el panel aterriza a la
+    // altura que el ancla ocupa en la página entera — en una página larga, a
+    // miles de píxeles fuera de la pantalla. El panel SÍ se abría; simplemente
+    // no se veía.
+    const { host, anchorEl, flush } = await setup();
+    host.anchor.set(anchorEl);
+    host.open.set(true);
+    await flush();
+
+    const [, , config] = mockComputePosition.mock.calls[0];
+    expect(config.strategy).toBe('fixed');
+  });
+});
